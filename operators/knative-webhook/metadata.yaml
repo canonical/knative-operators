@@ -1,0 +1,10 @@
+name: knative-webhook
+description: Kubernetes-based platform to deploy and manage modern serverless workloads.
+series: [kubernetes]
+summary: |
+  Knative service - activator
+
+  Intercepts all Kubernetes API calls as well as all CRD insertions and updates. Sets default
+  values, rejects inconsitent and invalid objects, and validates and mutates Kubernetes API calls.
+
+  https://knative.dev/docs/serving/knative-kubernetes-services/#service-webhook

@@ -1,0 +1,19 @@
+name: knative
+bundle: kubernetes
+applications:
+  knative-activator:
+    charm: ch:knative-activator
+    scale: 1
+    trust: true
+  knative-autoscaler:
+    charm: ch:knative-autoscaler
+    scale: 1
+    trust: true
+  knative-controller:
+    charm: ch:knative-controller
+    scale: 1
+    trust: true
+  knative-webhook:
+    charm: ch:knative-webhook
+    scale: 1
+    trust: true

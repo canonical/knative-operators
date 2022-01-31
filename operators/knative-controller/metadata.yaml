@@ -1,0 +1,12 @@
+name: knative-controller
+description: Kubernetes-based platform to deploy and manage modern serverless workloads.
+series: [kubernetes]
+summary: |
+  Knative service - controller
+
+  Reconciles all the public Knative objects and autoscaling CRDs. When a user applies a Knative
+  service to the Kubernetes API, this creates the configuration and route. It will convert the
+  configuration into revisions and the revisions into deployments and Knative Pod Autoscalers
+  (KPAs).
+
+  https://knative.dev/docs/serving/knative-kubernetes-services/#service-controller

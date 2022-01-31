@@ -1,0 +1,10 @@
+name: knative-activator
+description: Kubernetes-based platform to deploy and manage modern serverless workloads.
+series: [kubernetes]
+summary: |
+  Knative service - activator
+
+  Receives & buffers requests for inactive revisions and reporting metrics to the autoscaler.
+  Also retries requests to a revision after the autoscaler scales the revision based on the reported metrics.
+
+  https://knative.dev/docs/serving/knative-kubernetes-services/#service-activator

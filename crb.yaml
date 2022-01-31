@@ -1,13 +1,3 @@
-# Charmed Knative Operators
-
-Knative is a Kubernetes-based platform to deploy and manage modern serverless workloads.
-
-For more details of what is possible with Knative, see https://knative.dev/
-
-
-## Install
-
-``` yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -29,4 +19,3 @@ subjects:
 - kind: ServiceAccount
   name: knative-webhook-operator
   namespace: knative-serving
-```

@@ -1,0 +1,9 @@
+name: knative-autoscaler
+description: Kubernetes-based platform to deploy and manage modern serverless workloads.
+series: [kubernetes]
+summary: |
+  Knative service - autoscaler
+
+  Receives request metrics and adjusts the number of pods required to handle the load of traffic.
+
+  https://knative.dev/docs/serving/knative-kubernetes-services/#service-autoscaler

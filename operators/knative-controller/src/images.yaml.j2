@@ -1,0 +1,14 @@
+apiVersion: caching.internal.knative.dev/v1alpha1
+kind: Image
+metadata:
+  name: queue-proxy
+  namespace: knative-serving
+  labels:
+    app.kubernetes.io/component: queue-proxy
+    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/version: "1.1.0"
+    serving.knative.dev/release: "v1.1.0"
+spec:
+  # This is the Go import path for the binary that is containerized
+  # and substituted here.
+  image: gcr.io/knative-releases/knative.dev/serving/cmd/queue@sha256:48a1753de35ecbe060611aea9e95751e3e4851183c4373e65aa1b9410ea6e263
