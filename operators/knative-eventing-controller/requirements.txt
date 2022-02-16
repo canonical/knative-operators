@@ -1,0 +1,3 @@
+ops < 1.4.0
+lightkube < 0.11
+jinja2 < 3.1
