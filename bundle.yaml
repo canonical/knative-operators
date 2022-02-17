@@ -17,3 +17,11 @@ applications:
     charm: ch:knative-webhook
     scale: 1
     trust: true
+  knative-eventing-controller:
+    charm: ch:knative-eventing-controller
+    scale: 1
+    trust: true
+  knative-eventing-webhook:
+    charm: ch:knative-eventing-webhook
+    scale: 1
+    trust: true
