@@ -15,8 +15,8 @@
 apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: webhook
-  namespace: knative-serving
+  name: [[ name ]]
+  namespace: [[ namespace ]]
   labels:
     app.kubernetes.io/component: webhook
     app.kubernetes.io/name: knative-serving
@@ -43,7 +43,7 @@ apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
   name: webhook-pdb
-  namespace: knative-serving
+  namespace: [[ namespace ]]
   labels:
     app.kubernetes.io/component: webhook
     app.kubernetes.io/name: knative-serving
@@ -53,7 +53,7 @@ spec:
   minAvailable: 80%
   selector:
     matchLabels:
-      app: webhook
+      app: [[ name ]]
 
 ---
 # Copyright 2018 The Knative Authors
@@ -74,7 +74,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: webhook
-  namespace: knative-serving
+  namespace: [[ namespace ]]
   labels:
     serving.knative.dev/release: "v1.1.0"
     app.kubernetes.io/component: webhook
@@ -83,14 +83,14 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: webhook
+      app: [[ name ]]
       role: webhook
   template:
     metadata:
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
       labels:
-        app: webhook
+        app: [[ name ]]
         role: webhook
         serving.knative.dev/release: "v1.1.0"
         app.kubernetes.io/component: webhook
@@ -104,12 +104,12 @@ spec:
             - podAffinityTerm:
                 labelSelector:
                   matchLabels:
-                    app: webhook
+                    app: [[ name ]]
                 topologyKey: kubernetes.io/hostname
               weight: 100
       serviceAccountName: controller
       containers:
-        - name: webhook
+        - name: [[ name ]]
           # This is the Go import path for the binary that is containerized
           # and substituted here.
           image: gcr.io/knative-releases/knative.dev/serving/cmd/webhook@sha256:9f3c83def9d0d5de0e8e1d1f4c10f262e283fe12d21dcbb91de06b65d3bd08ad
@@ -185,8 +185,8 @@ metadata:
     app.kubernetes.io/component: webhook
     app.kubernetes.io/version: "1.1.0"
     app.kubernetes.io/name: knative-serving
-  name: webhook
-  namespace: knative-serving
+  name: [[ name ]]
+  namespace: [[ namespace ]]
 spec:
   ports:
     # Define metrics and profiling for them to be accessible within service meshes.
