@@ -55,7 +55,7 @@ class Operator(CharmBase):
         )
 
         args = {"name": "controller", "namespace": self.model.name}
-        crds = Path("src/crds.yaml").read_text()
+        crds = env.get_template("crds.yaml.j2").render(**args)
         rbac = env.get_template("rbac.yaml.j2").render(**args)
         deployment = env.get_template("deployment.yaml.j2").render(**args)
         config = env.get_template("config.yaml.j2").render(**args)

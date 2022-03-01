@@ -22,7 +22,7 @@ metadata:
     knative.dev/high-availability: "true"
     app.kubernetes.io/component: eventing-controller
     app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/name: [[ name ]]
 spec:
   selector:
     matchLabels:
@@ -34,7 +34,7 @@ spec:
         eventing.knative.dev/release: devel
         app.kubernetes.io/component: eventing-autoscaler
         app.kubernetes.io/version: devel
-        app.kubernetes.io/name: knative-eventing
+        app.kubernetes.io/name: [[ name ]]
     spec:
       # To avoid node becoming SPOF, spread our replicas to different nodes.
       affinity:
@@ -65,9 +65,9 @@ spec:
               fieldRef:
                 fieldPath: metadata.namespace
           - name: CONFIG_LOGGING_NAME
-            value: config-logging
+            value: eventing-config-logging
           - name: CONFIG_OBSERVABILITY_NAME
-            value: config-observability
+            value: eventing-config-observability
           - name: METRICS_DOMAIN
             value: knative.dev/eventing
           # APIServerSource

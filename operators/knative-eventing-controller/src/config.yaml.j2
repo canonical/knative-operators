@@ -20,7 +20,7 @@ metadata:
   labels:
     eventing.knative.dev/release: "v1.1.0"
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/eventing-name: [[ name ]]
 data:
   channelTemplateSpec: |
     apiVersion: messaging.knative.dev/v1
@@ -49,7 +49,7 @@ metadata:
   labels:
     eventing.knative.dev/release: "v1.1.0"
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/eventing-name: [[ name ]]
 data:
   # Configures the default for any Broker that does not specify a spec.config or Broker class.
   default-br-config: |
@@ -83,7 +83,7 @@ metadata:
   labels:
     eventing.knative.dev/release: "v1.1.0"
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/eventing-name: [[ name ]]
 data:
   # Configuration for defaulting channels that do not specify CRD implementations.
   default-ch-config: |
@@ -118,11 +118,11 @@ metadata:
   labels:
     eventing.knative.dev/release: "v1.1.0"
   annotations:
-    knative.dev/example-checksum: "f8e5a744"
+    knative.dev/eventing-example-checksum: "f8e5a744"
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/eventing-name: [[ name ]]
 data:
-  _example: |
+  _eventing_example: |
     ################################
     #                              #
     #    EXAMPLE CONFIGURATION     #
@@ -160,14 +160,14 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: config-features
+  name: eventing-config-features
   namespace: [[ namespace ]]
   labels:
     eventing.knative.dev/release: "v1.1.0"
     knative.dev/config-propagation: original
     knative.dev/config-category: eventing
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/eventing-name: [[ name ]]
 data:
   # ALPHA feature: The kreference-group allows you to use the Group field in KReferences.
   # For more details: https://github.com/knative/eventing/issues/5086
@@ -214,9 +214,9 @@ metadata:
     knative.dev/config-propagation: original
     knative.dev/config-category: eventing
   annotations:
-    knative.dev/example-checksum: "7375dbe1"
+    knative.dev/eventing-example-checksum: "7375dbe1"
 data:
-  _example: |
+  _eventing_example: |
     ################################
     #                              #
     #    EXAMPLE CONFIGURATION     #
@@ -261,11 +261,11 @@ metadata:
   labels:
     eventing.knative.dev/release: "v1.1.0"
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/eventing-name: [[ name ]]
   annotations:
-    knative.dev/example-checksum: "96896b00"
+    knative.dev/eventing-example-checksum: "96896b00"
 data:
-  _example: |
+  _eventing_example: |
     ################################
     #                              #
     #    EXAMPLE CONFIGURATION     #
@@ -318,14 +318,14 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: config-logging
+  name: eventing-config-logging
   namespace: [[ namespace ]]
   labels:
     eventing.knative.dev/release: "v1.1.0"
     knative.dev/config-propagation: original
     knative.dev/config-category: eventing
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/eventing-name: [[ name ]]
 data:
   # Common configuration for all Knative codebase
   zap-logger-config: |
@@ -372,18 +372,18 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: config-observability
+  name: eventing-config-observability
   namespace: [[ namespace ]]
   labels:
     eventing.knative.dev/release: "v1.1.0"
     knative.dev/config-propagation: original
     knative.dev/config-category: eventing
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/eventing-name: [[ name ]]
   annotations:
-    knative.dev/example-checksum: "f46cf09d"
+    knative.dev/eventing-example-checksum: "f46cf09d"
 data:
-  _example: |
+  _eventing_example: |
     ################################
     #                              #
     #    EXAMPLE CONFIGURATION     #
@@ -449,18 +449,18 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: config-tracing
+  name: eventing-config-tracing
   namespace: [[ namespace ]]
   labels:
     eventing.knative.dev/release: "v1.1.0"
     knative.dev/config-propagation: original
     knative.dev/config-category: eventing
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/eventing-name: [[ name ]]
   annotations:
-    knative.dev/example-checksum: "0492ceb0"
+    knative.dev/eventing-example-checksum: "0492ceb0"
 data:
-  _example: |
+  _eventing-example: |
     ################################
     #                              #
     #    EXAMPLE CONFIGURATION     #
