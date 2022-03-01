@@ -19,7 +19,7 @@ metadata:
   namespace: [[ namespace ]]
   labels:
     app.kubernetes.io/component: autoscaler
-    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/name: [[ name ]]
     app.kubernetes.io/version: "1.1.0"
     serving.knative.dev/release: "v1.1.0"
   annotations:
@@ -230,7 +230,7 @@ metadata:
   name: config-defaults
   namespace: [[ namespace ]]
   labels:
-    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/name: [[ name ]]
     app.kubernetes.io/component: controller
     app.kubernetes.io/version: "1.1.0"
     serving.knative.dev/release: "v1.1.0"
@@ -374,7 +374,7 @@ metadata:
   name: config-deployment
   namespace: [[ namespace ]]
   labels:
-    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/name: [[ name ]]
     app.kubernetes.io/component: controller
     app.kubernetes.io/version: "1.1.0"
     serving.knative.dev/release: "v1.1.0"
@@ -478,7 +478,7 @@ metadata:
   name: config-domain
   namespace: [[ namespace ]]
   labels:
-    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/name: [[ name ]]
     app.kubernetes.io/component: controller
     app.kubernetes.io/version: "1.1.0"
     serving.knative.dev/release: "v1.1.0"
@@ -546,7 +546,7 @@ metadata:
   name: config-features
   namespace: [[ namespace ]]
   labels:
-    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/name: [[ name ]]
     app.kubernetes.io/component: controller
     app.kubernetes.io/version: "1.1.0"
     serving.knative.dev/release: "v1.1.0"
@@ -699,7 +699,7 @@ metadata:
   name: config-gc
   namespace: [[ namespace ]]
   labels:
-    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/name: [[ name ]]
     app.kubernetes.io/component: controller
     app.kubernetes.io/version: "1.1.0"
     serving.knative.dev/release: "v1.1.0"
@@ -800,7 +800,7 @@ metadata:
   name: config-leader-election
   namespace: [[ namespace ]]
   labels:
-    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/name: [[ name ]]
     app.kubernetes.io/component: controller
     app.kubernetes.io/version: "1.1.0"
     serving.knative.dev/release: "v1.1.0"
@@ -865,7 +865,7 @@ metadata:
   labels:
     serving.knative.dev/release: "v1.1.0"
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/name: [[ name ]]
   annotations:
     knative.dev/example-checksum: "be93ff10"
 data:
@@ -942,7 +942,7 @@ metadata:
   name: config-network
   namespace: [[ namespace ]]
   labels:
-    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/name: [[ name ]]
     app.kubernetes.io/version: "1.1.0"
     serving.knative.dev/release: "v1.1.0"
   annotations:
@@ -950,7 +950,7 @@ metadata:
 data:
   # FIXME: This needs to be configurable, see here for options:
   # https://knative.dev/v1.1-docs/install/serving/install-serving-with-yaml/#install-a-networking-layer
-  ingress-class: kourier.ingress.networking.knative.dev
+  #ingress-class: kourier.ingress.networking.knative.dev
   _example: |
     ################################
     #                              #
@@ -1121,7 +1121,7 @@ metadata:
   name: config-observability
   namespace: [[ namespace ]]
   labels:
-    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/name: [[ name ]]
     app.kubernetes.io/version: "1.1.0"
     serving.knative.dev/release: "v1.1.0"
   annotations:
@@ -1230,7 +1230,7 @@ metadata:
   name: config-tracing
   namespace: [[ namespace ]]
   labels:
-    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/name: [[ name ]]
     app.kubernetes.io/version: "1.1.0"
     serving.knative.dev/release: "v1.1.0"
   annotations:

@@ -19,7 +19,7 @@ metadata:
   labels:
     eventing.knative.dev/release: "v1.1.0"
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/name: [[ name ]]
 webhooks:
   - admissionReviewVersions: ["v1", "v1beta1"]
     clientConfig:
@@ -98,7 +98,7 @@ metadata:
   labels:
     eventing.knative.dev/release: "v1.1.0"
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/name: [[ name ]]
 webhooks:
   - admissionReviewVersions: ["v1", "v1beta1"]
     clientConfig:
@@ -168,7 +168,7 @@ metadata:
   labels:
     eventing.knative.dev/release: "v1.1.0"
     app.kubernetes.io/version: "1.1.0"
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/name: [[ name ]]
 webhooks:
   - admissionReviewVersions: ["v1", "v1beta1"]
     clientConfig:
@@ -251,5 +251,5 @@ metadata:
   labels:
     eventing.knative.dev/release: devel
     app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/name: [[ name ]]
 # The data is populated at install time.

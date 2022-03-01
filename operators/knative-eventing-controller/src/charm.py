@@ -37,7 +37,7 @@ class Operator(CharmBase):
             if err.status.code != 415:
                 raise
 
-        self.log.info(f"Got 415 response while applying {obj}, assuming ServerSideApply=false")
+        self.log.info(f"Got 415 response while applying {obj.kind}, assuming ServerSideApply=false")
 
         try:
             self.client.create(obj)
@@ -55,7 +55,7 @@ class Operator(CharmBase):
         )
 
         args = {"name": "eventing-controller", "namespace": self.model.name}
-        crds = Path("src/crds.yaml").read_text()
+        crds = env.get_template("crds.yaml").render(**args)
         rbac = env.get_template("rbac.yaml.j2").render(**args)
         deployment = env.get_template("deployment.yaml.j2").render(**args)
         config = env.get_template("config.yaml.j2").render(**args)
