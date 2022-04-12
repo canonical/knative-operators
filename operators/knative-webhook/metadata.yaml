@@ -1,6 +1,5 @@
 name: knative-webhook
 description: Kubernetes-based platform to deploy and manage modern serverless workloads.
-series: [kubernetes]
 summary: |
   Knative service - activator
 
@@ -8,3 +7,6 @@ summary: |
   values, rejects inconsitent and invalid objects, and validates and mutates Kubernetes API calls.
 
   https://knative.dev/docs/serving/knative-kubernetes-services/#service-webhook
+assumes:
+  - juju >= 2.9.23
+  - k8s-api
