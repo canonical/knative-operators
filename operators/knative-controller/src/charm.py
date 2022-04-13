@@ -34,18 +34,10 @@ class Operator(CharmBase):
         try:
             self.client.apply(obj)
         except ApiError as err:
-            if err.status.code != 415:
-                raise
-
-        self.log.info(f"Got 415 response while applying {obj}, assuming ServerSideApply=false")
-
-        try:
-            self.client.create(obj)
-        except ApiError as err:
-            if err.status.code != 409:
-                raise
-
-        self.client.patch(type(obj), obj.metadata.name, obj)
+            if err.status.code == 415:
+                self.log.error(f"Got 415 response while applying {obj.metadata.name} of kind "
+                               f"{obj.kind}, is ServerSideApply not available?")
+            raise
 
     def render(self):
         env = Environment(
