@@ -10,6 +10,7 @@ from ops.model import ActiveStatus, BlockedStatus
 
 from lightkube.generic_resource import create_namespaced_resource
 
+
 class Operator(CharmBase):
     """Charmed Operator."""
 
@@ -62,14 +63,24 @@ class Operator(CharmBase):
         )
 
         # FIXME: remove hardcoded knative-serving 
-        args = {"name": "activator", "namespace": self.model.name, "knative_serving": "knative-serving"}
-        deployment = env.get_template("deployment.yaml.j2").render(**args)
-        config = env.get_template("config.yaml.j2").render(**args)
-        rbac = env.get_template("rbac.yaml.j2").render(**args)
-        gateway = env.get_template("gateway.yaml.j2").render(**args)
-        peer_auth = env.get_template("peer_auth.yaml.j2").render(**args)
+        args = {
+            "gateway_name": "knative-custom-gateway",
+            "gateway_namespace": self.model.name,
+            "name": "istio-controller",
+            "namespace": self.model.name,
+            "knative_serving": "knative-serving"
+        }
 
-        return codecs.load_all_yaml("\n---\n".join([gateway, peer_auth, rbac, deployment, config]))
+        templates = [
+            env.get_template("deployment.yaml.j2").render(**args),
+            env.get_template("config.yaml.j2").render(**args),
+            env.get_template("rbac.yaml.j2").render(**args),
+            # TODO: Temporarily removed as I try to get other gateways to work
+            # env.get_template("gateway.yaml.j2").render(**args),
+            env.get_template("peer_auth.yaml.j2").render(**args),
+        ]
+
+        return codecs.load_all_yaml("\n---\n".join(templates))
 
     def main(self, event):
         """Set up charm."""
