@@ -24,7 +24,10 @@ metadata:
     serving.knative.dev/release: "v1.1.0"
     networking.knative.dev/ingress-provider: istio
 data:
-  gateway.[[ namespace ]].knative-ingress-gateway: "istio-ingressgateway.[[ namespace ]].svc.cluster.local"
+  # TODO: No idea the purpose of the right hand side of this data.  It shows up in the resulting
+  #   ingresses.networking.internal.knative.dev CR, but I don't know functionally what it is doing.  Currently the
+  #   value below maps to an object that intentionally does not exist
+  gateway.[[ gateway_namespace ]].[[ gateway_name ]]: "istio-ingressgateway-not-real-object.not-real-namespace.svc.cluster.local"
   _example: |
     ################################
     #                              #
