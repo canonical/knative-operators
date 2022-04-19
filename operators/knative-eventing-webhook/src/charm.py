@@ -47,9 +47,14 @@ class Operator(CharmBase):
 
         args = {"name": "eventing-webhook", "namespace": self.model.name, "port": 443}
         deployment = env.get_template("deployment.yaml.j2").render(**args)
+        rbac = env.get_template("rbac.yaml.j2").render(**args)
         webhooks = env.get_template("webhooks.yaml.j2").render(**args)
 
-        return codecs.load_all_yaml("\n---\n".join([deployment, webhooks]))
+        self.log.info(f"deployment to render:\n{deployment}")
+        self.log.info(f"rbac to render:\n{rbac}")
+        self.log.info(f"webhooks to render:\n{webhooks}")
+
+        return codecs.load_all_yaml("\n---\n".join([deployment, rbac, webhooks]))
 
     def main(self, event):
         """Set up charm."""
@@ -60,11 +65,14 @@ class Operator(CharmBase):
 
         self.log.info(f"Applying {len(objs)} objects")
 
-        for obj in objs:
+        for i, obj in enumerate(objs):
+            self.log.info(f"handling object {i}: {obj.metadata.name} of kind {obj.kind}")
             try:
                 self.apply(obj)
             except Exception as err:
-                self.model.unit.status = BlockedStatus(f"Error installing charm: {err}")
+                msg = f"Error installing charm: {err}"
+                self.model.unit.status = BlockedStatus(msg)
+                self.log.error(msg)
                 return
 
         self.model.unit.status = ActiveStatus()

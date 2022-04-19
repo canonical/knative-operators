@@ -36,7 +36,8 @@ webhooks:
     timeoutSeconds: 10
 
 
-
+# FIXME: Why is this skipped?
+# FIXME: If we add this back in, I think it only operates on namespaces that have a label that we don't use
 # Copyright 2020 The Knative Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -179,6 +180,8 @@ webhooks:
     failurePolicy: Fail
     name: validation.webhook.eventing.knative.dev
     timeoutSeconds: 10
+
+---
 
 ##
 ##---
