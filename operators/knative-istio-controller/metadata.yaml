@@ -2,6 +2,10 @@ name: knative-istio-controller
 description: Kubernetes-based platform to deploy and manage modern serverless workloads.
 summary: |
   Knative service - istio-controller
+requires:
+  gateway:
+    interface: gateway
+    limit: 1
 assumes:
   - juju >= 2.9.23
   - k8s-api
