@@ -1,6 +1,6 @@
 import pytest
 from charm import Operator
-from ops.model import ActiveStatus
+from ops.model import ActiveStatus, WaitingStatus
 from ops.testing import Harness
 
 
@@ -15,12 +15,19 @@ def lkclient(mocker):
 
 
 EXPECTED = {
-    ("Deployment", "activator"),
-    ("HorizontalPodAutoscaler", "activator"),
-    ("PodDisruptionBudget", "activator-pdb"),
-    ("Service", "activator-service"),
+    ("Deployment", "net-istio-controller"),
+    # TODO: Temporarily not applied
+    # ("Gateway", "knative-ingress-gateway"),
+    ("PeerAuthentication", "webhook"),
+    ("PeerAuthentication", "domainmapping-webhook"),
+    ("PeerAuthentication", "net-istio-webhook"),
+    ("ClusterRole", "knative-serving-istio"),
+    ("ConfigMap", "config-istio"),
 }
 
+def test_not_leader(harness):
+    harness.begin_with_initial_hooks()
+    assert isinstance(harness.charm.model.unit.status, WaitingStatus)
 
 def test_setup(harness, lkclient):
     harness.set_leader(True)
