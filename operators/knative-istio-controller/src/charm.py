@@ -36,8 +36,10 @@ class Operator(CharmBase):
             self.client.apply(obj)
         except ApiError as err:
             if err.status.code == 415:
-                self.log.error(f"Got 415 response while applying {obj.metadata.name} of kind "
-                               f"{obj.kind}, is ServerSideApply not available?")
+                self.log.error(
+                    f"Got 415 response while applying {obj.metadata.name} of kind "
+                    f"{obj.kind}, is ServerSideApply not available?"
+                )
             raise
 
     def render(self):
@@ -62,13 +64,13 @@ class Operator(CharmBase):
             verbs=None,
         )
 
-        # FIXME: remove hardcoded knative-serving 
+        # FIXME: remove hardcoded knative-serving
         args = {
             "gateway_name": "knative-custom-gateway",
             "gateway_namespace": self.model.name,
             "name": "istio-controller",
             "namespace": self.model.name,
-            "knative_serving": "knative-serving"
+            "knative_serving": "knative-serving",
         }
 
         templates = [
@@ -100,7 +102,7 @@ class Operator(CharmBase):
             else:
                 self.log.info(error.msg)
             return
-            
+
         self.log.info(f"Rendering charm for {event}")
         objs = self.render()
 

@@ -25,9 +25,11 @@ EXPECTED = {
     ("ConfigMap", "config-istio"),
 }
 
+
 def test_not_leader(harness):
     harness.begin_with_initial_hooks()
     assert isinstance(harness.charm.model.unit.status, WaitingStatus)
+
 
 def test_setup(harness, lkclient):
     harness.set_leader(True)
