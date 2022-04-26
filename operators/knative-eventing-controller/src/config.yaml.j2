@@ -160,7 +160,9 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: eventing-config-features
+  # TODO: This configmap conflicts with the identically named configmap for knative-serving, but the name of the
+  #       configmap is not exposed as a config option.
+  name: config-features
   namespace: [[ namespace ]]
   labels:
     eventing.knative.dev/release: "v1.1.0"
