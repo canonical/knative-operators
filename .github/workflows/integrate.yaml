@@ -45,7 +45,7 @@ jobs:
         provider: microk8s
         channel: 1.21/stable
 
-    - run: sg microk8s -c "microk8s enable ingress metallb:10.64.140.43-10.64.140.49"
+    - run: sg microk8s -c "microk8s enable metallb:10.64.140.43-10.64.140.49"
     - run: sudo snap install juju-wait --classic
     - run: juju destroy-model --yes --destroy-storage testing
     - run: juju add-model knative-serving

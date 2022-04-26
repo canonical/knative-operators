@@ -63,6 +63,7 @@ async def test_build_and_deploy_serving(ops_test: OpsTest):
 
 async def wait_for_pods_ready(ops_test: OpsTest):
     """A helper to wait for the pods to be created"""
+    logger.info("Waiting for pods to be ready")
     await ops_test.run(
         "kubectl",
         "wait",
@@ -72,7 +73,7 @@ async def wait_for_pods_ready(ops_test: OpsTest):
         ops_test.model_name,
         "-l",
         "app=hello-world",
-        "--timeout=2m")
+        "--timeout=3m")
 
 
 async def test_serving(ops_test: OpsTest):
