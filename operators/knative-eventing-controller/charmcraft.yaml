@@ -9,3 +9,6 @@ bases:
 parts:
   charm:
     charm-python-packages: [setuptools, pip]
+    # TODO: Temporarily using lightkube fork that supports batch-apply from git.  Remove this when reverting that
+    #  dependency change.
+    build-packages: [git]

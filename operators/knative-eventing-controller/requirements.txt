@@ -1,3 +1,6 @@
 ops < 1.4.0
-lightkube < 0.11
+# TODO: Temporarily using lightkube fork that supports batch-apply.  Remove "build-package: git" from charmcraft.yaml
+#  when reverting this patch
+# lightkube < 0.11
+git+https://github.com/ca-scribner/lightkube.git@add-apply-many#egg=lightkube
 jinja2 < 3.1

@@ -63,15 +63,13 @@ class Operator(CharmBase):
 
         self.log.info(f"Applying {len(objs)} objects")
 
-        for i, obj in enumerate(objs):
-            self.log.info(f"handling object {i}: {obj.metadata.name} of kind {obj.kind}")
-            try:
-                self.apply(obj)
-            except Exception as err:
-                msg = f"Error installing charm: {err}"
-                self.model.unit.status = BlockedStatus(msg)
-                self.log.error(msg)
-                return
+        try:
+            self.client.apply_many(objs, field_manager=self.model.app.name)
+        except Exception as err:
+            msg = f"Error installing charm: {err}"
+            self.model.unit.status = BlockedStatus(msg)
+            self.log.error(msg)
+            return
 
         self.model.unit.status = ActiveStatus()
 
