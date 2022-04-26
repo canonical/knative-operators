@@ -159,7 +159,8 @@ aggregationRule:
   clusterRoleSelectors:
     - matchLabels:
         duck.knative.dev/addressable: "true"
-rules: [] # Rules are automatically filled in by the controller manager.
+# TODO: commented due to https://github.com/canonical/knative-operators/issues/6
+# rules: [] # Rules are automatically filled in by the controller manager.
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -363,7 +364,8 @@ aggregationRule:
   clusterRoleSelectors:
     - matchLabels:
         duck.knative.dev/channelable: "true"
-rules: [] # Rules are automatically filled in by the controller manager.
+# TODO: commented due to https://github.com/canonical/knative-operators/issues/6
+# rules: [] # Rules are automatically filled in by the controller manager.
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -712,7 +714,8 @@ aggregationRule:
   clusterRoleSelectors:
     - matchLabels:
         duck.knative.dev/podspecable: "true"
-rules: [] # Rules are automatically filled in by the controller manager.
+# TODO: commented due to https://github.com/canonical/knative-operators/issues/6
+# rules: [] # Rules are automatically filled in by the controller manager.
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -770,7 +773,8 @@ aggregationRule:
   clusterRoleSelectors:
     - matchLabels:
         duck.knative.dev/source: "true"
-rules: [] # Rules are automatically filled in by the controller manager.
+# TODO: commented due to https://github.com/canonical/knative-operators/issues/6
+# rules: [] # Rules are automatically filled in by the controller manager.
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1

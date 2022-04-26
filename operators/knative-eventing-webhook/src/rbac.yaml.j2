@@ -48,7 +48,8 @@ subjects:
     namespace: [[ namespace ]]
 roleRef:
   kind: Role
-  name: knative-eventing-webhook
+  # TODO: Modified to avoid conflict with juju-created Role "{charm-name}"
+  name: knative-eventing-webhook-workload
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -198,7 +199,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   namespace: [[ namespace ]]
-  name: knative-eventing-webhook
+  # TODO: Modified to avoid conflict with juju-created Role "{charm-name}"
+  name: knative-eventing-webhook-workload
   labels:
     app.kubernetes.io/name: [[ name ]]
 rules:
