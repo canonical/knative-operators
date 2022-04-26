@@ -73,7 +73,8 @@ async def wait_for_pods_ready(ops_test: OpsTest):
         ops_test.model_name,
         "-l",
         "app=hello-world",
-        "--timeout=3m")
+        "--timeout=3m"
+    )
 
 
 async def test_serving(ops_test: OpsTest):
@@ -82,14 +83,8 @@ async def test_serving(ops_test: OpsTest):
     Deploys an example Hello World app, tests its response
     and ensures that the pods get created.
     """
-    await ops_test.run("kubectl", "apply", "-f", "tests/hello.yaml", "-n", ops_test.model_name, check=True)
+    await ops_test.run("kubectl", "apply", "-f", "tests/hello.yaml", "-n", ops_test.model_name)
     await wait_for_pods_ready(ops_test)
-    hello_ksvc = await ops_test.run("kubectl", "get", "ksvc/hello", "-n", ops_test.model_name, "-o", "json")
-
-    hello_ksvc_obj = json.loads(hello_ksvc[1])
-    logger.info(f"(Test URL) Output: {hello_ksvc_obj}")
-    hello_ksvc_url = hello_ksvc_obj["status"]["url"]
-    logger.info(f"App available at {hello_ksvc_url}")
 
     for attempt in retry_for_5_attempts:
         logger.info(
@@ -97,6 +92,15 @@ async def test_serving(ops_test: OpsTest):
             f"{attempt.retry_state.attempt_number})"
         )
         with attempt:
+            # Fetch the app URL
+            hello_ksvc = await ops_test.run("kubectl", "get", "ksvc/hello", "-n", ops_test.model_name, "-o", "json")
+
+            hello_ksvc_obj = json.loads(hello_ksvc[1])
+            logger.info(f"(Test URL) Output: {hello_ksvc_obj}")
+            hello_ksvc_url = hello_ksvc_obj["status"]["url"]
+            assert hello_ksvc_url
+            logger.info(f"App available at {hello_ksvc_url}")
+
             r = requests.get(hello_ksvc_url)
             # Wait for knative to run the deployment
             await wait_for_pods_ready(ops_test)
