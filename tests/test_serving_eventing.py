@@ -86,6 +86,7 @@ async def test_serving(ops_test: OpsTest):
     hello_ksvc = await ops_test.run("kubectl", "get", "ksvc/hello", "-n", ops_test.model_name, "-o", "json")
 
     hello_ksvc_obj = json.loads(hello_ksvc[1])
+    logger.info(f"(Test URL) Output: {hello_ksvc_obj}")
     hello_ksvc_url = hello_ksvc_obj["status"]["url"]
     logger.info(f"App available at {hello_ksvc_url}")
 
