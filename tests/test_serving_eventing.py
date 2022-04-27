@@ -102,8 +102,7 @@ async def test_serving(ops_test: OpsTest):
             logger.info(f"App available at {hello_ksvc_url}")
 
             r = requests.get(hello_ksvc_url)
-            # Wait for knative to run the deployment
-            await wait_for_pods_ready(ops_test)
+            logger.info(f"Response status code: {r.status_code}")
 
             assert r.status_code == 200
             assert r.text == "Hello World!\n"
