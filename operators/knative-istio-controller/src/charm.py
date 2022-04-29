@@ -6,7 +6,7 @@ from jinja2 import Environment, FileSystemLoader
 from lightkube import ApiError, Client, codecs
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from lightkube.generic_resource import create_namespaced_resource
 
@@ -36,8 +36,10 @@ class Operator(CharmBase):
             self.client.apply(obj)
         except ApiError as err:
             if err.status.code == 415:
-                self.log.error(f"Got 415 response while applying {obj.metadata.name} of kind "
-                               f"{obj.kind}, is ServerSideApply not available?")
+                self.log.error(
+                    f"Got 415 response while applying {obj.metadata.name} of kind "
+                    f"{obj.kind}, is ServerSideApply not available?"
+                )
             raise
 
     def render(self):
@@ -62,13 +64,13 @@ class Operator(CharmBase):
             verbs=None,
         )
 
-        # FIXME: remove hardcoded knative-serving 
+        # FIXME: remove hardcoded knative-serving
         args = {
             "gateway_name": "knative-custom-gateway",
             "gateway_namespace": self.model.name,
             "name": "istio-controller",
             "namespace": self.model.name,
-            "knative_serving": "knative-serving"
+            "knative_serving": "knative-serving",
         }
 
         templates = [
@@ -82,11 +84,26 @@ class Operator(CharmBase):
 
         return codecs.load_all_yaml("\n---\n".join(templates))
 
+    def _check_leader(self):
+        if not self.unit.is_leader():
+            # We can't do anything useful when not the leader, so do nothing.
+            raise CheckFailedError("Waiting for leadership", WaitingStatus)
+
     def main(self, event):
         """Set up charm."""
 
-        self.log.info(f"Rendering charm for {event}")
+        try:
+            self._check_leader()
 
+        except CheckFailedError as error:
+            self.model.unit.status = error.status
+            if isinstance(error.status_type, BlockedStatus):
+                self.log.error(error.msg)
+            else:
+                self.log.info(error.msg)
+            return
+
+        self.log.info(f"Rendering charm for {event}")
         objs = self.render()
 
         self.log.info(f"Applying {len(objs)} objects")
@@ -114,6 +131,17 @@ class Operator(CharmBase):
                 self.client.delete(type(obj), obj.metadata.name)
             except Exception as err:
                 self.log.info(f"Error cleaning up: {err}")
+
+
+class CheckFailedError(Exception):
+    """Raise this exception if one of the checks in main fails."""
+
+    def __init__(self, msg, status_type=None):
+        super().__init__()
+
+        self.msg = str(msg)
+        self.status_type = status_type
+        self.status = status_type(self.msg)
 
 
 if __name__ == "__main__":
