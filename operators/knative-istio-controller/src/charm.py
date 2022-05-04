@@ -13,11 +13,12 @@ from charms.istio_pilot.v0.istio_gateway_info_receiver import GatewayConsumer, G
 from ops.framework import StoredState
 
 
-
 class Operator(CharmBase):
     """Charmed Operator."""
+
     _stored = StoredState()
     on = GatewayRelationEvents()
+
     def __init__(self, *args):
         super().__init__(*args)
 
@@ -71,15 +72,13 @@ class Operator(CharmBase):
         try:
             gateway_args = self.gateway_relation.get_gateway_info()
         except Exception as error:
-            raise CheckFailedError(
-                str(error), BlockedStatus
-            )
+            raise CheckFailedError(str(error), BlockedStatus)
 
         args = {
             "name": "istio-controller",
             "namespace": self.model.name,
             "knative_serving": "knative-serving",
-            **gateway_args
+            **gateway_args,
         }
 
         templates = [
