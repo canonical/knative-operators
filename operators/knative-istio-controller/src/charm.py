@@ -9,11 +9,15 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from lightkube.generic_resource import create_namespaced_resource
+from charms.istio_pilot.v0.istio_gateway_info_receiver import GatewayConsumer, GatewayRelationEvents
+from ops.framework import StoredState
+
 
 
 class Operator(CharmBase):
     """Charmed Operator."""
-
+    _stored = StoredState()
+    on = GatewayRelationEvents()
     def __init__(self, *args):
         super().__init__(*args)
 
@@ -24,14 +28,14 @@ class Operator(CharmBase):
             variable_start_string="[[",
             variable_end_string="]]",
         )
-
+        self.gateway_relation = GatewayConsumer(self, self._stored)
         for event in [
             self.on.install,
             self.on.leader_elected,
             self.on.upgrade_charm,
             self.on.config_changed,
             self.on.update_status,
-            self.on["gateway"].relation_changed,
+            self.on.gateway_relation_updated,
         ]:
             self.framework.observe(event, self.main)
 
@@ -64,17 +68,23 @@ class Operator(CharmBase):
             plural="peerauthentications",
             verbs=None,
         )
+        try:
+            gateway_args = self.gateway_relation.get_gateway_info()
+        except Exception as error:
+            raise CheckFailedError(
+                str(error), BlockedStatus
+            )
 
-        # FIXME: remove hardcoded knative-serving
         args = {
             "name": "istio-controller",
             "namespace": self.model.name,
             "knative_serving": "knative-serving",
+            **gateway_args
         }
 
         templates = [
             self.env.get_template("deployment.yaml.j2").render(**args),
-            self.render_config_istio(args),
+            self.env.get_template("config.yaml.j2").render(**args),
             self.env.get_template("rbac.yaml.j2").render(**args),
             # TODO: Temporarily removed as I try to get other gateways to work
             # env.get_template("gateway.yaml.j2").render(**args),
@@ -82,30 +92,6 @@ class Operator(CharmBase):
         ]
 
         return codecs.load_all_yaml("\n---\n".join(templates))
-
-    def render_config_istio(self, args):
-        istio_pilot_app = self.model.get_app("istio-pilot")
-        gateway = self.model.relations["gateway"]
-
-        if len(gateway) == 0:
-            raise CheckFailedError("Missing required relation for gateway", BlockedStatus)
-
-        try:
-            data = gateway[0].data[istio_pilot_app]
-
-            args = {
-                **args,
-                "gateway_name": data["gateway-name"],
-                "gateway_namespace": data["gateway-namespace"],
-            }
-            return self.env.get_template("config.yaml.j2").render(**args)
-        except Exception as error:
-            self.log.error(
-                "Encountered the following error when parsing gateway relation", f"{str(error)}"
-            )
-            raise CheckFailedError(
-                "Unexpected error when parsing gateway relation data. See log", BlockedStatus
-            )
 
     def _check_leader(self):
         if not self.unit.is_leader():
@@ -115,6 +101,7 @@ class Operator(CharmBase):
     def main(self, event):
         """Set up charm."""
 
+        self.log.info(f"DEBUGGING ~ file: charm.py ~ line 126 ~ event {event}")
         try:
             self._check_leader()
 
