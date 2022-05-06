@@ -9,15 +9,11 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from lightkube.generic_resource import create_namespaced_resource
-from charms.istio_pilot.v0.istio_gateway_info_receiver import GatewayConsumer, GatewayRelationEvents
-from ops.framework import StoredState
+from charms.istio_pilot.v0.istio_gateway_info_receiver import GatewayConsumer
 
 
 class Operator(CharmBase):
     """Charmed Operator."""
-
-    _stored = StoredState()
-    on = GatewayRelationEvents()
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -29,14 +25,14 @@ class Operator(CharmBase):
             variable_start_string="[[",
             variable_end_string="]]",
         )
-        self.gateway_relation = GatewayConsumer(self, self._stored)
+        self.gateway_relation = GatewayConsumer(self)
         for event in [
             self.on.install,
             self.on.leader_elected,
             self.on.upgrade_charm,
             self.on.config_changed,
             self.on.update_status,
-            self.on.gateway_relation_updated,
+            self.on["gateway"].relation_changed,
         ]:
             self.framework.observe(event, self.main)
 
@@ -70,7 +66,7 @@ class Operator(CharmBase):
             verbs=None,
         )
         try:
-            gateway_args = self.gateway_relation.get_gateway_info()
+            gateway_data = self.gateway_relation.get_relation_data()
         except Exception as error:
             raise CheckFailedError(str(error), BlockedStatus)
 
@@ -78,7 +74,7 @@ class Operator(CharmBase):
             "name": "istio-controller",
             "namespace": self.model.name,
             "knative_serving": "knative-serving",
-            **gateway_args,
+            **gateway_data,
         }
 
         templates = [
