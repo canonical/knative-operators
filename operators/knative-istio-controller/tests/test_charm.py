@@ -56,7 +56,7 @@ def test_too_many_gateway_relations(harness):
         {},
     )
     harness.begin_with_initial_hooks()
-    assert harness.charm.model.unit.status == BlockedStatus("Too many gateway relations")
+    assert harness.charm.model.unit.status == BlockedStatus("Too many istio-gateway-name relations")
 
 
 def test_missing_gateway_name(harness):
