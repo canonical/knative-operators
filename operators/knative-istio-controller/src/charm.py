@@ -9,7 +9,7 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from lightkube.generic_resource import create_namespaced_resource
-from charms.istio_pilot.v0.istio_gateway_info_receiver import GatewayConsumer
+from charms.istio_pilot.v0.istio_gateway_name import GatewayRequirer, GatewayRelationError
 
 
 class Operator(CharmBase):
@@ -25,7 +25,7 @@ class Operator(CharmBase):
             variable_start_string="[[",
             variable_end_string="]]",
         )
-        self.gateway_relation = GatewayConsumer(self)
+        self.gateway_relation = GatewayRequirer(self)
         for event in [
             self.on.install,
             self.on.leader_elected,
@@ -67,7 +67,7 @@ class Operator(CharmBase):
         )
         try:
             gateway_data = self.gateway_relation.get_relation_data()
-        except Exception as error:
+        except GatewayRelationError as error:
             raise CheckFailedError(str(error), BlockedStatus)
 
         args = {
@@ -96,7 +96,6 @@ class Operator(CharmBase):
     def main(self, event):
         """Set up charm."""
 
-        self.log.info(f"DEBUGGING ~ file: charm.py ~ line 126 ~ event {event}")
         try:
             self._check_leader()
 

@@ -4,7 +4,7 @@ summary: |
   Knative service - istio-controller
 requires:
   gateway:
-    interface: gateway
+    interface: istio-gateway-name
     limit: 1
 assumes:
   - juju >= 2.9.23
