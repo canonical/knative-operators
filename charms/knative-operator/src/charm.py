@@ -1,104 +1,174 @@
 #!/usr/bin/env python3
-# Copyright 2022 Canonical Ltd.
+# Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
-#
-# Learn more at: https://juju.is/docs/sdk
-
-"""Charm the service.
-
-Refer to the following post for a quick-start guide that will help you
-develop a new k8s charm using the Operator Framework:
-
-    https://discourse.charmhub.io/t/4208
-"""
 
 import logging
+import traceback
 
-from ops.charm import CharmBase
-from ops.framework import StoredState
 from ops.main import main
-from ops.model import ActiveStatus
+from ops.pebble import Layer
+from ops.charm import CharmBase
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus, StatusBase
+from jinja2 import Environment, FileSystemLoader
+from lightkube import ApiError, Client, codecs
+from serialized_data_interface import NoCompatibleVersions, NoVersionsListed, get_interfaces
 
 logger = logging.getLogger(__name__)
 
 
-class OperatorTemplateCharm(CharmBase):
-    """Charm the service."""
-
-    _stored = StoredState()
+class KnativeOperatorCharm(CharmBase):
+    """A Juju Charm for Training Operator"""
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.framework.observe(self.on.httpbin_pebble_ready, self._on_httpbin_pebble_ready)
-        self.framework.observe(self.on.config_changed, self._on_config_changed)
-        self.framework.observe(self.on.fortune_action, self._on_fortune_action)
-        self._stored.set_default(things=[])
 
-    def _on_httpbin_pebble_ready(self, event):
-        """Define and start a workload using the Pebble API.
+        self.logger = logging.getLogger(__name__)
+        self.interfaces = ""
 
-        TEMPLATE-TODO: change this example to suit your needs.
-        You'll need to specify the right entrypoint and environment
-        configuration for your specific workload. Tip: you can see the
-        standard entrypoint of an existing container using docker inspect
+        self._name = self.model.app.name
+        self._namespace = self.model.name
+        self._operator_service = "/ko-app/operator"
+        self.env = Environment(loader=FileSystemLoader('src'))
+        self._container = self.unit.get_container(self._name)
+        self._resources_files = {
+             "auth_manifests.yaml",
+             "service_account.yaml",
+             "crds_manifests.yaml",
+             # Skipping config manifests for now
+             # "config_manifests.yaml",
+        }
+        self._context = {"namespace": self._namespace, "name": self._name}
 
-        Learn more about Pebble layers at https://github.com/canonical/pebble
-        """
-        # Get a reference the container attribute on the PebbleReadyEvent
-        container = event.workload
-        # Define an initial Pebble layer configuration
-        pebble_layer = {
-            "summary": "httpbin layer",
-            "description": "pebble config layer for httpbin",
+        self.lightkube_client = Client(namespace=self._namespace, field_manager="lightkube")
+        self.framework.observe(self.on.install, self._on_install)
+        self.framework.observe(self.on.start, self._on_start)
+        self.framework.observe(self.on.config_changed, self._on_install)
+        self.framework.observe(
+            self.on.knative_operator_pebble_ready,
+            self._on_knative_operator_pebble_ready,
+        )
+        self.framework.observe(self.on["serving"].relation_changed, self._serving_info)
+        self.framework.observe(self.on["eventing"].relation_changed, self._eventing_info)
+
+    @property
+    def _knative_operator_layer(self) -> Layer:
+        """Returns a pre-configured Pebble layer."""
+
+        layer_config = {
+            "summary": "knative-operator layer",
+            "description": "pebble config layer for knative-operator",
             "services": {
-                "httpbin": {
+                self._operator_service: {
                     "override": "replace",
-                    "summary": "httpbin",
-                    "command": "gunicorn -b 0.0.0.0:80 httpbin:app -k gevent",
+                    "summary": "entrypoint of the knative-operator image",
+                    "command": self._operator_service,
                     "startup": "enabled",
-                    "environment": {"thing": self.model.config["thing"]},
+                    "environment": {
+                        "POD_NAME": self._name,
+                        "SYSTEM_NAMESPACE": self._namespace,
+                        "METRICS_DOMAIN": "knative.dev/operator",
+                        "CONFIG_LOGGING_NAME": "config-loggig",
+                        "CONFIG_OBSERVABILITY_NAME": "config-observability",
+                    },
                 }
             },
         }
-        # Add initial Pebble config layer using the Pebble API
-        container.add_layer("httpbin", pebble_layer, combine=True)
-        # Autostart any services that were defined with startup: enabled
-        container.autostart()
-        # Learn more about statuses in the SDK docs:
-        # https://juju.is/docs/sdk/constructs#heading--statuses
-        self.unit.status = ActiveStatus()
+        return Layer(layer_config)
 
-    def _on_config_changed(self, _):
-        """Just an example to show how to deal with changed configuration.
+    def _update_layer(self) -> None:
+        """Updates the Pebble configuration layer if changed."""
+        if not self._container.can_connect():
+            self.unit.status = MaintenanceStatus("Waiting for pod startup to complete")
+            return
 
-        TEMPLATE-TODO: change this example to suit your needs.
-        If you don't need to handle config, you can remove this method,
-        the hook created in __init__.py for it, the corresponding test,
-        and the config.py file.
+        # Get current config
+        current_layer = self._container.get_plan()
+        # Create a new config layer
+        new_layer = self._knative_operator_layer
+        if current_layer.services != new_layer.services:
+            self._container.add_layer(self._operator_service, new_layer, combine=True)
+            logging.info("Pebble plan updated with new configuration")
+        self._container.restart(self._operator_service)
 
-        Learn more about config at https://juju.is/docs/sdk/config
-        """
-        current = self.config["thing"]
-        if current not in self._stored.things:
-            logger.debug("found a new thing: %r", current)
-            self._stored.things.append(current)
+    def _apply_all_resources(self) -> None:
+        """Helper method to create Kubernetes resources."""
+        for filename in self._resources_files:
+            manifest = self.env.get_template(filename).render(self._context)
+            for obj in codecs.load_all_yaml(manifest):
+                self.lightkube_client.apply(obj)
 
-    def _on_fortune_action(self, event):
-        """Just an example to show how to receive actions.
+    def _on_install(self, event):
+        """Event handler for InstallEvent."""
 
-        TEMPLATE-TODO: change this example to suit your needs.
-        If you don't need to handle actions, you can remove this method,
-        the hook created in __init__.py for it, the corresponding test,
-        and the actions.py file.
+        # Update Pebble configuration layer if it has changed
+        self._update_layer()
 
-        Learn more about actions at https://juju.is/docs/sdk/actions
-        """
-        fail = event.params["fail"]
-        if fail:
-            event.fail(fail)
+        # Patch/create Kubernetes resources
+        try:
+            self.unit.status = MaintenanceStatus("Applying resources")
+            self._apply_all_resources()
+        except ApiError as e:
+            logging.error(traceback.format_exc())
+            self.unit.status = BlockedStatus(
+                f"Applying resources failed with code {str(e.status.code)}."
+            )
+            if e.status.code == 403:
+                logging.error(
+                    "Received Forbidden (403) error when creating auth resources."
+                    "This may be due to the charm lacking permissions to create"
+                    "cluster-scoped resources."
+                    "Charm must be deployed with --trust"
+                )
+                event.defer()
+                return
         else:
-            event.set_results({"fortune": "A bug in the code is worth two in the documentation."})
+            self.unit.status = ActiveStatus()
+
+    def _on_start(self, _):
+        """Event handler for StartEevnt."""
+        try:
+            self._check_leader()
+            self.interfaces = self._get_interfaces()
+        except CheckFailed as error:
+            self.model.unit.status = error.status
+            return
+
+    def _serving_info(self):
+        if self.interfaces["knative-serving"]:
+            self.inserfaces["knative-serving"].send_data({"data": "placeholder"})
+
+    def _eventing_info(self):
+        if self.interfaces["knative-eventing"]:
+            self.inserfaces["knative-eventing"].send_data({"data": "placeholder"})
+
+    def _on_knative_operator_pebble_ready(self, _):
+        """Event handler for on PebbleReadyEvent"""
+        self._update_layer()
+
+    def _check_leader(self):
+        if not self.unit.is_leader():
+            raise CheckFailed("Waiting for leadership", WaitingStatus)
+
+    def _get_interfaces(self):
+        try:
+            interfaces = get_interfaces(self)
+        except NoVersionsListed as err:
+            raise CheckFailed(str(err), WaitingStatus)
+        except NoCompatibleVersions as err:
+            raise CheckFailed(str(err), BlockedStatus)
+        return interfaces
+
+
+class CheckFailed(Exception):
+    """Raise this exception if one of the checks in main fails."""
+
+    def __init__(self, msg, status_type=StatusBase):
+        super().__init__()
+
+        self.msg = str(msg)
+        self.status_type = status_type
+        self.status = status_type(self.msg)
 
 
 if __name__ == "__main__":
-    main(OperatorTemplateCharm)
+    main(KnativeOperatorCharm)
