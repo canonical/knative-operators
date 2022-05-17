@@ -1,0 +1,8 @@
+# Copyright 2022 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+options:
+  thing:
+    default: 🎁
+    description: A thing used by the charm.
+    type: string
