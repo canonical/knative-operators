@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, call
 
 import jinja2
+import lightkube
 import pytest
 
 from charm_template import KubernetesManifestCharmBase
@@ -15,7 +16,7 @@ def harness():
     return harness
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture()
 def lightkube_client(mocker):
     """Yields a mocked lightkube client"""
     yield mocker.patch("charm_template.Client")
@@ -27,10 +28,11 @@ def lightkube_codecs(mocker):
     yield mocker.patch("charm_template.codecs")
 
 
-def test_jinja_env(harness):
+# TODO: Property tests are generic.  I can combine these into a single test.
+def test_property_jinja_env(harness):
     harness.begin()
 
-    # No jinja_env set before we access it
+    # Nothing set before we access it
     assert harness.charm._jinja_env is None
 
     # Default set and cached once we try to access it
@@ -49,7 +51,30 @@ def test_jinja_env(harness):
         harness.charm.jinja_env = "not a jinja environment"
 
 
-def test_render_manifests(harness, lightkube_codecs):
+def test_property_lightkube_client(harness):
+    harness.begin()
+
+    # Nothing set before we access it
+    assert harness.charm._lightkube_client is None
+
+    # Default set and cached once we try to access it
+    lightkube_client = harness.charm.lightkube_client
+    assert isinstance(lightkube_client, lightkube.Client)
+    assert harness.charm._lightkube_client is lightkube_client
+
+    # Setter replaces cached value
+    lightkube_client_2 = lightkube.Client()
+    harness.charm.lightkube_client = lightkube_client_2
+    assert lightkube_client_2 is harness.charm.lightkube_client
+    assert harness.charm._lightkube_client is lightkube_client_2
+
+    # Setter rejects wrong input
+    with pytest.raises(ValueError):
+        harness.charm.lightkube_client = "not a lightkube client"
+
+
+
+def test_render_manifests(harness, lightkube_codecs, lightkube_client):
     harness.begin()
 
     mocked_jinja_env = MagicMock()

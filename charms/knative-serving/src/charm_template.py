@@ -3,10 +3,13 @@
 
 import logging
 from pathlib import Path
+from typing import List, Union
 
 import jinja2
+import lightkube
 from jinja2 import Environment, FileSystemLoader
 from lightkube import Client, codecs
+from lightkube.core.resource import NamespacedResource, GlobalResource
 from ops.charm import CharmBase
 
 
@@ -68,16 +71,20 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
 
         self._jinja_env = None
 
+        self._lightkube_client = None
+
     def reconcile(self, event):
         """Reconcile our Kubernetes objects to achieve the desired state
 
         This can be invoked to both install or update objects in the cluster.  It uses an apply
         logic to update things only if necessary
         """
+        resources = self.render_manifests()
 
         raise NotImplementedError()
 
-    def render_manifests(self):
+    def render_manifests(self) -> List[Union[NamespacedResource, GlobalResource]]:
+        """Renders this charm's manifests, returning them as a list of Lightkube Resources"""
         self.log.info(f"Rendering manifests")
         self.log.debug(f"Rendering with context: {self.context_for_render}")
         manifest_parts = []
@@ -89,13 +96,11 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
 
     @property
     def jinja_env(self):
-        if self._jinja_env:
-            return self._jinja_env
-        else:
+        if self._jinja_env is None:
             self._jinja_env = Environment(
                 loader=FileSystemLoader(str(self.manifests_dir))
             )
-            return self._jinja_env
+        return self._jinja_env
 
     @jinja_env.setter
     def jinja_env(self, value):
@@ -103,3 +108,16 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
             self._jinja_env = value
         else:
             raise ValueError("jinja_env must be a jinja2.Environment")
+
+    @property
+    def lightkube_client(self):
+        if self._lightkube_client is None:
+            self._lightkube_client = Client(field_manager=self.name)
+        return self._lightkube_client
+
+    @lightkube_client.setter
+    def lightkube_client(self, value):
+        if isinstance(value, Client):
+            self._lightkube_client = value
+        else:
+            raise ValueError("lightkube_client must be a lightkube.Client")
