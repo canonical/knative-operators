@@ -69,6 +69,7 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
             "model_name": self.model_name,
         }
 
+        # Properties
         self._jinja_env = None
 
         self._lightkube_client = None
@@ -95,7 +96,7 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
         return codecs.load_all_yaml("\n---\n".join(manifest_parts))
 
     @property
-    def jinja_env(self):
+    def jinja_env(self) -> Environment:
         if self._jinja_env is None:
             self._jinja_env = Environment(
                 loader=FileSystemLoader(str(self.manifests_dir))
@@ -103,20 +104,20 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
         return self._jinja_env
 
     @jinja_env.setter
-    def jinja_env(self, value):
+    def jinja_env(self, value: Environment):
         if isinstance(value, jinja2.Environment):
             self._jinja_env = value
         else:
             raise ValueError("jinja_env must be a jinja2.Environment")
 
     @property
-    def lightkube_client(self):
+    def lightkube_client(self) -> Client:
         if self._lightkube_client is None:
             self._lightkube_client = Client(field_manager=self.name)
         return self._lightkube_client
 
     @lightkube_client.setter
-    def lightkube_client(self, value):
+    def lightkube_client(self, value: Client):
         if isinstance(value, Client):
             self._lightkube_client = value
         else:
