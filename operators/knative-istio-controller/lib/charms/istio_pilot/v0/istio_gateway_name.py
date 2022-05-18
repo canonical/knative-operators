@@ -1,3 +1,43 @@
+"""Library for sharing istio gateway information
+
+This library wraps the relation endpoints using the `istio-gateway-name`
+interface. It provides a Python API for both requesting and providing 
+gateway information.
+
+## Getting Started
+
+### Fetch library with charmcraft
+You can fetch the library using the following commands with charmcraft.
+```shell
+cd some-charm
+charmcraft fetch-lib charms.istio_pilot.v0.istio_gateway_name
+```
+### Add relation to metadata.yaml
+```yaml
+requires:
+    gateway:
+        interface: istio_gateway_name
+        limit: 1
+```
+
+### Initialise the library in charm.py
+```python
+from charms.istio_pilot.v0.istio_gateway_name import GatewayProvider, GatewayRelationError
+
+Class SomeCharm(CharmBase):
+    def __init__(self, *args):
+        self.gateway = GatewayProvider(self)
+        self.framework.observe(self.on.some_event_emitted, self.some_event_function)
+
+    def some_event_function():
+        # use the getter function wherever the info is needed
+        try:
+            gateway_data = self.gateway_relation.get_relation_data()
+            except GatewayRelationError as error:
+            ...
+```
+"""
+
 import logging
 from ops.framework import Object
 from ops.model import Application
@@ -82,26 +122,39 @@ class GatewayRequirer(Object):
 
 
 class GatewayProvider(Object):
-    def __init__(self, charm, lightkube_client, resource_handler):
-        super().__init__(charm, DEFAULT_RELATION_NAME)
-        self.lightkube_client = lightkube_client
+    def __init__(self, charm, relation_name=DEFAULT_RELATION_NAME):
+        super().__init__(charm, relation_name)
+
+        from lightkube.core.client import Client
+        from lightkube.generic_resource import create_namespaced_resource
+
         self.charm = charm
-        self.resource_handler = resource_handler
+        self.lightkube_client = Client(namespace=self.model.name, field_manager="lightkube")
+        self.gateway_class = create_namespaced_resource(
+            group="networking.istio.io",
+            version="v1beta1",
+            kind="Gateway",
+            plural="gateways",
+            verbs=None,
+        )
         self.framework.observe(
-            charm.on[DEFAULT_RELATION_NAME].relation_changed, self._on_gateway_relation_changed
+            charm.on[relation_name].relation_changed, self._on_gateway_relation_changed
         )
         self.framework.observe(charm.on.config_changed, self._on_gateway_config_changed)
         self.framework.observe(charm.on.update_status, self._on_gateway_config_changed)
 
     def _validate_gateway_exists(self):
-        response = self.lightkube_client.get(
-            self.resource_handler.get_custom_resource_class_from_filename(
-                filename='gateway.yaml.j2'
-            ),
-            self.model.config['default-gateway'],
-            namespace=self.model.name,
-        )
-        return True if response else False
+        from lightkube.core.exceptions import ApiError
+
+        try:
+            response = self.lightkube_client.get(
+                self.gateway_class, self.model.config['default-gateway'], namespace=self.model.name
+            )
+            return True
+        except ApiError as error:
+            logger.error(str(error))
+
+        return False
 
     def _on_gateway_relation_changed(self, event):
         if self.model.unit.is_leader():
