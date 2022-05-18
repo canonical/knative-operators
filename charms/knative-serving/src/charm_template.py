@@ -71,7 +71,6 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
 
         # Properties
         self._jinja_env = None
-
         self._lightkube_client = None
 
     def reconcile(self, event):
@@ -80,13 +79,15 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
         This can be invoked to both install or update objects in the cluster.  It uses an apply
         logic to update things only if necessary
         """
+        self.log.info("Reconciling")
         resources = self.render_manifests()
-
-        raise NotImplementedError()
+        self.log.debug(f"Applying {len(resources)} resources")
+        self.lightkube_client.apply_many(resources)
+        self.log.info("Reconcile completed successfully")
 
     def render_manifests(self) -> List[Union[NamespacedResource, GlobalResource]]:
         """Renders this charm's manifests, returning them as a list of Lightkube Resources"""
-        self.log.info(f"Rendering manifests")
+        self.log.info("Rendering manifests")
         self.log.debug(f"Rendering with context: {self.context_for_render}")
         manifest_parts = []
         for template_file in self.template_files:

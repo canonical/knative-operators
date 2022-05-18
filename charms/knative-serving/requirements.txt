@@ -1,3 +1,6 @@
 ops < 1.4.0
-lightkube < 0.11
+# Pinned to version that includes apply-many, until this is generally available
+# see https://github.com/gtsystem/lightkube/pull/33
+# lightkube < 0.11
+git+https://github.com/gtsystem/lightkube.git@9e9e30b3645ced574099c5f34c6167c0d1a7f978
 jinja2 < 3.1

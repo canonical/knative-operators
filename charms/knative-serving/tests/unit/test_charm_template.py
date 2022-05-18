@@ -18,8 +18,13 @@ def harness():
 
 @pytest.fixture()
 def lightkube_client(mocker):
-    """Yields a mocked lightkube client"""
-    yield mocker.patch("charm_template.Client")
+    """Mocks Lightkube.Client() to return a MagicMock object instead of a Client
+
+    Yields this child MagicMock object for convenient access"""
+    mocked_lightkube_client = MagicMock()
+    mocked_lightkube_client_factory = mocker.patch("charm_template.Client")
+    mocked_lightkube_client_factory.return_value = mocked_lightkube_client
+    yield mocked_lightkube_client
 
 
 @pytest.fixture()
@@ -73,7 +78,6 @@ def test_property_lightkube_client(harness):
         harness.charm.lightkube_client = "not a lightkube client"
 
 
-
 def test_render_manifests(harness, lightkube_codecs, lightkube_client):
     harness.begin()
 
@@ -113,3 +117,19 @@ def test_render_manifests(harness, lightkube_codecs, lightkube_client):
     # Assert load_all_yaml called as expected
     expected_string_input = "\n---\n".join([render_return_value] * len(template_files))
     lightkube_codecs.load_all_yaml.assert_called_once_with(expected_string_input)
+
+
+def test_reconcile(harness, lightkube_client, mocker):
+    # Arrange state for test
+    harness.begin()
+
+    # Mock away render_manifests
+    render_manifests = mocker.patch("charm_template.KubernetesManifestCharmBase.render_manifests")
+    render_manifests.return_value = []
+
+    # Act
+    harness.charm.reconcile(None)
+
+    # Assert
+    render_manifests.assert_called_once()
+    lightkube_client.apply_many.assert_called_once()
