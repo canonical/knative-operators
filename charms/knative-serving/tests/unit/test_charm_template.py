@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, call
 import jinja2
 import lightkube
 import pytest
+from ops.model import WaitingStatus
 
 from charm_template import KubernetesManifestCharmBase
 from ops.testing import Harness
@@ -34,7 +35,7 @@ def lightkube_codecs(mocker):
 
 
 # TODO: Property tests are generic.  I can combine these into a single test.
-def test_property_jinja_env(harness):
+def test_property_jinja_env(harness, environment="not a jinja environment"):
     harness.begin()
 
     # Nothing set before we access it
@@ -53,7 +54,7 @@ def test_property_jinja_env(harness):
 
     # Setter rejects wrong input
     with pytest.raises(ValueError):
-        harness.charm.jinja_env = "not a jinja environment"
+        harness.charm.jinja_env = environment
 
 
 def test_property_lightkube_client(harness):
@@ -76,6 +77,12 @@ def test_property_lightkube_client(harness):
     # Setter rejects wrong input
     with pytest.raises(ValueError):
         harness.charm.lightkube_client = "not a lightkube client"
+
+
+def test_not_leader(harness, lightkube_client):
+    harness.set_leader(False)
+    harness.begin_with_initial_hooks()
+    assert harness.charm.model.unit.status == WaitingStatus("Waiting for leadership")
 
 
 def test_render_manifests(harness, lightkube_codecs, lightkube_client):

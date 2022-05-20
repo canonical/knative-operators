@@ -6,7 +6,10 @@
 from charm_template import KubernetesManifestCharmBase
 from ops.main import main
 
+# Import defines the Generic Resource for lightkube, which is used indirectly
+# when loading from yaml
 from lightkube_custom_resources.operator import KnativeServing_v1alpha1
+
 
 class KnativeServingCharm(KubernetesManifestCharmBase):
     """A charm for creating Knative Serving instances via the Knative Operator"""
