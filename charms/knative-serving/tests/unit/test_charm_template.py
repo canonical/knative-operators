@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, call
 import jinja2
 import lightkube
 import pytest
-from ops.model import WaitingStatus
+from ops.model import WaitingStatus, ActiveStatus
 
 from charm_template import KubernetesManifestCharmBase
 from ops.testing import Harness
@@ -79,13 +79,81 @@ def test_property_lightkube_client(harness):
         harness.charm.lightkube_client = "not a lightkube client"
 
 
-def test_not_leader(harness, lightkube_client):
+def test_check_status_not_leader(harness, lightkube_client):
+    # Arrange state for test
     harness.set_leader(False)
+    harness.begin()
+
+    # Act
+    status = harness.charm.charm_status()
+
+    # Assess
+    assert isinstance(status, WaitingStatus), "Charm failed to wait for leadership"
+
+
+def test_check_status_no_resources(harness, lightkube_client, mocker):
+    # Arrange state for test
+    render_manifests = mocker.patch("charm_template.KubernetesManifestCharmBase.render_manifests")
+    check_resources = mocker.patch("charm_template.check_resources")
+    check_resources.return_value = (True, [])
+    harness.begin()
+
+    # Act
+    harness.charm.charm_status()
+
+    # Assess
+    render_manifests.assert_called_once()
+
+
+def test_check_status_with_status_ok(harness, lightkube_client, mocker):
+    # Arrange state for test
+    render_manifests = mocker.patch("charm_template.KubernetesManifestCharmBase.render_manifests")
+    check_resources = mocker.patch("charm_template.check_resources")
+    check_resources.return_value = (True, [])
+    harness.begin()
+
+    resources = []
+
+    # Act
+    status = harness.charm.charm_status(resources)
+
+    # Assess
+    render_manifests.assert_not_called()
+    assert isinstance(status, ActiveStatus)
+
+
+def test_check_status_with_status_not_ok(harness, lightkube_client, mocker):
+    # Arrange state for test
+    render_manifests = mocker.patch("charm_template.KubernetesManifestCharmBase.render_manifests")
+    check_resources = mocker.patch("charm_template.check_resources")
+    check_resources.return_value = (False, [])
+    first_worst_error = mocker.patch("charm_template.get_first_worst_error")
+    first_worst_error.return_value = WaitingStatus("")
+    harness.begin()
+
+    resources = []
+
+    # Act
+    status = harness.charm.charm_status(resources)
+
+    # Assess
+    render_manifests.assert_not_called()
+    assert isinstance(status, WaitingStatus)
+
+
+def test_not_leader(harness, lightkube_client):
+    # Arrange state for test
+    harness.set_leader(False)
+
+    # Act
     harness.begin_with_initial_hooks()
+
+    # Assess
     assert harness.charm.model.unit.status == WaitingStatus("Waiting for leadership")
 
 
 def test_render_manifests(harness, lightkube_codecs, lightkube_client):
+    # Arrange state for test
     harness.begin()
 
     mocked_jinja_env = MagicMock()
@@ -93,7 +161,6 @@ def test_render_manifests(harness, lightkube_codecs, lightkube_client):
     mocked_jinja_env.get_template.return_value.render.return_value = render_return_value
     harness.charm._jinja_env = mocked_jinja_env
 
-    # Arrange state for test
     template_files = [
         "template1",
         "template2",
