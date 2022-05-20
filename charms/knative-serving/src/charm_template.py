@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import List, Union, Optional
 
 import jinja2
-import lightkube
 from jinja2 import Environment, FileSystemLoader
 from lightkube import Client, codecs
 from lightkube.core.exceptions import ApiError
@@ -117,7 +116,7 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
                 self.log.info(f"Issue {i+1}/{len(errors)}: {error.msg}")
 
             # Return status based on the worst thing we encountered
-            status = get_first_worst_error(errors)
+            status = get_first_worst_error(errors).status
 
         return status
 
@@ -131,6 +130,7 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
 
     def on_install(self, event):
         """Installs all objects, checking and setting status at the end of install"""
+        self.unit.status = MaintenanceStatus("Deploying resources to cluster")
         try:
             self._check_leader()
             resources = self.render_manifests()
@@ -158,7 +158,12 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
         self.on_install(event)
 
     def on_update_status(self, event):
-        self.log_and_set_status(self.charm_status())
+        charm_status = self.charm_status()
+        if not isinstance(charm_status, ActiveStatus):
+            # Queue an install event to try to reconcile our resources
+            self.log.info("Charm emitting an install event to try to reconcile resources")
+        self.on.install.emit()
+        self.log_and_set_status(charm_status)
 
     def reconcile(self, resources: Optional[List[Union[NamespacedResource, GlobalResource]]] = None):
         """Reconcile our Kubernetes objects to achieve the desired state
