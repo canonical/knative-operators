@@ -94,6 +94,12 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
         """Computes status of this charm based on the state of cluster objects, logging any errors
         """
         self.log.info("Computing status")
+
+        try:
+            self._check_leader()
+        except LeadershipError as e:
+            return e.status
+
         if resources is None:
             resources = self.render_manifests()
 
@@ -152,7 +158,7 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
         self.on_install(event)
 
     def on_update_status(self, event):
-        raise NotImplementedError()
+        self.log_and_set_status(self.charm_status())
 
     def reconcile(self, resources: Optional[List[Union[NamespacedResource, GlobalResource]]] = None):
         """Reconcile our Kubernetes objects to achieve the desired state
