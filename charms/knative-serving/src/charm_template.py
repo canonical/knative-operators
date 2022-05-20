@@ -78,13 +78,6 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
             "manifests.yaml.j2",
         ]
 
-        # Context used for rendering the templates using the default self.render().  Add
-        # additional state here as required, over override entirely
-        self.context_for_render = {
-            "charm_name": self.name,
-            "model_name": self.model_name,
-        }
-
         # Properties
         self._jinja_env = None
         self._lightkube_client = None
@@ -236,6 +229,19 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
             self._lightkube_client = value
         else:
             raise ValueError("lightkube_client must be a lightkube.Client")
+
+    @property
+    def context_for_render(self):
+        """Returns the context used for rendering the templates during self.render_manifest()
+
+        Override this property to provide additional custom context.  Raising ErrorWithStatus
+        Exceptions here will cause the charm to enter the specified status.
+        """
+        return {
+            "charm_name": self.name,
+            "model_name": self.model_name,
+        }
+
 
 
 class ReconcileError(ErrorWithStatus):

@@ -2,7 +2,19 @@
 # See LICENSE file for licensing details.
 
 options:
-  thing:
-    default: 🎁
-    description: A thing used by the charm.
+  namespace:
+    default: ""
+    description: The namespace to deploy Serving to.  If left blank, this will be the same as this charm’s model name
+    type: string
+  domain.name:
+    default: "10.64.140.43.nip.io"
+    description: The domain name used for all fully-qualified route names shown
+    type: string
+  istio.gateway.name:
+    default: "knative-gateway"
+    description: (TEMP) The name of the Istio Gateway to use for Knative Serving
+    type: string
+  istio.gateway.namespace:
+    default: ""
+    description: (TEMP) The namespace to look in for the Istio Gateway.  If blank, this will be the same as this charm's model name
     type: string
