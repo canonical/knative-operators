@@ -207,3 +207,19 @@ def test_reconcile(harness, lightkube_client, mocker):
     # Assert
     render_manifests.assert_called_once()
     lightkube_client.apply_many.assert_called_once()
+
+
+def test_update_status(harness, lightkube_client, mocker):
+    # Arrange state for test
+    charm_status = mocker.patch("charm_template.KubernetesManifestCharmBase.charm_status")
+    charm_status.return_value = ActiveStatus()
+    charm_log = MagicMock()
+    harness.begin()
+    harness.charm.log = charm_log
+
+    # Act
+    harness.charm.on.update_status.emit()
+
+    # Assess
+    charm_log.info.assert_called_once()
+    assert harness.charm.unit.status == ActiveStatus()
