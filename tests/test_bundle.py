@@ -56,7 +56,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
     await ops_test.model.deploy(
-        knative_charms["knative-serving"], application_name="knative-serving", trust=True
+        knative_charms["knative-eventing"], application_name="knative-eventing", trust=True
     )
 
     await ops_test.model.wait_for_idle(
