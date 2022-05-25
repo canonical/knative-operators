@@ -8,10 +8,9 @@ import traceback
 from ops.main import main
 from ops.pebble import Layer
 from ops.charm import CharmBase
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus, StatusBase
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from jinja2 import Environment, FileSystemLoader
 from lightkube import ApiError, Client, codecs
-from serialized_data_interface import NoCompatibleVersions, NoVersionsListed, get_interfaces
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +46,6 @@ class KnativeOperatorCharm(CharmBase):
             self.on.knative_operator_pebble_ready,
             self._on_knative_operator_pebble_ready,
         )
-        self.framework.observe(self.on["serving"].relation_changed, self._serving_info)
-        self.framework.observe(self.on["eventing"].relation_changed, self._eventing_info)
 
     @property
     def _knative_operator_layer(self) -> Layer:
@@ -124,50 +121,9 @@ class KnativeOperatorCharm(CharmBase):
         else:
             self.unit.status = ActiveStatus()
 
-    def _on_start(self, _):
-        """Event handler for StartEevnt."""
-        try:
-            self._check_leader()
-            self.interfaces = self._get_interfaces()
-        except CheckFailed as error:
-            self.model.unit.status = error.status
-            return
-
-    def _serving_info(self):
-        if self.interfaces["knative-serving"]:
-            self.inserfaces["knative-serving"].send_data({"data": "placeholder"})
-
-    def _eventing_info(self):
-        if self.interfaces["knative-eventing"]:
-            self.inserfaces["knative-eventing"].send_data({"data": "placeholder"})
-
     def _on_knative_operator_pebble_ready(self, _):
         """Event handler for on PebbleReadyEvent"""
         self._update_layer()
-
-    def _check_leader(self):
-        if not self.unit.is_leader():
-            raise CheckFailed("Waiting for leadership", WaitingStatus)
-
-    def _get_interfaces(self):
-        try:
-            interfaces = get_interfaces(self)
-        except NoVersionsListed as err:
-            raise CheckFailed(str(err), WaitingStatus)
-        except NoCompatibleVersions as err:
-            raise CheckFailed(str(err), BlockedStatus)
-        return interfaces
-
-
-class CheckFailed(Exception):
-    """Raise this exception if one of the checks in main fails."""
-
-    def __init__(self, msg, status_type=StatusBase):
-        super().__init__()
-
-        self.msg = str(msg)
-        self.status_type = status_type
-        self.status = status_type(self.msg)
 
 
 if __name__ == "__main__":

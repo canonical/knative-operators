@@ -12,8 +12,3 @@ resources:
     type: oci-image
     description: OCI image for knative-operator
     upstream-source: gcr.io/knative-releases/knative.dev/operator/cmd/operator:v1.1.0
-provides:
-  serving:
-    interface: knative_serving
-  eventing:
-    interface: knative_eventing
