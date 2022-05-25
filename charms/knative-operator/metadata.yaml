@@ -11,7 +11,7 @@ resources:
   knative-operator-image:
     type: oci-image
     description: OCI image for knative-operator
-    upstream-source: gcr.io/knative-releases/knative.dev/operator/cmd/operator@sha256:a8f99f8adba8498942d7600b42aea6c7b06522631b213414185fc0126ac4f71b
+    upstream-source: gcr.io/knative-releases/knative.dev/operator/cmd/operator:v1.1.0
 provides:
   serving:
     interface: knative_serving
