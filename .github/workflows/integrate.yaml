@@ -46,7 +46,6 @@ jobs:
           channel: 1.21/stable
 
       - run: sudo snap install juju-wait --classic
-      - run: juju destroy-model --yes --destroy-storage testing
       - run: juju add-model knative-test
 
       - name: Run integration tests
