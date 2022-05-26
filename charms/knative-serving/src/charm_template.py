@@ -244,7 +244,9 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
         manifest_parts = []
         for template_file in self.template_files:
             self.log.debug(f"Rendering manifest for {template_file}")
-            manifest_parts.append(self.jinja_env.get_template(template_file).render(**self.context_for_render))
+            template = self.jinja_env.get_template(template_file)
+            rendered_template = template.render(**self.context_for_render)
+            manifest_parts.append(rendered_template)
             self.log.debug(f"Rendered manifest:\n{manifest_parts[-1]}")
         return codecs.load_all_yaml("\n---\n".join(manifest_parts))
 
