@@ -282,8 +282,12 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
     def context_for_render(self):
         """Returns the context used for rendering the templates during self.render_manifest()
 
-        Override this property to provide additional custom context.  Raising ErrorWithStatus
-        Exceptions here will cause the charm to enter the specified status.
+        The default methods of this base class will catch any ErrorWithStatus Exceptions raised
+        here and cause the cahrm to enter that specified status.
+
+        To replace the default context with your own, override this property to return your own
+        custom context.  Or, to extend the default context, extend this method by overriding it
+        and calling super().context_for_render() to inherrit the default context
         """
         return {
             "app_name": self.app_name,
