@@ -422,7 +422,7 @@ roleRef:
   name: knative-serving-operator
 subjects:
 - kind: ServiceAccount
-  name: {{ name }}
+  name: {{ name }}-workload
   namespace: {{ namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -439,7 +439,7 @@ roleRef:
   name: knative-serving-operator-aggregated
 subjects:
 - kind: ServiceAccount
-  name: {{ name }}
+  name: {{ name }}-workload
   namespace: {{ namespace }}
 ---
 # TODO: Consider restriction of non-aggregated role to knativeeventing namespaces.
@@ -457,7 +457,7 @@ roleRef:
   name: knative-eventing-operator
 subjects:
   - kind: ServiceAccount
-    name: {{ name }}
+    name: {{ name }}-workload
     namespace: {{ namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -474,5 +474,5 @@ roleRef:
   name: knative-eventing-operator-aggregated
 subjects:
   - kind: ServiceAccount
-    name: {{ name }}
+    name: {{ name }}-workload
     namespace: {{ namespace }}
