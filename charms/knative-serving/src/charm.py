@@ -28,7 +28,7 @@ class KnativeServingCharm(KubernetesManifestCharmBase):
     def context_for_render(self):
         """Returns the context for rendering the template files, including config/relation data
         """
-        # Use defaults for charm_name, model_name, etc.
+        # Use defaults for app_name, model_name, etc.
         context = super().context_for_render
         try:
             additional_context = {

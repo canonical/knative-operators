@@ -23,7 +23,7 @@ class ExtendedCharmBase(CharmBase):
         super().__init__(*args, **kwargs)
 
         self.log = logging.getLogger(__name__)
-        self.name = self.model.app.name
+        self.app_name = self.model.app.name
         self.model_name = self.model.name
 
         self.framework.observe(self.on.config_changed, self.on_config_changed)
@@ -64,6 +64,52 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
         are filled using configuration from charm configuration, relations, and hard-coded sources
     *   deploys this desired state to Kubernetes via the Kubernetes API
     *   monitors and, if required, reconciles these objects to the desired state
+
+
+    The default behaviours of this charm are described below for different events:
+
+    Install:
+    The Install event is handled by the `self.on_install()` method.  By default, this method will:
+    * check if this unit is the leader, and set WaitingStatus if it is not
+    * render the yaml templates listed in self.template_files, which are paths relative to
+      self.manifests_dir
+    * apply the rendered manifests to kubernetes using `self.reconcile`, which uses lightkube
+    * Catch any errors during the above and raise the appropriate Status
+    * If all works well, observe the charm workload's state in the cluster and, if ok, set status
+      to Active
+
+    Update-Status:
+    The update-status event is handled by the `self.on_update_status()` method.  By default, this
+    method will:
+    * compute the charm's status using self.charm_status(), which does simple checks to ensure the
+      k8s objects defined in manifests exist and that StatefulSets have their expected number of
+      replicas
+    * If status is not Active, emit a config_changed event that will try to reconcile the workload
+      to get it Active
+
+    Config Changed, Leader Elected, Upgrade Charm:
+    By default, these events are handled like Install events using the `self.on_install()` handler
+
+
+    To customize the behaviour of this base class, override the methods and attributes.  For
+    example:
+    * To add manifest files, append to or replace self.manifest_files in your charm `__init__`
+    * To customize behaviour on install, config_changed, update_status, remove, or leader_elected,
+      override the respective `self.on_*` method with your custom behaviour.  Look at this base
+      class's on_install for a pattern you can extend
+    * To customize how manifests are rendered across the entire charm, override or extend the
+      `self.render_manifests()` method.  This modifies the canonical source of truth for how this
+      base charm's methods (specifically self.charm_status(), self.on_install(), and
+      self.reconcile())
+    * To customize or extend how the charm assess its status, override self.charm_status().  This
+      method is where a charm reflects at its resources or configuration and reports whether it is
+      Active, and could be modified based on the specific charm (for example, you can assert
+      the charm is active only if `some_k8s_object.status.IP!=None`
+    * While this base charm automatically subscribes some base events (eg:
+      `self.on_config_changed() is subscribed to the ConfigChanged event by default) and it is
+      difficult to undo this, if you need to disable handling of a default event you can override
+      the respective handler with `pass` and that will have nearly the same effect.  For example,
+      you can use: `def on_config_changed(self, event): pass`
     """
 
     def __init__(self, *args, **kwargs):
@@ -116,7 +162,7 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
     def _check_leader(self):
         if not self.unit.is_leader():
             # We can't do anything useful when not the leader, so do nothing.
-            raise LeadershipError("Waiting for leadership", WaitingStatus)
+            raise LeadershipError()
 
     def on_config_changed(self, event):
         self.on_install(event)
@@ -155,7 +201,7 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
         if not isinstance(charm_status, ActiveStatus):
             # Queue an install event to try to reconcile our resources
             self.log.info("Charm emitting an install event to try to reconcile resources")
-        self.on.install.emit()
+        self.on.config_changed.emit()
         self.log_and_set_status(charm_status)
 
     def reconcile(self, resources: Optional[List[Union[NamespacedResource, GlobalResource]]] = None):
@@ -220,7 +266,7 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
     @property
     def lightkube_client(self) -> Client:
         if self._lightkube_client is None:
-            self._lightkube_client = Client(field_manager=self.name)
+            self._lightkube_client = Client(field_manager=self.app_name)
         return self._lightkube_client
 
     @lightkube_client.setter
@@ -238,7 +284,7 @@ class KubernetesManifestCharmBase(ExtendedCharmBase):
         Exceptions here will cause the charm to enter the specified status.
         """
         return {
-            "charm_name": self.name,
+            "app_name": self.app_name,
             "model_name": self.model_name,
         }
 

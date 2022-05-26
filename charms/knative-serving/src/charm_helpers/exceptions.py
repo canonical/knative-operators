@@ -18,4 +18,9 @@ class ErrorWithStatus(Exception):
 
 class LeadershipError(ErrorWithStatus):
     """Raised when a charm should be in WaitingStatus because it is not the leader"""
-    pass
+    def __init__(
+            self,
+            msg: str = "Waiting for leadership",
+            status_type: Union[ActiveStatus, WaitingStatus, BlockedStatus, None] = WaitingStatus
+    ):
+        super().__init__(msg, status_type)
