@@ -1,9 +1,10 @@
 # Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
 name: knative-operator
-summary: Knative operator draft
+summary: Kubernetes charm for knative-operator.
 description: |
-  DRAFT
+  The knative-operator defines custom resources for the Knative components,
+  serving and eventing.
 containers:
   knative-operator:
     resource: knative-operator-image
