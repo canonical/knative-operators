@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        charm: [operator, serving, eventing]
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo apt update && sudo apt install tox
+      - run: tox -e ${{ matrix.charm }}-lint
+
+  unit:
+    name: Unit Test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        charm: [operator, serving, eventing]
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo apt update && sudo apt install tox
+      - run: tox -e ${{ matrix.charm }}-unit
+
+  integration:
+    name: Integration Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v2
+
+      - name: Setup operator environment
+        uses: charmed-kubernetes/actions-operator@main
+        with:
+          provider: microk8s
+          channel: 1.21/stable
+
+      - run: sudo snap install juju-wait --classic
+      - run: juju add-model knative-test
+
+      - name: Run integration tests
+        run: tox -vve integration -- --model knative-test --destructive-mode
+        env:
+          KUBECONFIG: /home/runner/.kube/config
+
+      - run: kubectl get all -A
+        if: failure()
+
+      - run: juju status
+        if: failure()
