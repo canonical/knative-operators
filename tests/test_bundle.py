@@ -47,16 +47,27 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
         f"{charms_path}-operator", f"{charms_path}-serving", f"{charms_path}-eventing"
     )
 
+    # TODO: Remove httpbin-image argument from `resource` parameter
+    # once we populate charms/knative-* with knative specific code
     await ops_test.model.deploy(
-        knative_charms["knative-operator"], application_name="knative-operator", trust=True
+        knative_charms["knative-operator"],
+        application_name="knative-operator",
+        trust=True,
+        resources={"httpbin-image": "kennethreitz/httpbin"},
     )
 
     await ops_test.model.deploy(
-        knative_charms["knative-serving"], application_name="knative-serving", trust=True
+        knative_charms["knative-serving"],
+        application_name="knative-serving",
+        trust=True,
+        resources={"httpbin-image": "kennethreitz/httpbin"},
     )
 
     await ops_test.model.deploy(
-        knative_charms["knative-eventing"], application_name="knative-eventing", trust=True
+        knative_charms["knative-eventing"],
+        application_name="knative-eventing",
+        trust=True,
+        resources={"httpbin-image": "kennethreitz/httpbin"},
     )
 
     await ops_test.model.wait_for_idle(
