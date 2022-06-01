@@ -2,19 +2,17 @@
 # Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import logging
+import logger
 import traceback
 
 from ops.main import main
-from ops.pebble import Layer
-from ops.pebble import APIError as pebble_APIError
+from ops.pebble import ChangeError, Layer
 from ops.charm import CharmBase
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from jinja2 import Environment, FileSystemLoader
-from lightkube import Client, codecs
-from lightkube import ApiError as lightkube_ApiError
+from lightkube import ApiError, Client, codecs
 
-logger = logging.getLogger(__name__)
+logger = logger.getLogger(__name__)
 
 
 class KnativeOperatorCharm(CharmBase):
@@ -23,21 +21,19 @@ class KnativeOperatorCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
 
-        self.interfaces = ""
-
-        self._name = self.model.app.name
+        self._app_name = self.model.app.name
         self._namespace = self.model.name
         self._operator_service = "/ko-app/operator"
-        self.env = Environment(loader=FileSystemLoader('src'))
-        self._container = self.unit.get_container(self._name)
-        self._resources_files = {
-             "auth_manifests.yaml",
-             "service_account.yaml",
-             "crds_manifests.yaml",
-             # Skipping config manifests for now
-             # "config_manifests.yaml",
-        }
-        self._context = {"namespace": self._namespace, "name": self._name}
+        self._container = self.unit.get_container(self._app_name)
+        self.env = Environment(loader=FileSystemLoader("src"))
+        self._resources_files = (
+            "auth_manifests.yaml",
+            "service_account.yaml",
+            "crds_manifests.yaml",
+            # Skipping config manifests for now
+            # "config_manifests.yaml",
+        )
+        self._context = {"namespace": self._namespace, "name": self._app_name}
 
         self.lightkube_client = Client(namespace=self._namespace, field_manager="lightkube")
         for event in [self.on.install, self.on.config_changed]:
@@ -61,7 +57,7 @@ class KnativeOperatorCharm(CharmBase):
                     "command": self._operator_service,
                     "startup": "enabled",
                     "environment": {
-                        "POD_NAME": self._name,
+                        "POD_NAME": self._app_name,
                         "SYSTEM_NAMESPACE": self._namespace,
                         "METRICS_DOMAIN": "knative.dev/operator",
                         "CONFIG_LOGGING_NAME": "config-loggig",
@@ -85,48 +81,51 @@ class KnativeOperatorCharm(CharmBase):
         new_layer = self._knative_operator_layer
         if current_layer.services != new_layer.services:
             self._container.add_layer(self._operator_service, new_layer, combine=True)
-            logging.info("Pebble plan updated with new configuration")
-            self._container.restart(self._operator_service)
+            try:
+                logger.info("Pebble plan updated with new configuration, replanning")
+                self._conatiner.replan()
+            except ChangeError:
+                logger.error(traceback.format_exc())
+                self.unit.status = BlockedStatus("Failed to replan")
+        self.unit.status = ActiveStatus()
 
     def _apply_all_resources(self) -> None:
         """Helper method to create Kubernetes resources."""
-        for filename in self._resources_files:
-            manifest = self.env.get_template(filename).render(self._context)
-            for obj in codecs.load_all_yaml(manifest):
-                self.lightkube_client.apply(obj)
+        try:
+            for filename in self._resources_files:
+                manifest = self.env.get_template(filename).render(self._context)
+                for obj in codecs.load_all_yaml(manifest):
+                    self.lightkube_client.apply(obj)
+        except ApiError as e:
+            logger.error(traceback.format_exc())
+            self.unit.status = BlockedStatus(
+                f"Applying resources failed with code {str(e.status.code)}."
+            )
+            if e.status.code == 403:
+                logger.error(
+                    "Received Forbidden (403) error when creating auth resources."
+                    "This may be due to the charm lacking permissions to create"
+                    "cluster-scoped resources."
+                    "Charm must be deployed with --trust"
+                )
+                return
 
     def _main(self, event):
         """Event handler for changing Pebble configuration and applying k8s resources."""
-        try:
-            # Update Pebble configuration layer if it has changed
-            self.unit.status = MaintenanceStatus("Configuring Pebble layer")
-            self._update_layer(event)
-            self.unit.status = MaintenanceStatus("Applying resources")
-            # Apply Kubernetes resources
-            self._apply_all_resources()
-        except (pebble_APIError, lightkube_ApiError) as e:
-            if isinstance(e, pebble_APIError):
-                logging.error(traceback.format_exc())
-                self.unit.status = BlockedStatus("Error updating Pebble configuration layer")
-            elif isinstance(e, lightkube_ApiError):
-                logging.error(traceback.format_exc())
-                self.unit.status = BlockedStatus(
-                    f"Applying resources failed with code {str(e.status.code)}."
-                )
-                if e.status.code == 403:
-                    logging.error(
-                        "Received Forbidden (403) error when creating auth resources."
-                        "This may be due to the charm lacking permissions to create"
-                        "cluster-scoped resources."
-                        "Charm must be deployed with --trust"
-                    )
-                    event.defer()
-                    return
-        else:
-            self.unit.status = ActiveStatus()
+        # Update Pebble configuration layer if it has changed
+        self.unit.status = MaintenanceStatus("Configuring Pebble layer")
+        self._update_layer(event)
+
+        # Apply Kubernetes resources
+        self.unit.status = MaintenanceStatus("Applying resources")
+        self._apply_all_resources()
+
+        # Set ActiveStatus if none of the above fails
+        self.unit.status = ActiveStatus()
 
     def _on_knative_operator_pebble_ready(self, event):
         """Event handler for on PebbleReadyEvent"""
+        self.unit.status = MaintenanceStatus("Configuring Pebble layer")
         self._update_layer(event)
 
 
