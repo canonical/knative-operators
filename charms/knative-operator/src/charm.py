@@ -30,6 +30,7 @@ class KnativeOperatorCharm(CharmBase):
             "auth_manifests.yaml",
             "service_account.yaml",
             "crds_manifests.yaml",
+            "istio_ns.yaml",
             # Skipping config manifests for now
             # "config_manifests.yaml",
         )
