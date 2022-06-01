@@ -2,7 +2,7 @@
 # Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import logger
+import logging
 import traceback
 
 from ops.main import main
@@ -12,7 +12,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from jinja2 import Environment, FileSystemLoader
 from lightkube import ApiError, Client, codecs
 
-logger = logger.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class KnativeOperatorCharm(CharmBase):
@@ -84,7 +84,7 @@ class KnativeOperatorCharm(CharmBase):
             self._container.add_layer(self._operator_service, new_layer, combine=True)
             try:
                 logger.info("Pebble plan updated with new configuration, replanning")
-                self._conatiner.replan()
+                self._container.replan()
             except ChangeError:
                 logger.error(traceback.format_exc())
                 self.unit.status = BlockedStatus("Failed to replan")
@@ -110,6 +110,8 @@ class KnativeOperatorCharm(CharmBase):
                     "Charm must be deployed with --trust"
                 )
                 return
+        else:
+            self.unit.status = ActiveStatus()
 
     def _main(self, event):
         """Event handler for changing Pebble configuration and applying k8s resources."""
@@ -120,9 +122,6 @@ class KnativeOperatorCharm(CharmBase):
         # Apply Kubernetes resources
         self.unit.status = MaintenanceStatus("Applying resources")
         self._apply_all_resources()
-
-        # Set ActiveStatus if none of the above fails
-        self.unit.status = ActiveStatus()
 
     def _on_knative_operator_pebble_ready(self, event):
         """Event handler for on PebbleReadyEvent"""
