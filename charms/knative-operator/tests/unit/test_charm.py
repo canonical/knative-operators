@@ -1,67 +1,116 @@
-# Copyright 2022 Canonical Ltd.
-# See LICENSE file for licensing details.
-#
-# Learn more about testing at: https://juju.is/docs/sdk/testing
+from unittest.mock import MagicMock
 
-import unittest
-from unittest.mock import Mock
-
-from ops.model import ActiveStatus
+import pytest
+from ops.model import ActiveStatus, BlockedStatus
+from charm import KnativeOperatorCharm
 from ops.testing import Harness
+from lightkube.core.exceptions import ApiError
 
-from charm import OperatorTemplateCharm
+
+class _FakeResponse:
+    """Used to fake an httpx response during testing only."""
+
+    def __init__(self, code):
+        self.code = code
+
+    def json(self):
+        return {"apiVersion": 1, "code": self.code, "message": "broken"}
 
 
-class TestCharm(unittest.TestCase):
-    def setUp(self):
-        self.harness = Harness(OperatorTemplateCharm)
-        self.addCleanup(self.harness.cleanup)
-        self.harness.begin()
+class _FakeApiError(ApiError):
+    """Used to simulate an ApiError during testing."""
 
-    def test_config_changed(self):
-        self.assertEqual(list(self.harness.charm._stored.things), [])
-        self.harness.update_config({"thing": "foo"})
-        self.assertEqual(list(self.harness.charm._stored.things), ["foo"])
+    def __init__(self, code=400):
+        super().__init__(response=_FakeResponse(code))
 
-    def test_action(self):
-        # the harness doesn't (yet!) help much with actions themselves
-        action_event = Mock(params={"fail": ""})
-        self.harness.charm._on_fortune_action(action_event)
 
-        self.assertTrue(action_event.set_results.called)
+@pytest.fixture
+def harness():
+    """Returns a harnessed charm with leader == True"""
+    harness = Harness(KnativeOperatorCharm)
+    harness.set_leader(True)
+    return harness
 
-    def test_action_fail(self):
-        action_event = Mock(params={"fail": "fail this"})
-        self.harness.charm._on_fortune_action(action_event)
 
-        self.assertEqual(action_event.fail.call_args, [("fail this",)])
+@pytest.fixture()
+def mocked_codecs(mocker):
+    """Yields a mocked lightkube codecs"""
+    yield mocker.patch("charm.codecs")
 
-    def test_httpbin_pebble_ready(self):
-        # Check the initial Pebble plan is empty
-        initial_plan = self.harness.get_container_pebble_plan("httpbin")
-        self.assertEqual(initial_plan.to_yaml(), "{}\n")
-        # Expected plan after Pebble ready with default config
-        expected_plan = {
-            "services": {
-                "httpbin": {
-                    "override": "replace",
-                    "summary": "httpbin",
-                    "command": "gunicorn -b 0.0.0.0:80 httpbin:app -k gevent",
-                    "startup": "enabled",
-                    "environment": {"thing": "🎁"},
-                }
-            },
-        }
-        # Get the httpbin container from the model
-        container = self.harness.model.unit.get_container("httpbin")
-        # Emit the PebbleReadyEvent carrying the httpbin container
-        self.harness.charm.on.httpbin_pebble_ready.emit(container)
-        # Get the plan now we've run PebbleReady
-        updated_plan = self.harness.get_container_pebble_plan("httpbin").to_dict()
-        # Check we've got the plan we expected
-        self.assertEqual(expected_plan, updated_plan)
-        # Check the service was started
-        service = self.harness.model.unit.get_container("httpbin").get_service("httpbin")
-        self.assertTrue(service.is_running())
-        # Ensure we set an ActiveStatus with no message
-        self.assertEqual(self.harness.model.unit.status, ActiveStatus())
+
+@pytest.fixture()
+def mocked_client(mocker):
+    """Yields a mocked lightkube Client"""
+    mocked_lightkube_client = MagicMock()
+    mocked_lightkube_client_factory = mocker.patch("charm.Client")
+    mocked_lightkube_client_factory.return_value = mocked_lightkube_client
+    yield mocked_lightkube_client
+
+
+def test_events(harness, mocked_client, mocker):
+    harness.begin()
+    main = mocker.patch("charm.KnativeOperatorCharm._main")
+    pebble_ready = mocker.patch("charm.KnativeOperatorCharm._on_knative_operator_pebble_ready")
+
+    harness.charm.on.install.emit()
+    main.assert_called_once()
+    main.reset_mock()
+
+    harness.charm.on.config_changed.emit()
+    main.assert_called_once()
+    main.reset_mock()
+
+    harness.charm.on.knative_operator_pebble_ready.emit("knative-operator")
+    pebble_ready.assert_called_once()
+    pebble_ready.reset_mock()
+
+
+def test_apply_all_resources(harness, mocked_client, mocked_codecs, mocker):
+    harness.begin()
+    # Trigger _main event handler that calls _apply_all_resources
+    harness.charm.on.install.emit()
+    mocked_codecs.load_all_yaml.assert_called()
+
+    mocked_client.apply.side_effect = _FakeApiError()
+    try:
+        harness.charm.on.install.emit()
+    except ApiError:
+        assert harness.model.unit.status == BlockedStatus(
+            f"Applying resources failed with code {mocked_client.apply.side_effect.response.code}."
+        )
+
+
+def test_update_layer(harness, mocked_client, mocker):
+    harness.begin()
+    # Check the initial Pebble plan is empty
+    initial_plan = harness.get_container_pebble_plan("knative-operator")
+    assert initial_plan.to_yaml() == "{}\n"
+
+    # Check the layer gets created
+    harness.charm.on.knative_operator_pebble_ready.emit("knative-operator")
+    assert harness.get_container_pebble_plan("knative-operator")._services is not None
+
+    expected_plan = {
+        "services": {
+            "/ko-app/operator": {
+                "summary": "entrypoint of the knative-operator image",
+                "startup": "enabled",
+                "override": "replace",
+                "command": "/ko-app/operator",
+                "environment": {
+                    "POD_NAME": harness.model.app.name,
+                    "SYSTEM_NAMESPACE": harness.model.name,
+                    "METRICS_DOMAIN": "knative.dev/operator",
+                    "CONFIG_LOGGING_NAME": "config-loggig",
+                    "CONFIG_OBSERVABILITY_NAME": "config-observability",
+                },
+            }
+        },
+    }
+    updated_plan = harness.get_container_pebble_plan("knative-operator").to_dict()
+    assert expected_plan == updated_plan
+
+    service = harness.model.unit.get_container("knative-operator").get_service("/ko-app/operator")
+    assert service.is_running() is True
+
+    assert harness.model.unit.status == ActiveStatus()
