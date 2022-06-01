@@ -1,10 +1,15 @@
+#!/usr/bin/env python3
+# Copyright 2022 Canonical Ltd.
+# See LICENSE file for licensing details.
+
 from unittest.mock import MagicMock
 
 import pytest
-from ops.model import ActiveStatus, BlockedStatus
-from charm import KnativeOperatorCharm
-from ops.testing import Harness
 from lightkube.core.exceptions import ApiError
+from ops.model import ActiveStatus, BlockedStatus
+from ops.testing import Harness
+
+from charm import KnativeOperatorCharm
 
 
 class _FakeResponse:
@@ -26,7 +31,7 @@ class _FakeApiError(ApiError):
 
 @pytest.fixture
 def harness():
-    """Returns a harnessed charm with leader == True"""
+    """Returns a harnessed charm with leader == True."""
     harness = Harness(KnativeOperatorCharm)
     harness.set_leader(True)
     return harness
@@ -34,13 +39,13 @@ def harness():
 
 @pytest.fixture()
 def mocked_codecs(mocker):
-    """Yields a mocked lightkube codecs"""
+    """Yields a mocked lightkube codecs."""
     yield mocker.patch("charm.codecs")
 
 
 @pytest.fixture()
 def mocked_client(mocker):
-    """Yields a mocked lightkube Client"""
+    """Yields a mocked lightkube Client."""
     mocked_lightkube_client = MagicMock()
     mocked_lightkube_client_factory = mocker.patch("charm.Client")
     mocked_lightkube_client_factory.return_value = mocked_lightkube_client

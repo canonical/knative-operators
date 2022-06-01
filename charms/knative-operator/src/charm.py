@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-# Copyright 2021 Canonical Ltd.
+# Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
+
+"""A Juju Charm for knative-operator."""
 
 import logging
 import traceback
 
-from ops.main import main
-from ops.pebble import ChangeError, Layer
-from ops.charm import CharmBase
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from jinja2 import Environment, FileSystemLoader
 from lightkube import ApiError, Client, codecs
+from ops.charm import CharmBase
+from ops.main import main
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
+from ops.pebble import ChangeError, Layer
 
 logger = logging.getLogger(__name__)
 
 
 class KnativeOperatorCharm(CharmBase):
-    """A Juju Charm for Training Operator"""
+    """A Juju Charm for knative-operator."""
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -47,7 +49,6 @@ class KnativeOperatorCharm(CharmBase):
     @property
     def _knative_operator_layer(self) -> Layer:
         """Returns a pre-configured Pebble layer."""
-
         layer_config = {
             "summary": "knative-operator layer",
             "description": "pebble config layer for knative-operator",
@@ -124,7 +125,7 @@ class KnativeOperatorCharm(CharmBase):
         self._apply_all_resources()
 
     def _on_knative_operator_pebble_ready(self, event):
-        """Event handler for on PebbleReadyEvent"""
+        """Event handler for on PebbleReadyEvent."""
         self.unit.status = MaintenanceStatus("Configuring Pebble layer")
         self._update_layer(event)
 
