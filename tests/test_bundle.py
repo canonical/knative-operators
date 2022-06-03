@@ -49,11 +49,12 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
 
     # TODO: Remove httpbin-image argument from `resource` parameter
     # once we populate charms/knative-* with knative specific code
+    knative_operator_image = "gcr.io/knative-releases/knative.dev/operator/cmd/operator:v1.1.0"
     await ops_test.model.deploy(
         knative_charms["knative-operator"],
         application_name="knative-operator",
         trust=True,
-        resources={"httpbin-image": "kennethreitz/httpbin"},
+        resources={"knative-operator-image": knative_operator_image},
     )
 
     await ops_test.model.deploy(
