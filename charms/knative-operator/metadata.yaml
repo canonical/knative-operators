@@ -1,23 +1,15 @@
-# Copyright 2022 Canonical Ltd.
+# Copyright 2021 Canonical Ltd.
 # See LICENSE file for licensing details.
-
-# For a complete list of supported options, see:
-# https://juju.is/docs/sdk/metadata-reference
 name: knative-operator
+summary: Kubernetes charm for knative-operator.
 description: |
-  TEMPLATE-TODO: fill out the charm's description
-summary: |
-  TEMPLATE-TODO: fill out the charm's summary
-
-# TEMPLATE-TODO: replace with containers for your workload (delete for non-k8s)
+  The knative-operator defines custom resources for the Knative components,
+  serving and eventing.
 containers:
-  httpbin:
-    resource: httpbin-image
-
-# TEMPLATE-TODO: each container defined above must specify an oci-image resource
+  knative-operator:
+    resource: knative-operator-image
 resources:
-  httpbin-image:
+  knative-operator-image:
     type: oci-image
-    description: OCI image for httpbin (kennethreitz/httpbin)
-    # Included for simplicity in integration tests
-    upstream-source: kennethreitz/httpbin
+    description: OCI image for knative-operator
+    upstream-source: gcr.io/knative-releases/knative.dev/operator/cmd/operator:v1.1.0
