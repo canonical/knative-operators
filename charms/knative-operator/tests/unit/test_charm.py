@@ -2,14 +2,32 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import datetime
 from unittest.mock import MagicMock
 
 import pytest
 from lightkube.core.exceptions import ApiError
+from lightkube.models.meta_v1 import ObjectMeta
+from lightkube.resources.core_v1 import Pod
 from ops.model import ActiveStatus, BlockedStatus
+from ops.pebble import Change, ChangeError, ChangeID
 from ops.testing import Harness
 
 from charm import KnativeOperatorCharm
+
+
+class _FakeChange:
+    def __init__(self):
+        self.cid = ChangeID("0")
+        self.spawn_time = datetime.datetime.now()
+        self.change = Change(
+            self.cid, "kind", "summary", "status", [], False, None, self.spawn_time, None
+        )
+
+
+class _FakeChangeError(ChangeError):
+    def __init__(self):
+        super().__init__("err", change=_FakeChange())
 
 
 class _FakeResponse:
@@ -52,6 +70,19 @@ def mocked_client(mocker):
     yield mocked_lightkube_client
 
 
+@pytest.fixture()
+def mocked_codecs_load_all_yaml(mocked_codecs, mocker):
+    mocker.patch("charm.KnativeOperatorCharm._update_layer")
+    pod_names = ["a", "b"]
+    resources = [Pod(kind="Pod", metadata=ObjectMeta(name=str(name))) for name in pod_names]
+    mocked_codecs.load_all_yaml.return_value = resources
+
+
+@pytest.fixture()
+def mocked_container_replan(mocker):
+    yield mocker.patch("ops.model.Container.replan")
+
+
 def test_events(harness, mocked_client, mocker):
     harness.begin()
     main = mocker.patch("charm.KnativeOperatorCharm._main")
@@ -70,22 +101,27 @@ def test_events(harness, mocked_client, mocker):
     pebble_ready.reset_mock()
 
 
-def test_apply_all_resources(harness, mocked_client, mocked_codecs, mocker):
+def test_apply_all_resources_active(
+    harness, mocked_client, mocked_codecs, mocked_codecs_load_all_yaml
+):
     harness.begin()
-    # Trigger _main event handler that calls _apply_all_resources
-    harness.charm.on.install.emit()
+    harness.charm._apply_all_resources()
     mocked_codecs.load_all_yaml.assert_called()
+    mocked_client.apply.assert_called()
+    assert harness.model.unit.status == ActiveStatus()
 
+
+def test_apply_all_resource_exception(harness, mocked_client, mocked_codecs_load_all_yaml):
+    harness.begin()
     mocked_client.apply.side_effect = _FakeApiError()
-    try:
-        harness.charm.on.install.emit()
-    except ApiError:
-        assert harness.model.unit.status == BlockedStatus(
-            f"Applying resources failed with code {mocked_client.apply.side_effect.response.code}."
-        )
+    with pytest.raises(ApiError):
+        harness.charm._apply_all_resources()
+    assert harness.model.unit.status == BlockedStatus(
+        f"Applying resources failed with code {mocked_client.apply.side_effect.response.code}."
+    )
 
 
-def test_update_layer(harness, mocked_client, mocker):
+def test_update_layer_active(harness, mocked_client, mocker):
     harness.begin()
     # Check the initial Pebble plan is empty
     initial_plan = harness.get_container_pebble_plan("knative-operator")
@@ -119,3 +155,12 @@ def test_update_layer(harness, mocked_client, mocker):
     assert service.is_running() is True
 
     assert harness.model.unit.status == ActiveStatus()
+
+
+def test_update_layer_exception(harness, mocked_client, mocked_container_replan):
+    harness.begin()
+    mocked_container_replan.side_effect = _FakeChangeError()
+    mocked_event = MagicMock()
+    with pytest.raises(ChangeError):
+        harness.charm._update_layer(mocked_event)
+    assert harness.model.unit.status == BlockedStatus("Failed to replan")

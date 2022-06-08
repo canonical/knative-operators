@@ -86,9 +86,11 @@ class KnativeOperatorCharm(CharmBase):
             try:
                 logger.info("Pebble plan updated with new configuration, replanning")
                 self._container.replan()
-            except ChangeError:
+            except ChangeError as e:
                 logger.error(traceback.format_exc())
                 self.unit.status = BlockedStatus("Failed to replan")
+                raise e
+                return
         self.unit.status = ActiveStatus()
 
     def _apply_all_resources(self) -> None:
@@ -110,7 +112,8 @@ class KnativeOperatorCharm(CharmBase):
                     "cluster-scoped resources."
                     "Charm must be deployed with --trust"
                 )
-                return
+            raise e
+            return
         else:
             self.unit.status = ActiveStatus()
 
