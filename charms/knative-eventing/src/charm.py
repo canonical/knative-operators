@@ -4,101 +4,93 @@
 #
 # Learn more at: https://juju.is/docs/sdk
 
-"""Charm the service.
+"""A Juju charm for Knative Eventing."""
 
-Refer to the following post for a quick-start guide that will help you
-develop a new k8s charm using the Operator Framework:
-
-    https://discourse.charmhub.io/t/4208
-"""
-
+import glob
 import logging
+import traceback
+from pathlib import Path
 
+from k8s_resource_handler.exceptions import ReconcileError
+from k8s_resource_handler.kubernetes import (  # noqa N813
+    KubernetesResourceHandler as krh,
+)
+from lightkube.core.exceptions import ApiError
 from ops.charm import CharmBase
-from ops.framework import StoredState
 from ops.main import main
-from ops.model import ActiveStatus
+from ops.model import ActiveStatus, BlockedStatus
+
+from lightkube_custom_resources.operator import KnativeEventing_v1alpha1  # noqa F401
 
 logger = logging.getLogger(__name__)
 
 
-class OperatorTemplateCharm(CharmBase):
-    """Charm the service."""
-
-    _stored = StoredState()
+class KnativeEventingCharm(CharmBase):
+    """A charm for creating Knative Eventing instances via the Knative Operator."""
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.framework.observe(self.on.httpbin_pebble_ready, self._on_httpbin_pebble_ready)
+
+        self._app_name = self.app.name
+        self._namespace = self.model.name
+        # FIXME: if following the factory design pattern
+        # use appropriate factory methods
+        self._t = lambda: self._template_files
+        self._c = lambda: self._context
+
+        self.resource_handler = krh(
+            template_files_factory=self._t,
+            context_factory=self._c,
+            field_manager=self._namespace,
+        )
+        self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
-        self.framework.observe(self.on.fortune_action, self._on_fortune_action)
-        self._stored.set_default(things=[])
+        self.framework.observe(self.on.remove, self._on_remove)
 
-    def _on_httpbin_pebble_ready(self, event):
-        """Define and start a workload using the Pebble API.
-
-        TEMPLATE-TODO: change this example to suit your needs.
-        You'll need to specify the right entrypoint and environment
-        configuration for your specific workload. Tip: you can see the
-        standard entrypoint of an existing container using docker inspect
-
-        Learn more about Pebble layers at https://github.com/canonical/pebble
-        """
-        # Get a reference the container attribute on the PebbleReadyEvent
-        container = event.workload
-        # Define an initial Pebble layer configuration
-        pebble_layer = {
-            "summary": "httpbin layer",
-            "description": "pebble config layer for httpbin",
-            "services": {
-                "httpbin": {
-                    "override": "replace",
-                    "summary": "httpbin",
-                    "command": "gunicorn -b 0.0.0.0:80 httpbin:app -k gevent",
-                    "startup": "enabled",
-                    "environment": {"thing": self.model.config["thing"]},
-                }
-            },
-        }
-        # Add initial Pebble config layer using the Pebble API
-        container.add_layer("httpbin", pebble_layer, combine=True)
-        # Autostart any services that were defined with startup: enabled
-        container.autostart()
-        # Learn more about statuses in the SDK docs:
-        # https://juju.is/docs/sdk/constructs#heading--statuses
-        self.unit.status = ActiveStatus()
-
-    def _on_config_changed(self, _):
-        """Just an example to show how to deal with changed configuration.
-
-        TEMPLATE-TODO: change this example to suit your needs.
-        If you don't need to handle config, you can remove this method,
-        the hook created in __init__.py for it, the corresponding test,
-        and the config.py file.
-
-        Learn more about config at https://juju.is/docs/sdk/config
-        """
-        current = self.config["thing"]
-        if current not in self._stored.things:
-            logger.debug("found a new thing: %r", current)
-            self._stored.things.append(current)
-
-    def _on_fortune_action(self, event):
-        """Just an example to show how to receive actions.
-
-        TEMPLATE-TODO: change this example to suit your needs.
-        If you don't need to handle actions, you can remove this method,
-        the hook created in __init__.py for it, the corresponding test,
-        and the actions.py file.
-
-        Learn more about actions at https://juju.is/docs/sdk/actions
-        """
-        fail = event.params["fail"]
-        if fail:
-            event.fail(fail)
+    def _on_install(self, _):
+        try:
+            self.resource_handler.apply()
+        # TODO: change ReconcileError to new name
+        except (ApiError, ReconcileError) as e:
+            if isinstance(e, ApiError):
+                logger.debug(traceback.format_exc())
+                logger.info(
+                    f"Applying resources failed with ApiError status code {str(e.status.code)}"
+                )
+                self.unit.status = BlockedStatus(f"ApiError: {str(e.status.code)}")
+            elif isinstance(e, ReconcileError):
+                logger.info(f"Applying resources failed with message {str(e.msg)}")
+                self.unit.status = BlockedStatus(f"ReconcileError: {str(e.msg)}")
         else:
-            event.set_results({"fortune": "A bug in the code is worth two in the documentation."})
+            # TODO: once the resource handler v0.0.2 is out,
+            # let's use the compute_status() method to set (or not)
+            # an active status
+            self.unit.status = ActiveStatus()
+
+    def _on_config_changed(self, event):
+        self._on_install(event)
+
+    def _on_remove(self, _):
+        raise NotImplementedError
+
+    @property
+    def _template_files(self):
+        # FIXME: is this something that will change? Probably not.
+        src_dir = Path("src")
+        manifests_dir = src_dir / "manifests"
+        eventing_manifests = [file for file in glob.glob(f"{manifests_dir}/*.yaml.j2")]
+        return eventing_manifests
+
+    @property
+    def _context(self):
+        # TODO: if we stick to the factory design, implement
+        # it correctly. This is temporal.
+        context = {
+            "app_name": self._app_name,
+            "eventing_namespace": self.model.config["eventing.namespace"],
+        }
+        return context
 
 
 if __name__ == "__main__":
-    main(OperatorTemplateCharm)
+    main(KnativeEventingCharm)
