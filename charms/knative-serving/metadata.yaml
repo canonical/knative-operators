@@ -1,23 +1,11 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-# For a complete list of supported options, see:
-# https://juju.is/docs/sdk/metadata-reference
 name: knative-serving
 description: |
-  TEMPLATE-TODO: fill out the charm's description
+  Knative Serving is an implementation of serverless functions in a Kubernetes
+  cluster.  This charm presents a simplified interface for deploying Knative
+  Serving in Juju, handling the creation of Kubernetes objects required to
+  request a Knative Serving application from the a Knative Operator.
 summary: |
-  TEMPLATE-TODO: fill out the charm's summary
-
-# TEMPLATE-TODO: replace with containers for your workload (delete for non-k8s)
-containers:
-  httpbin:
-    resource: httpbin-image
-
-# TEMPLATE-TODO: each container defined above must specify an oci-image resource
-resources:
-  httpbin-image:
-    type: oci-image
-    description: OCI image for httpbin (kennethreitz/httpbin)
-    # Included for simplicity in integration tests
-    upstream-source: kennethreitz/httpbin
+  Knative Serving deployment for Charmed Operators in Kubernetes 
