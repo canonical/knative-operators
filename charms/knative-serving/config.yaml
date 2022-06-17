@@ -1,14 +1,24 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
-#
-# TEMPLATE-TODO: change this example to suit your needs.
-# If you don't need a config, you can remove the file entirely.
-# It ties in to the example _on_config_changed handler in src/charm.py
-#
-# Learn more about config at: https://juju.is/docs/sdk/config
 
 options:
-  thing:
-    default: 🎁
-    description: A thing used by the charm.
+  version:
+    default: "1.1.0"
+    description: Version of knative-serving component. If not set, it defaults to 1.1.0. If configured, this version has to be >1.1.0
+    type: string
+  namespace:
+    default: ""
+    description: The namespace to deploy Eventing to. This namespace cannot also contain another Knative Serving or Eventing instance. This configuration is required.
+    type: string
+  domain.name:
+    default: "10.64.140.43.nip.io"
+    description: The domain name used for all fully-qualified route names shown
+    type: string
+  istio.gateway.name:
+    default: "knative-gateway"
+    description: (TEMP) The name of the Istio Gateway to use for Knative Serving
+    type: string
+  istio.gateway.namespace:
+    default: ""
+    description: (TEMP) The namespace where istio is deployed. It is usually the model name where istio (pilot and gateway) are deployed. This configuration is required.
     type: string
