@@ -1,67 +1,56 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
-#
-# Learn more about testing at: https://juju.is/docs/sdk/testing
+from unittest.mock import MagicMock
 
-import unittest
-from unittest.mock import Mock
-
-from ops.model import ActiveStatus
-from ops.testing import Harness
-
-from charm import OperatorTemplateCharm
+import pytest
+from charmed_kubeflow_chisme.lightkube.mocking import FakeApiError
+from ops.model import ActiveStatus, BlockedStatus
 
 
-class TestCharm(unittest.TestCase):
-    def setUp(self):
-        self.harness = Harness(OperatorTemplateCharm)
-        self.addCleanup(self.harness.cleanup)
-        self.harness.begin()
+def test_events(harness, mocked_lightkube_client):
+    # Test install and config_changed event handlers are called
+    harness.begin()
+    harness.charm._on_install = MagicMock()
+    harness.charm._on_config_changed = MagicMock()
 
-    def test_config_changed(self):
-        self.assertEqual(list(self.harness.charm._stored.things), [])
-        self.harness.update_config({"thing": "foo"})
-        self.assertEqual(list(self.harness.charm._stored.things), ["foo"])
+    harness.charm.on.install.emit()
+    harness.charm._on_install.assert_called_once()
 
-    def test_action(self):
-        # the harness doesn't (yet!) help much with actions themselves
-        action_event = Mock(params={"fail": ""})
-        self.harness.charm._on_fortune_action(action_event)
+    harness.charm.on.config_changed.emit()
+    harness.charm._on_config_changed.assert_called_once()
 
-        self.assertTrue(action_event.set_results.called)
 
-    def test_action_fail(self):
-        action_event = Mock(params={"fail": "fail this"})
-        self.harness.charm._on_fortune_action(action_event)
+def test_on_install_active(harness, mocked_lightkube_client):
+    harness.begin()
+    harness.update_config({"namespace": "test"})
+    harness.charm.resource_handler.apply = MagicMock()
+    harness.charm.resource_handler.apply.return_value = None
+    harness.charm.on.install.emit()
+    assert harness.model.unit.status == ActiveStatus()
 
-        self.assertEqual(action_event.fail.call_args, [("fail this",)])
 
-    def test_httpbin_pebble_ready(self):
-        # Check the initial Pebble plan is empty
-        initial_plan = self.harness.get_container_pebble_plan("httpbin")
-        self.assertEqual(initial_plan.to_yaml(), "{}\n")
-        # Expected plan after Pebble ready with default config
-        expected_plan = {
-            "services": {
-                "httpbin": {
-                    "override": "replace",
-                    "summary": "httpbin",
-                    "command": "gunicorn -b 0.0.0.0:80 httpbin:app -k gevent",
-                    "startup": "enabled",
-                    "environment": {"thing": "🎁"},
-                }
-            },
-        }
-        # Get the httpbin container from the model
-        container = self.harness.model.unit.get_container("httpbin")
-        # Emit the PebbleReadyEvent carrying the httpbin container
-        self.harness.charm.on.httpbin_pebble_ready.emit(container)
-        # Get the plan now we've run PebbleReady
-        updated_plan = self.harness.get_container_pebble_plan("httpbin").to_dict()
-        # Check we've got the plan we expected
-        self.assertEqual(expected_plan, updated_plan)
-        # Check the service was started
-        service = self.harness.model.unit.get_container("httpbin").get_service("httpbin")
-        self.assertTrue(service.is_running())
-        # Ensure we set an ActiveStatus with no message
-        self.assertEqual(self.harness.model.unit.status, ActiveStatus())
+@pytest.mark.parametrize(
+    "apply_error, raised_exception",
+    (
+        (FakeApiError(400), pytest.raises(FakeApiError)),
+        (
+            FakeApiError(403),
+            pytest.raises(FakeApiError),
+        ),
+    ),
+)
+def test_apply_and_set_status_blocked(
+    apply_error,
+    raised_exception,
+    harness,
+    mocked_lightkube_client,
+    mocker,
+):
+    harness.begin()
+    harness.charm.resource_handler.apply = MagicMock()
+    harness.charm.resource_handler.apply.side_effect = apply_error
+
+    harness.charm._apply_and_set_status()
+    with raised_exception:
+        harness.charm.resource_handler.apply()
+    assert isinstance(harness.model.unit.status, BlockedStatus)
