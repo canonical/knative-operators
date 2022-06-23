@@ -22,6 +22,7 @@ def test_events(harness, mocked_lightkube_client):
 
 def test_on_install_active(harness, mocked_lightkube_client):
     harness.begin()
+    harness.update_config({"namespace": "test"})
     harness.charm.resource_handler.apply = MagicMock()
     harness.charm.resource_handler.apply.return_value = None
     harness.charm.on.install.emit()
