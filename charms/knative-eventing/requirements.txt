@@ -1,2 +1,3 @@
 ops >= 1.2.0
-git+https://github.com/canonical/k8s-resource-handler.git@ca-scribner/refactor-kubernetes-resource-handler-api
+charmed-kubeflow-chisme
+#git+https://github.com/canonical/k8s-resource-handler.git@ca-scribner/refactor-kubernetes-resource-handler-api
