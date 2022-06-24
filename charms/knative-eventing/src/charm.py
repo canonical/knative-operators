@@ -62,7 +62,7 @@ class KnativeEventingCharm(CharmBase):
 
     def _on_install(self, _):
         if not self.model.config["namespace"]:
-            self.model.unit.status = BlockedStatus('Config item `namespace` must be set')
+            self.model.unit.status = BlockedStatus("Config item `namespace` must be set")
             return
         self._apply_and_set_status()
 
