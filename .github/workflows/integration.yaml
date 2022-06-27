@@ -1,10 +1,11 @@
-name: CI
+# reusable workflow triggered by other actions
+name: Continuous Integration
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+  workflow_call:
+    secrets:
+      charmcraft-credentials:
+        required: true
 
 jobs:
   lint:
@@ -45,10 +46,10 @@ jobs:
           provider: microk8s
           channel: 1.21/stable
 
-      - run: sudo snap install juju-wait --classic
       - run: juju add-model knative-test
 
       - name: Run integration tests
+
         run: tox -vve integration -- --model knative-test --destructive-mode
         env:
           KUBECONFIG: /home/runner/.kube/config
