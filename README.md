@@ -31,7 +31,7 @@ juju relate istio-pilot istio-ingressgateway
 
 ### `knative-operator`
 
-The `knative-operator` is responsible for installing, configuring, and managing the `serving` and `eventing` components. Despite your final application, you must deploy the charmed `knative-operator` before any other Knative component.
+The `knative-operator` is responsible for installing, configuring, and managing the `serving` and `eventing` components. You must deploy the charmed `knative-operator` before any other Knative component.
 
 ```
 juju deploy knative-operator --trust
@@ -42,8 +42,14 @@ juju deploy knative-operator --trust
 `knative-serving` provides components that enable rapid deployment of serverless containers, autoscaling (including down to zero), support for multiple layers, and revision tracking. Charmed `knative-serving` can be deployed as follows:
 
 ```
-juju deploy knative-serving --config namespace="knative-serving" --config istio.gateway.namespace=${MODEL_NAME} --trust
+juju deploy knative-serving --config namespace="knative-serving" --config istio.gateway.namespace=${MODEL_NAME} --config istio.gateway.name=${DEFAULT_GATEWAY} --trust
 ```
+
+where:
+
+* namespace: The namespace knative-serving resources will be deployed into (it cannot be deployed into the same namespace as knative-operator or knative-eventing
+* istio.gateway.namespace: The namespace the Istio gateway is deployed to (generally, the model that Istio is deployed to).
+* istio.gateway.name: The name of the Istio gateway
 
 ### `knative-eventing`
 
@@ -52,10 +58,13 @@ juju deploy knative-serving --config namespace="knative-serving" --config istio.
 ```
 juju deploy knative-eventing --config namespace="knative-eventing" --trust
 ```
+where:
+
+* namespace: The namespace knative-eventing resources will be deployed into (it cannot be deployed into the same namespace as knative-operator or knative-serving
 
 ## Integration example
 
-To run an simple example that integrates both `eventing` and `serving`, you can run the one provided in `examples/`.
+To run a simple example that integrates both `eventing` and `serving`, you can run the one provided in `examples/`.
 
 > NOTE: this example is based on [Using a Knative Service as a source](https://knative.dev/docs/getting-started/first-source/#sending-an-event)
 
