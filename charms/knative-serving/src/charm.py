@@ -49,10 +49,12 @@ class KnativeServingCharm(CharmBase):
         except (ApiError, ErrorWithStatus) as e:
             logger.debug(traceback.format_exc())
             if isinstance(e, ApiError):
-                logger.info(f"Applying resources failed with ApiError status code {e.status.code}")
+                logger.error(
+                    f"Applying resources failed with ApiError status code {e.status.code}"
+                )
                 self.unit.status = BlockedStatus(f"ApiError: {e.status.code}")
             else:
-                logger.info(e.msg)
+                logger.error(e.msg)
                 self.unit.status = e.status
         else:
             # TODO: once the resource handler v0.0.2 is out,
