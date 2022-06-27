@@ -5,7 +5,7 @@ kind: KnativeServing
 metadata:
   name: {{ app_name }}
   # TODO: make this configurable
-  namespace: {{ namespace }}
+  namespace: {{ serving_namespace }}
 spec:
   version: {{ serving_version }}
   config:
