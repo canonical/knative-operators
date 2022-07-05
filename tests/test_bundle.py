@@ -148,7 +148,7 @@ async def test_cloud_events_player_example(ops_test: OpsTest):
         "Ce-Type": "some-type",
         "Ce-Source": "command-line",
     }
-    post_req = requests.post(url, data=data, headers=headers, allow_redirects=False, verify=False)
+    post_req = requests.post(url, json=data, headers=headers, allow_redirects=False, verify=False)
     assert post_req.status_code == 202
     get_req = requests.get(f"{url}/messages", allow_redirects=False, verify=False)
-    assert get_req.status_code == 202
+    assert get_req.status_code == 200
