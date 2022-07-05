@@ -139,7 +139,7 @@ async def test_cloud_events_player_example(ops_test: OpsTest):
 
     gateway_obj = json.loads(gateway_json[1])
     gateway_ip = gateway_obj["status"]["loadBalancer"]["ingress"][0]["ip"]
-    url = f"http://cloudevents-player.default.{gateway_ip}.nip.io/messages"
+    url = f"http://cloudevents-player.default.{gateway_ip}.nip.io"
     data = {"msg": "Hello CloudEvents!"}
     headers = {
         "Content-Type": "application/json",
@@ -150,5 +150,5 @@ async def test_cloud_events_player_example(ops_test: OpsTest):
     }
     post_req = requests.post(url, data=data, headers=headers, allow_redirects=False, verify=False)
     assert post_req.status_code == 202
-    get_req = requests.get(url, allow_redirects=False, verify=False)
+    get_req = requests.get(f"{url}/messages", allow_redirects=False, verify=False)
     assert get_req.status_code == 202
