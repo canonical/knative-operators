@@ -5,10 +5,8 @@
 This documents explains the processes and practices recommended for contributing enhancements to
 this operator.
 
-<!-- TEMPLATE-TODO: Update the URL for issue creation -->
-
 - Generally, before developing enhancements to this charm, you should consider [opening an issue
-  ](https://github.com/canonical/operator-template/issues) explaining your use case.
+  ](https://github.com/canonical/knative-operators/issues) explaining your use case.
 - If you would like to chat with us about your use-cases or proposed implementation, you can reach
   us at [Canonical Mattermost public channel](https://chat.charmhub.io/charmhub/channels/charm-dev)
   or [Discourse](https://discourse.charmhub.io/).
@@ -50,20 +48,28 @@ charmcraft pack
 
 ### Deploy
 
-<!-- TEMPLATE-TODO: Update the deploy command for name of charm-->
-
 ```bash
 # Create a model
-juju add-model dev
+MODEL_NAME="dev"
+DEFAULT_GATEWAY="knative-gateway"
+juju add-model ${MODEL_NAME}
+# Deploy dependencies
+juju deploy istio-pilot --config default-gateway=${DEFAULT_GATEWAY} --trust
+juju deploy istio-gateway istio-ingressgateway --config kind="ingress" --trust
+juju relate istio-pilot istio-ingressgateway
 # Enable DEBUG logging
 juju model-config logging-config="<root>=INFO;unit=DEBUG"
 # Deploy the charm
-juju deploy ./template-operator_ubuntu-20.04-amd64.charm \
-    --resource httpbin-image=kennethreitz/httpbin \
+juju deploy ./knative-serving_ubuntu-20.04-amd64.charm \
+    --config namespace="knative-serving" --config istio.gateway.namespace=${MODEL_NAME} \
+    --config istio.gateway.name=${DEFAULT_GATEWAY} --trust
 ```
 
+where:
+
+* namespace: The namespace knative-serving resources will be deployed into (it cannot be deployed into the same namespace as knative-operator or knative-eventing)
+* istio.gateway.namespace: The namespace the Istio gateway is deployed to (generally, the model that Istio is deployed to).
+* istio.gateway.name: The name of the Istio gateway
 ## Canonical Contributor Agreement
 
-<!-- TEMPLATE-TODO: Update the description with the name of charm-->
-
-Canonical welcomes contributions to the Charmed Template Operator. Please check out our [contributor agreement](https://ubuntu.com/legal/contributors) if you're interested in contributing to the solution.
+Canonical welcomes contributions to the charmed knative-serving. Please check out our [contributor agreement](https://ubuntu.com/legal/contributors) if you're interested in contributing to the solution.
