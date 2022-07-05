@@ -1,26 +1,11 @@
-# operator-template
+# `knative-operator`
 
 ## Description
 
-TODO: Describe your charm in a few paragraphs of Markdown
+`knative-operator` provides a charmed Kubernetes operator that defines custom resources to install, configure, and manage the Knative components, eventing and serving.
 
 ## Usage
 
-TODO: Provide high-level usage, such as required config or relations
-
-## Relations
-
-TODO: Provide any relations which are provided or required by your charm
-
-## OCI Images
-
-TODO: Include a link to the default image your charm uses
-
-## Contributing
-
-<!-- TEMPLATE-TODO: Change this URL to be the full Github path to CONTRIBUTING.md-->
-
-Please see the [Juju SDK docs](https://juju.is/docs/sdk) for guidelines on enhancements to this
-charm following best practice guidelines, and
-[CONTRIBUTING.md](https://github.com/<name>/<operator>/blob/main/CONTRIBUTING.md) for developer
-guidance.
+```bash
+juju deploy knative-operator --trust
+```
