@@ -43,6 +43,12 @@ async def test_kubectl_access(ops_test: OpsTest):
 
 @pytest.mark.abort_on_fail
 async def test_build_deploy_knative_charms(ops_test: OpsTest):
+    # Build knative charms
+    charms_path = "./charms/knative"
+    knative_charms = await ops_test.build_charms(
+        f"{charms_path}-operator", f"{charms_path}-serving", f"{charms_path}-eventing"
+    )
+
     # Deploy istio as dependency
     await ops_test.model.deploy(
         "istio-pilot",
@@ -50,6 +56,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
         config={"default-gateway": "knative-gateway"},
         trust=True,
     )
+
     await ops_test.model.deploy(
         "istio-gateway",
         application_name="istio-ingressgateway",
@@ -57,6 +64,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
         config={"kind": "ingress"},
         trust=True,
     )
+
     await ops_test.model.add_relation("istio-pilot", "istio-ingressgateway")
 
     await ops_test.model.wait_for_idle(
@@ -66,12 +74,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
         timeout=90 * 10,
     )
 
-    # Build and deploy knative charms
-    charms_path = "./charms/knative"
-    knative_charms = await ops_test.build_charms(
-        f"{charms_path}-operator", f"{charms_path}-serving", f"{charms_path}-eventing"
-    )
-
+    # Deploy knative charms
     knative_operator_image = "gcr.io/knative-releases/knative.dev/operator/cmd/operator:v1.1.0"
     await ops_test.model.deploy(
         knative_charms["knative-operator"],
