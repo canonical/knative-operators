@@ -1,26 +1,17 @@
-# operator-template
+# `knative-serving`
 
 ## Description
 
-TODO: Describe your charm in a few paragraphs of Markdown
+`knative-serving` provides components that enable rapid deployment of serverless containers, autoscaling (including down to zero), support for multiple layers, and revision tracking.
 
 ## Usage
 
-TODO: Provide high-level usage, such as required config or relations
+```
+juju deploy knative-serving --config namespace="knative-serving" --config istio.gateway.namespace=${MODEL_NAME} --config istio.gateway.name=${DEFAULT_GATEWAY} --trust
+```
 
-## Relations
+where:
 
-TODO: Provide any relations which are provided or required by your charm
-
-## OCI Images
-
-TODO: Include a link to the default image your charm uses
-
-## Contributing
-
-<!-- TEMPLATE-TODO: Change this URL to be the full Github path to CONTRIBUTING.md-->
-
-Please see the [Juju SDK docs](https://juju.is/docs/sdk) for guidelines on enhancements to this
-charm following best practice guidelines, and
-[CONTRIBUTING.md](https://github.com/<name>/<operator>/blob/main/CONTRIBUTING.md) for developer
-guidance.
+* namespace: The namespace knative-serving resources will be deployed into (it cannot be deployed into the same namespace as knative-operator or knative-eventing
+* istio.gateway.namespace: The namespace the Istio gateway is deployed to (generally, the model that Istio is deployed to).
+* istio.gateway.name: The name of the Istio gateway
