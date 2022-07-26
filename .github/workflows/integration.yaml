@@ -63,7 +63,7 @@ jobs:
 
       - name: Run integration tests
 
-        run: tox -vve integration -- --model knative-test --destructive-mode
+        run: tox -vve integration -- --model knative-test
         env:
           KUBECONFIG: /home/runner/.kube/config
 
