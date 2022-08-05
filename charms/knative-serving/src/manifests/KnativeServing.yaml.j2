@@ -15,9 +15,11 @@ spec:
       # To define the external gateway:
       # gateway.NAMESPACE-OF-GATEWAY.NAME-OF-GATEWAY: SOME-SERVICE.SOME-NAMESPACE.svc.cluste.local (I dont know what this is for, but if we cite an invalid namespace here the knative-serving object will not fully deploy)
       gateway.{{ gateway_namespace }}.{{ gateway_name }}: "some-workload.knative-operator.svc.cluster.local"
-      # Defines the internal (inside cluster) gateway (which, if we don't enforce istio rules, I think doesn't matter so much?):
-      # local-gateway.NAMESPACE-OF-GATEWAY.NAME-OF-GATEWAY: SOME-SERVICE.SOME-NAMESPACE.svc.cluste.local (I dont know what this is for, but if we cite an invalid namespace here the knative-serving object will not fully deploy)
-      local-gateway.knative-serving.knative-local-gateway: "some-workload.knative-operator.svc.cluster.local"
+      # Defines the internal (inside cluster) gateway:
+      # local-gateway.<local-gateway-namespace>.knative-local-gateway: "knative-local-gateway.<istio-namespace>.svc.cluster.local"
+      # Where local-gateway-namespace is the same as the knative-namespace and istio-namespace is where istio is deployed, in this particular
+      # case we know the gateway namespace and the istio namespace will be the same
+      local-gateway.{{ serving_namespace }}.knative-local-gateway: "knative-local-gateway.{{ gateway_namespace }}.svc.cluster.local"
     # This is analogous to the config-domain configmap
     domain:
       {{ domain }}: ""
