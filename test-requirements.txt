@@ -3,3 +3,4 @@ git+https://github.com/juju/python-libjuju@master
 pytest-operator<1.0
 asyncio<3.5
 PyYAML==6.0
+flake8==4.0.1
