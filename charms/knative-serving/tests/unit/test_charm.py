@@ -83,9 +83,11 @@ def test_apply_and_set_status_blocked(
     assert isinstance(harness.model.unit.status, BlockedStatus)
 
 
+@patch("charm.KRH")
 @patch("charm.delete_many")
 def test_on_remove_success(
     delete_many: MagicMock,
+    _: MagicMock,
     harness,
 ):
     harness.begin()
@@ -94,9 +96,11 @@ def test_on_remove_success(
     assert isinstance(harness.charm.model.unit.status, MaintenanceStatus)
 
 
+@patch("charm.KRH")
 @patch("charm.delete_many")
 def test_on_remove_failure(
     delete_many: MagicMock,
+    _: MagicMock,
     harness,
 ):
     harness.begin()
