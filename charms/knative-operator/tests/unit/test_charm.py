@@ -2,30 +2,14 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
 from lightkube.core.exceptions import ApiError
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
-from ops.pebble import Change, ChangeError, ChangeID
 from ops.testing import Harness
 
 from charm import KnativeOperatorCharm
-
-
-class _FakeChange:
-    def __init__(self):
-        self.cid = ChangeID("0")
-        self.spawn_time = datetime.datetime.now()
-        self.change = Change(
-            self.cid, "kind", "summary", "status", [], False, None, self.spawn_time, None
-        )
-
-
-class _FakeChangeError(ChangeError):
-    def __init__(self):
-        super().__init__("err", change=_FakeChange())
 
 
 class _FakeResponse:
@@ -141,15 +125,6 @@ def test_update_layer_active(harness, mocked_resource_handler, mocker):
     assert service.is_running() is True
 
     assert harness.model.unit.status == ActiveStatus()
-
-
-def test_update_layer_exception(harness, mocked_resource_handler, mocked_container_replan):
-    harness.begin()
-    mocked_container_replan.side_effect = _FakeChangeError()
-    mocked_event = MagicMock()
-    with pytest.raises(ChangeError):
-        harness.charm._update_layer(mocked_event)
-    assert harness.model.unit.status == BlockedStatus("Failed to replan")
 
 
 @patch("charm.KRH")

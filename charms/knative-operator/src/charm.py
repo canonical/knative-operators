@@ -14,11 +14,12 @@ from charmed_kubeflow_chisme.kubernetes import (  # noqa N813
     KubernetesResourceHandler as KRH,
 )
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
+from charmed_kubeflow_chisme.pebble import update_layer
 from lightkube import ApiError
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
-from ops.pebble import ChangeError, Layer
+from ops.pebble import Layer
 
 REQUEST_LOG_TEMPLATE = '{"httpRequest": {"requestMethod": "{{.Request.Method}}", "requestUrl": "{{js .Request.RequestURI}}", "requestSize": "{{.Request.ContentLength}}", "status": {{.Response.Code}}, "responseSize": "{{.Response.Size}}", "userAgent": "{{js .Request.UserAgent}}", "remoteIp": "{{js .Request.RemoteAddr}}", "serverIp": "{{.Revision.PodIP}}", "referer": "{{js .Request.Referer}}", "latency": "{{.Response.Latency}}s", "protocol": "{{.Request.Proto}}"}, "traceId": "{{index .Request.Header "X-B3-Traceid"}}"}'
 
@@ -88,29 +89,8 @@ class KnativeOperatorCharm(CharmBase):
         }
         return Layer(layer_config)
 
-    def _update_layer(self, event) -> None:
-        """Updates the Pebble configuration layer if changed."""
-        if not self._container.can_connect():
-            self.unit.status = MaintenanceStatus("Waiting for pod startup to complete")
-            event.defer()
-            return
-
-        # Get current config
-        current_layer = self._container.get_plan()
-        # Create a new config layer
-        new_layer = self._knative_operator_layer
-        if current_layer.services != new_layer.services:
-            self._container.add_layer(self._operator_service, new_layer, combine=True)
-            try:
-                logger.info("Pebble plan updated with new configuration, replanning")
-                self._container.replan()
-            except ChangeError as e:
-                logger.error(traceback.format_exc())
-                self.unit.status = BlockedStatus("Failed to replan")
-                raise e
-        self.unit.status = ActiveStatus()
-
-    def _apply_all_resources(self):
+    def _apply_all_resources(self) -> None:
+        """Helper method to create Kubernetes resources."""
         try:
             self.resource_handler.apply()
         except (ApiError, ErrorWithStatus) as e:
@@ -131,7 +111,15 @@ class KnativeOperatorCharm(CharmBase):
         """Event handler for changing Pebble configuration and applying k8s resources."""
         # Update Pebble configuration layer if it has changed
         self.unit.status = MaintenanceStatus("Configuring Pebble layer")
-        self._update_layer(event)
+        try:
+            update_layer(self._app_name, self._container, self._knative_operator_layer, logger)
+        except ErrorWithStatus as e:
+            self.model.unit.status = e.status
+            if isinstance(e.status, BlockedStatus):
+                logger.error(str(e.msg))
+            else:
+                logger.info(str(e.msg))
+            event.defer()
 
         # Apply Kubernetes resources
         self.unit.status = MaintenanceStatus("Applying resources")
@@ -140,7 +128,17 @@ class KnativeOperatorCharm(CharmBase):
     def _on_knative_operator_pebble_ready(self, event):
         """Event handler for on PebbleReadyEvent."""
         self.unit.status = MaintenanceStatus("Configuring Pebble layer")
-        self._update_layer(event)
+        try:
+            update_layer(self._app_name, self._container, self._knative_operator_layer, logger)
+        except ErrorWithStatus as e:
+            self.model.unit.status = e.status
+            if isinstance(e.status, BlockedStatus):
+                logger.error(str(e.msg))
+            else:
+                logger.info(str(e.msg))
+            event.defer()
+
+        self.unit.status = ActiveStatus()
 
     def _on_remove(self, _):
         self.unit.status = MaintenanceStatus("Removing k8s resources")
