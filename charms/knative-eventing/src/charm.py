@@ -15,6 +15,7 @@ from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.kubernetes import (  # noqa N813
     KubernetesResourceHandler as KRH,
 )
+from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from lightkube.core.exceptions import ApiError
 from ops.charm import CharmBase
 from ops.main import main
@@ -41,6 +42,7 @@ class KnativeEventingCharm(CharmBase):
         )
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(self.on.remove, self._on_remove)
 
     def _apply_and_set_status(self):
         try:
@@ -68,6 +70,16 @@ class KnativeEventingCharm(CharmBase):
 
     def _on_config_changed(self, _):
         self._apply_and_set_status()
+
+    def _on_remove(self, _):
+        self.unit.status = MaintenanceStatus("Removing k8s resources")
+        manifests = self.resource_handler.render_manifests()
+        try:
+            delete_many(self.resource_handler.lightkube_client, manifests)
+        except ApiError as e:
+            logger.warning(f"Failed to delete resources: {manifests} with: {e}")
+            raise e
+        self.unit.status = MaintenanceStatus("K8s resources removed")
 
     @property
     def _template_files(self):

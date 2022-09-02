@@ -1,10 +1,37 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from charmed_kubeflow_chisme.lightkube.mocking import FakeApiError
-from ops.model import ActiveStatus, BlockedStatus
+from lightkube import ApiError
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
+
+
+class _FakeResponse:
+    """Used to fake an httpx response during testing only."""
+
+    def __init__(self, code):
+        self.code = code
+        self.name = ""
+
+    def json(self):
+        reason = ""
+        if self.code == 409:
+            reason = "AlreadyExists"
+        return {
+            "apiVersion": 1,
+            "code": self.code,
+            "message": "broken",
+            "reason": reason,
+        }
+
+
+class _FakeApiError(ApiError):
+    """Used to simulate an ApiError during testing."""
+
+    def __init__(self, code=400):
+        super().__init__(response=_FakeResponse(code))
 
 
 def test_events(harness, mocked_lightkube_client):
@@ -54,3 +81,29 @@ def test_apply_and_set_status_blocked(
     with raised_exception:
         harness.charm.resource_handler.apply()
     assert isinstance(harness.model.unit.status, BlockedStatus)
+
+
+@patch("charm.KRH")
+@patch("charm.delete_many")
+def test_on_remove_success(
+    delete_many: MagicMock,
+    _: MagicMock,
+    harness,
+):
+    harness.begin()
+    harness.charm.on.remove.emit()
+    delete_many.assert_called()
+    assert isinstance(harness.charm.model.unit.status, MaintenanceStatus)
+
+
+@patch("charm.KRH")
+@patch("charm.delete_many")
+def test_on_remove_failure(
+    delete_many: MagicMock,
+    _: MagicMock,
+    harness,
+):
+    harness.begin()
+    delete_many.side_effect = _FakeApiError()
+    with pytest.raises(ApiError):
+        harness.charm.on.remove.emit()

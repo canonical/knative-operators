@@ -4,15 +4,23 @@
 
 """A Juju Charm for knative-operator."""
 
+import glob
 import logging
 import traceback
+from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader
-from lightkube import ApiError, Client, codecs
+from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
+from charmed_kubeflow_chisme.kubernetes import (  # noqa N813
+    KubernetesResourceHandler as KRH,
+)
+from charmed_kubeflow_chisme.lightkube.batch import delete_many
+from lightkube import ApiError
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.pebble import ChangeError, Layer
+
+REQUEST_LOG_TEMPLATE = '{"httpRequest": {"requestMethod": "{{.Request.Method}}", "requestUrl": "{{js .Request.RequestURI}}", "requestSize": "{{.Request.ContentLength}}", "status": {{.Response.Code}}, "responseSize": "{{.Response.Size}}", "userAgent": "{{js .Request.UserAgent}}", "remoteIp": "{{js .Request.RemoteAddr}}", "serverIp": "{{.Revision.PodIP}}", "referer": "{{js .Request.Referer}}", "latency": "{{.Response.Latency}}s", "protocol": "{{.Request.Proto}}"}, "traceId": "{{index .Request.Header "X-B3-Traceid"}}"}'
 
 logger = logging.getLogger(__name__)
 
@@ -25,27 +33,36 @@ class KnativeOperatorCharm(CharmBase):
 
         self._app_name = self.model.app.name
         self._namespace = self.model.name
+        self.resource_handler = KRH(
+            template_files=self._template_files,
+            context=self._context,
+            field_manager=self._namespace,
+        )
         self._operator_service = "/ko-app/operator"
         self._container = self.unit.get_container(self._app_name)
-        self.env = Environment(loader=FileSystemLoader("src"))
-        self._resources_files = (
-            "auth_manifests.yaml",
-            "service_account.yaml",
-            "crds_manifests.yaml",
-            "istio_ns.yaml",
-            "operator_ns.yaml",
-            # Skipping config manifests for now
-            # "config_manifests.yaml",
-        )
-        self._context = {"namespace": self._namespace, "name": self._app_name}
-
-        self.lightkube_client = Client(namespace=self._namespace, field_manager="lightkube")
         for event in [self.on.install, self.on.config_changed]:
             self.framework.observe(event, self._main)
         self.framework.observe(
             self.on.knative_operator_pebble_ready,
             self._on_knative_operator_pebble_ready,
         )
+        self.framework.observe(self.on.remove, self._on_remove)
+
+    @property
+    def _template_files(self):
+        src_dir = Path("src")
+        manifests_dir = src_dir / "manifests"
+        eventing_manifests = [file for file in glob.glob(f"{manifests_dir}/*.yaml.j2")]
+        return eventing_manifests
+
+    @property
+    def _context(self):
+        context = {
+            "namespace": self._namespace,
+            "name": self._app_name,
+            "requestLogTemplate": REQUEST_LOG_TEMPLATE,
+        }
+        return context
 
     @property
     def _knative_operator_layer(self) -> Layer:
@@ -91,31 +108,23 @@ class KnativeOperatorCharm(CharmBase):
                 logger.error(traceback.format_exc())
                 self.unit.status = BlockedStatus("Failed to replan")
                 raise e
-                return
         self.unit.status = ActiveStatus()
 
-    def _apply_all_resources(self) -> None:
-        """Helper method to create Kubernetes resources."""
+    def _apply_all_resources(self):
         try:
-            for filename in self._resources_files:
-                manifest = self.env.get_template(filename).render(self._context)
-                for obj in codecs.load_all_yaml(manifest):
-                    self.lightkube_client.apply(obj)
-        except ApiError as e:
-            logger.error(traceback.format_exc())
-            self.unit.status = BlockedStatus(
-                f"Applying resources failed with code {str(e.status.code)}."
-            )
-            if e.status.code == 403:
-                logger.error(
-                    "Received Forbidden (403) error when creating auth resources."
-                    "This may be due to the charm lacking permissions to create"
-                    "cluster-scoped resources."
-                    "Charm must be deployed with --trust"
-                )
-            raise e
-            return
+            self.resource_handler.apply()
+        except (ApiError, ErrorWithStatus) as e:
+            logger.info(traceback.format_exc())
+            if isinstance(e, ApiError):
+                logger.info(f"Applying resources failed with ApiError status code {e.status.code}")
+                self.unit.status = BlockedStatus(f"ApiError: {e.status.code}")
+            else:
+                logger.info(e.msg)
+                self.unit.status = e.status
         else:
+            # TODO: once the resource handler v0.0.2 is out,
+            # let's use the compute_status() method to set (or not)
+            # an active status
             self.unit.status = ActiveStatus()
 
     def _main(self, event):
@@ -132,6 +141,16 @@ class KnativeOperatorCharm(CharmBase):
         """Event handler for on PebbleReadyEvent."""
         self.unit.status = MaintenanceStatus("Configuring Pebble layer")
         self._update_layer(event)
+
+    def _on_remove(self, _):
+        self.unit.status = MaintenanceStatus("Removing k8s resources")
+        manifests = self.resource_handler.render_manifests()
+        try:
+            delete_many(self.resource_handler.lightkube_client, manifests)
+        except ApiError as e:
+            logger.warning(f"Failed to delete resources: {manifests} with: {e}")
+            raise e
+        self.unit.status = MaintenanceStatus("K8s resources removed")
 
 
 if __name__ == "__main__":

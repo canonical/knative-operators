@@ -3,13 +3,11 @@
 # See LICENSE file for licensing details.
 
 import datetime
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from lightkube.core.exceptions import ApiError
-from lightkube.models.meta_v1 import ObjectMeta
-from lightkube.resources.core_v1 import Pod
-from ops.model import ActiveStatus, BlockedStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.pebble import Change, ChangeError, ChangeID
 from ops.testing import Harness
 
@@ -62,20 +60,12 @@ def mocked_codecs(mocker):
 
 
 @pytest.fixture()
-def mocked_client(mocker):
+def mocked_resource_handler(mocker):
     """Yields a mocked lightkube Client."""
-    mocked_lightkube_client = MagicMock()
-    mocked_lightkube_client_factory = mocker.patch("charm.Client")
-    mocked_lightkube_client_factory.return_value = mocked_lightkube_client
-    yield mocked_lightkube_client
-
-
-@pytest.fixture()
-def mocked_codecs_load_all_yaml(mocked_codecs, mocker):
-    mocker.patch("charm.KnativeOperatorCharm._update_layer")
-    pod_names = ["a", "b"]
-    resources = [Pod(kind="Pod", metadata=ObjectMeta(name=str(name))) for name in pod_names]
-    mocked_codecs.load_all_yaml.return_value = resources
+    mocked_resource_handler = MagicMock()
+    mocked_resource_handler_factory = mocker.patch("charm.KRH")
+    mocked_resource_handler_factory.return_value = mocked_resource_handler
+    yield mocked_resource_handler
 
 
 @pytest.fixture()
@@ -83,7 +73,7 @@ def mocked_container_replan(mocker):
     yield mocker.patch("ops.model.Container.replan")
 
 
-def test_events(harness, mocked_client, mocker):
+def test_events(harness, mocked_resource_handler, mocker):
     harness.begin()
     main = mocker.patch("charm.KnativeOperatorCharm._main")
     pebble_ready = mocker.patch("charm.KnativeOperatorCharm._on_knative_operator_pebble_ready")
@@ -101,27 +91,23 @@ def test_events(harness, mocked_client, mocker):
     pebble_ready.reset_mock()
 
 
-def test_apply_all_resources_active(
-    harness, mocked_client, mocked_codecs, mocked_codecs_load_all_yaml
-):
+def test_apply_all_resources_active(harness, mocked_resource_handler):
     harness.begin()
     harness.charm._apply_all_resources()
-    mocked_codecs.load_all_yaml.assert_called()
-    mocked_client.apply.assert_called()
+    mocked_resource_handler.apply.assert_called()
     assert harness.model.unit.status == ActiveStatus()
 
 
-def test_apply_all_resource_exception(harness, mocked_client, mocked_codecs_load_all_yaml):
+def test_apply_all_resource_exception(harness, mocked_resource_handler):
     harness.begin()
-    mocked_client.apply.side_effect = _FakeApiError()
-    with pytest.raises(ApiError):
-        harness.charm._apply_all_resources()
+    mocked_resource_handler.apply.side_effect = _FakeApiError()
+    harness.charm._apply_all_resources()
     assert harness.model.unit.status == BlockedStatus(
-        f"Applying resources failed with code {mocked_client.apply.side_effect.response.code}."
+        f"ApiError: {mocked_resource_handler.apply.side_effect.response.code}"
     )
 
 
-def test_update_layer_active(harness, mocked_client, mocker):
+def test_update_layer_active(harness, mocked_resource_handler, mocker):
     harness.begin()
     # Check the initial Pebble plan is empty
     initial_plan = harness.get_container_pebble_plan("knative-operator")
@@ -157,10 +143,36 @@ def test_update_layer_active(harness, mocked_client, mocker):
     assert harness.model.unit.status == ActiveStatus()
 
 
-def test_update_layer_exception(harness, mocked_client, mocked_container_replan):
+def test_update_layer_exception(harness, mocked_resource_handler, mocked_container_replan):
     harness.begin()
     mocked_container_replan.side_effect = _FakeChangeError()
     mocked_event = MagicMock()
     with pytest.raises(ChangeError):
         harness.charm._update_layer(mocked_event)
     assert harness.model.unit.status == BlockedStatus("Failed to replan")
+
+
+@patch("charm.KRH")
+@patch("charm.delete_many")
+def test_on_remove_success(
+    delete_many: MagicMock,
+    _: MagicMock,
+    harness,
+):
+    harness.begin()
+    harness.charm.on.remove.emit()
+    delete_many.assert_called()
+    assert isinstance(harness.charm.model.unit.status, MaintenanceStatus)
+
+
+@patch("charm.KRH")
+@patch("charm.delete_many")
+def test_on_remove_failure(
+    delete_many: MagicMock,
+    _: MagicMock,
+    harness,
+):
+    harness.begin()
+    delete_many.side_effect = _FakeApiError()
+    with pytest.raises(ApiError):
+        harness.charm.on.remove.emit()
