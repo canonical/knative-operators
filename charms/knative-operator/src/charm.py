@@ -119,7 +119,7 @@ class KnativeOperatorCharm(CharmBase):
                 logger.error(str(e.msg))
             else:
                 logger.info(str(e.msg))
-            event.defer()
+                event.defer()
 
         # Apply Kubernetes resources
         self.unit.status = MaintenanceStatus("Applying resources")
@@ -136,7 +136,7 @@ class KnativeOperatorCharm(CharmBase):
                 logger.error(str(e.msg))
             else:
                 logger.info(str(e.msg))
-            event.defer()
+                event.defer()
 
         self.unit.status = ActiveStatus()
 
