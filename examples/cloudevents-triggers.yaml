@@ -2,7 +2,6 @@ apiVersion: eventing.knative.dev/v1
 kind: Trigger
 metadata:
   name: cloudevents-trigger
-  namespace: knative
   annotations:
     knative-eventing-injection: enabled
 spec:
