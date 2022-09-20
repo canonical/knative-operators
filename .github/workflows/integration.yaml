@@ -69,6 +69,15 @@ jobs:
 
       - run: kubectl get all -A
         if: failure()
+      
+      - run: kubectl get ksvc -A
+        if: failure()
+      
+      - run: kubectl get broker -A
+        if: failure()
+      
+      - run: kubectl get trigger -A
+        if: failure()
 
       - run: juju status
         if: failure()
