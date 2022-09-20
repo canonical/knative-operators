@@ -3,13 +3,62 @@
 
 import json
 import logging
+from time import sleep
+from typing import Dict, List
 
 import pytest
+import pytest_asyncio
 import requests
 import yaml
 from pytest_operator.plugin import OpsTest
 
 log = logging.getLogger(__name__)
+
+
+@pytest_asyncio.fixture
+async def gateway_ip(ops_test: OpsTest) -> str:
+    gateway_json = await ops_test.run(
+        "kubectl",
+        "get",
+        "services/istio-ingressgateway-workload",
+        "-n",
+        ops_test.model_name,
+        "-ojson",
+        check=True,
+    )
+
+    gateway_obj = json.loads(gateway_json[1])
+    return gateway_obj["status"]["loadBalancer"]["ingress"][0]["ip"]
+
+
+def send_message(url: str) -> requests.Response:
+    data = {"msg": "Hello CloudEvents!"}
+    headers = {
+        "Content-Type": "application/json",
+        "Ce-Id": "123456789",
+        "Ce-Specversion": "1.0",
+        "Ce-Type": "some-type",
+        "Ce-Source": "command-line",
+    }
+    response = requests.post(url, json=data, headers=headers, allow_redirects=False, verify=False)
+    if response.status_code != 202:
+        raise Exception(f"Failed to send message for url: {url}")
+
+    return response
+
+
+def get_player_received_messages(player_url: str) -> List[Dict]:
+    response = requests.get(f"{player_url}/messages", allow_redirects=False, verify=False)
+
+    if response.status_code != 200:
+        raise Exception(f"Failed get request for player: {player_url}")
+
+    messages = response.json()
+    received_messages = list(
+        filter(lambda message: message.get("type", None) == "RECEIVED", messages)
+    )
+
+    return received_messages
 
 
 @pytest.mark.abort_on_fail
@@ -112,12 +161,12 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
 
-async def test_cloud_events_player_example(ops_test: OpsTest):
+async def test_cloud_events_players_created(ops_test: OpsTest):
     await ops_test.run(
         "kubectl",
         "apply",
         "-f",
-        "./examples/cloudevents-player.yaml",
+        "./examples/cloudevents-players.yaml",
         check=True,
     )
     await ops_test.run(
@@ -129,29 +178,78 @@ async def test_cloud_events_player_example(ops_test: OpsTest):
         "--timeout=5m",
         check=True,
     )
-
-    gateway_json = await ops_test.run(
+    await ops_test.run(
         "kubectl",
-        "get",
-        "services/istio-ingressgateway-workload",
-        "-n",
-        ops_test.model_name,
-        "-ojson",
+        "wait",
+        "--for=condition=ready",
+        "ksvc",
+        "cloudevents-player2",
+        "--timeout=5m",
         check=True,
     )
 
-    gateway_obj = json.loads(gateway_json[1])
-    gateway_ip = gateway_obj["status"]["loadBalancer"]["ingress"][0]["ip"]
-    url = f"http://cloudevents-player.default.{gateway_ip}.nip.io"
-    data = {"msg": "Hello CloudEvents!"}
-    headers = {
-        "Content-Type": "application/json",
-        "Ce-Id": "123456789",
-        "Ce-Specversion": "1.0",
-        "Ce-Type": "some-type",
-        "Ce-Source": "command-line",
-    }
-    post_req = requests.post(url, json=data, headers=headers, allow_redirects=False, verify=False)
-    assert post_req.status_code == 202
-    get_req = requests.get(f"{url}/messages", allow_redirects=False, verify=False)
-    assert get_req.status_code == 200
+
+async def test_broker_created(ops_test: OpsTest):
+    await ops_test.run(
+        "kubectl",
+        "apply",
+        "-f",
+        "./examples/test-broker.yaml",
+        check=True,
+    )
+
+    await ops_test.run(
+        "kubectl",
+        "wait",
+        "--for=condition=ready",
+        "broker",
+        "test-broker",
+        "--timeout=5m",
+        check=True,
+    )
+
+
+async def test_triggers_and_sinks_created(ops_test: OpsTest):
+    await ops_test.run(
+        "kubectl",
+        "apply",
+        "-f",
+        "./examples/cloudevents-triggers.yaml",
+        check=True,
+    )
+
+    await ops_test.run(
+        "kubectl",
+        "wait",
+        "--for=condition=ready",
+        "trigger",
+        "cloudevents-trigger",
+        "--timeout=5m",
+        check=True,
+    )
+
+    await ops_test.run(
+        "kubectl",
+        "wait",
+        "--for=condition=ready",
+        "trigger",
+        "cloudevents-trigger2",
+        "--timeout=5m",
+        check=True,
+    )
+
+
+def test_message_sent_to_broker_and_received_by_each_sink(gateway_ip: str, ops_test: OpsTest):
+    model_name: str = ops_test.model_name
+    url_player1 = f"http://cloudevents-player.{model_name}.{gateway_ip}.nip.io"
+    url_player2 = f"http://cloudevents-player2.{model_name}.{gateway_ip}.nip.io"
+
+    _ = send_message(f"{url_player1}/messages")
+
+    sleep(10)  # wait for message to be processed
+
+    messages1 = get_player_received_messages(url_player1)
+    messages2 = get_player_received_messages(url_player2)
+
+    assert len(messages1) == 1
+    assert len(messages2) == 1

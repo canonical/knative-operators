@@ -1,0 +1,27 @@
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: cloudevents-trigger
+  annotations:
+    knative-eventing-injection: enabled
+spec:
+  broker: test-broker
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: cloudevents-player
+---
+apiVersion: eventing.knative.dev/v1
+kind: Trigger
+metadata:
+  name: cloudevents-trigger2
+  annotations:
+    knative-eventing-injection: enabled
+spec:
+  broker: test-broker
+  subscriber:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: cloudevents-player2
