@@ -172,6 +172,7 @@ async def test_cloud_events_players_created(ops_test: OpsTest):
     await ops_test.run(
         "kubectl",
         "wait",
+        "-A",
         "--for=condition=ready",
         "ksvc",
         "cloudevents-player",
@@ -181,6 +182,7 @@ async def test_cloud_events_players_created(ops_test: OpsTest):
     await ops_test.run(
         "kubectl",
         "wait",
+        "-A",
         "--for=condition=ready",
         "ksvc",
         "cloudevents-player2",
@@ -201,6 +203,7 @@ async def test_broker_created(ops_test: OpsTest):
     await ops_test.run(
         "kubectl",
         "wait",
+        "-A"
         "--for=condition=ready",
         "broker",
         "test-broker",
@@ -221,6 +224,7 @@ async def test_triggers_and_sinks_created(ops_test: OpsTest):
     await ops_test.run(
         "kubectl",
         "wait",
+        "-A",
         "--for=condition=ready",
         "trigger",
         "cloudevents-trigger",
@@ -231,6 +235,7 @@ async def test_triggers_and_sinks_created(ops_test: OpsTest):
     await ops_test.run(
         "kubectl",
         "wait",
+        "-A",
         "--for=condition=ready",
         "trigger",
         "cloudevents-trigger2",
@@ -240,9 +245,8 @@ async def test_triggers_and_sinks_created(ops_test: OpsTest):
 
 
 def test_message_sent_to_broker_and_received_by_each_sink(gateway_ip: str, ops_test: OpsTest):
-    model_name: str = ops_test.model_name
-    url_player1 = f"http://cloudevents-player.{model_name}.{gateway_ip}.nip.io"
-    url_player2 = f"http://cloudevents-player2.{model_name}.{gateway_ip}.nip.io"
+    url_player1 = f"http://cloudevents-player.default.{gateway_ip}.nip.io"
+    url_player2 = f"http://cloudevents-player2.default.{gateway_ip}.nip.io"
 
     _ = send_message(f"{url_player1}/messages")
 
