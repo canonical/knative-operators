@@ -161,34 +161,6 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
 
-async def test_cloud_events_players_created(ops_test: OpsTest):
-    await ops_test.run(
-        "kubectl",
-        "apply",
-        "-f",
-        "./examples/cloudevents-players.yaml",
-        check=True,
-    )
-    await ops_test.run(
-        "kubectl",
-        "wait",
-        "--for=condition=ready",
-        "ksvc",
-        "cloudevents-player",
-        "--timeout=5m",
-        check=True,
-    )
-    await ops_test.run(
-        "kubectl",
-        "wait",
-        "--for=condition=ready",
-        "ksvc",
-        "cloudevents-player2",
-        "--timeout=5m",
-        check=True,
-    )
-
-
 async def test_broker_created(ops_test: OpsTest):
     await ops_test.run(
         "kubectl",
@@ -204,7 +176,35 @@ async def test_broker_created(ops_test: OpsTest):
         "--for=condition=ready",
         "broker",
         "test-broker",
-        "--timeout=5m",
+        "--timeout=10m",
+        check=True,
+    )
+
+
+async def test_cloud_events_players_created(ops_test: OpsTest):
+    await ops_test.run(
+        "kubectl",
+        "apply",
+        "-f",
+        "./examples/cloudevents-players.yaml",
+        check=True,
+    )
+    await ops_test.run(
+        "kubectl",
+        "wait",
+        "--for=condition=ready",
+        "ksvc",
+        "cloudevents-player",
+        "--timeout=10m",
+        check=True,
+    )
+    await ops_test.run(
+        "kubectl",
+        "wait",
+        "--for=condition=ready",
+        "ksvc",
+        "cloudevents-player2",
+        "--timeout=10m",
         check=True,
     )
 
@@ -224,7 +224,7 @@ async def test_triggers_and_sinks_created(ops_test: OpsTest):
         "--for=condition=ready",
         "trigger",
         "cloudevents-trigger",
-        "--timeout=5m",
+        "--timeout=10m",
         check=True,
     )
 
@@ -234,7 +234,7 @@ async def test_triggers_and_sinks_created(ops_test: OpsTest):
         "--for=condition=ready",
         "trigger",
         "cloudevents-trigger2",
-        "--timeout=5m",
+        "--timeout=10m",
         check=True,
     )
 
