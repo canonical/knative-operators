@@ -68,6 +68,7 @@ jobs:
           KUBECONFIG: /home/runner/.kube/config
       
       - name: Setup tmate session
+        if: failure()
         uses: mxschmitt/action-tmate@v3
         timeout-minutes: 20
         with:
