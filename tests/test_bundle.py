@@ -161,6 +161,36 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
 
+@pytest.mark.abort_on_fail
+async def test_cloud_events_players_created(ops_test: OpsTest):
+    await ops_test.run(
+        "kubectl",
+        "apply",
+        "-f",
+        "./examples/cloudevents-players.yaml",
+        check=True,
+    )
+    await ops_test.run(
+        "kubectl",
+        "wait",
+        "--for=condition=ready",
+        "ksvc",
+        "cloudevents-player",
+        "--timeout=5m",
+        check=True,
+    )
+    await ops_test.run(
+        "kubectl",
+        "wait",
+        "--for=condition=ready",
+        "ksvc",
+        "cloudevents-player2",
+        "--timeout=5m",
+        check=True,
+    )
+
+
+@pytest.mark.abort_on_fail
 async def test_broker_created(ops_test: OpsTest):
     await ops_test.run(
         "kubectl",
@@ -176,39 +206,12 @@ async def test_broker_created(ops_test: OpsTest):
         "--for=condition=ready",
         "broker",
         "test-broker",
-        "--timeout=10m",
+        "--timeout=5m",
         check=True,
     )
 
 
-async def test_cloud_events_players_created(ops_test: OpsTest):
-    await ops_test.run(
-        "kubectl",
-        "apply",
-        "-f",
-        "./examples/cloudevents-players.yaml",
-        check=True,
-    )
-    await ops_test.run(
-        "kubectl",
-        "wait",
-        "--for=condition=ready",
-        "ksvc",
-        "cloudevents-player",
-        "--timeout=10m",
-        check=True,
-    )
-    await ops_test.run(
-        "kubectl",
-        "wait",
-        "--for=condition=ready",
-        "ksvc",
-        "cloudevents-player2",
-        "--timeout=10m",
-        check=True,
-    )
-
-
+@pytest.mark.abort_on_fail
 async def test_triggers_and_sinks_created(ops_test: OpsTest):
     await ops_test.run(
         "kubectl",
@@ -224,7 +227,7 @@ async def test_triggers_and_sinks_created(ops_test: OpsTest):
         "--for=condition=ready",
         "trigger",
         "cloudevents-trigger",
-        "--timeout=10m",
+        "--timeout=5m",
         check=True,
     )
 
@@ -234,12 +237,14 @@ async def test_triggers_and_sinks_created(ops_test: OpsTest):
         "--for=condition=ready",
         "trigger",
         "cloudevents-trigger2",
-        "--timeout=10m",
+        "--timeout=5m",
         check=True,
     )
 
 
+@pytest.mark.abort_on_fail
 def test_message_sent_to_broker_and_received_by_each_sink(gateway_ip: str, ops_test: OpsTest):
+    sleep(10)  # wait for broker
     namespace = "default"
     url_player1 = f"http://cloudevents-player.{namespace}.{gateway_ip}.nip.io"
     url_player2 = f"http://cloudevents-player2.{namespace}.{gateway_ip}.nip.io"
