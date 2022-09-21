@@ -52,12 +52,6 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v2
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 20
-        with:
-          limit-access-to-actor: true
-
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
@@ -72,6 +66,12 @@ jobs:
         run: tox -vve integration -- --model knative-test --destructive-mode
         env:
           KUBECONFIG: /home/runner/.kube/config
+      
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 20
+        with:
+          limit-access-to-actor: true
 
       - run: kubectl get all -A
         if: failure()
