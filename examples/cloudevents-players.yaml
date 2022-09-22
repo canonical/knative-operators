@@ -13,4 +13,10 @@ spec:
           env:
             - name: BROKER_URL
               value: http://broker-ingress.knative-eventing.svc.cluster.local/default/test-broker
+          resources:
+            requests:
+              cpu: 100m
+              memory: 640M
+            limits:
+              cpu: 1
 
