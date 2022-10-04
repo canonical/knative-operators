@@ -23,7 +23,7 @@ jobs:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
   lint:
     name: Lint Code
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
@@ -34,7 +34,7 @@ jobs:
       - run: tox -e ${{ matrix.charm }}-lint
   unit:
     name: Unit Test
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
@@ -46,7 +46,7 @@ jobs:
 
   integration:
     name: Integration Test
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Check out repo
