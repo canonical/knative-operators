@@ -50,7 +50,8 @@ jobs:
 
     steps:
       - name: Get working directory
-        run: pwd
+        run: echo $HOME
+        
       - name: Check out repo
         uses: actions/checkout@v2
 
