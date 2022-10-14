@@ -3,3 +3,13 @@ kind: KnativeEventing
 metadata:
   name: {{ app_name }}
   namespace: {{ eventing_namespace }}
+spec:
+  config:
+    _default:
+      # This is not actually functional
+      placeholder: value
+{% if otel-collector-svc %}
+    observability:
+      metrics.backend-destination: opencensus
+      metrics.opencensus-address: {{ otel-collector-svc }}:{{ otel-collector-port }}
+{% endif %}

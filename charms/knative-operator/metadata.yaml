@@ -8,6 +8,9 @@ description: |
 containers:
   knative-operator:
     resource: knative-operator-image
+provides:
+  otel-collector:
+    interface: otel-collector
 resources:
   knative-operator-image:
     type: oci-image

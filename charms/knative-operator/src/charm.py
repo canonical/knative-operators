@@ -15,6 +15,7 @@ from charmed_kubeflow_chisme.kubernetes import (  # noqa N813
 )
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from lightkube import ApiError
+from lightkube.resources.core_v1 import Service
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
@@ -33,15 +34,21 @@ class KnativeOperatorCharm(CharmBase):
 
         self._app_name = self.model.app.name
         self._namespace = self.model.name
-        self.resource_handler = KRH(
-            template_files=self._template_files,
-            context=self._context,
-            field_manager=self._namespace,
-        )
+        self._src_dir = Path("src")
+        self._template_files_ext = None
+
+#        self._scraping = MetricsEndpointProvider(
+#            self,
+#            relation_name="metrics-endpoint",
+#            jobs=[{"static_configs": [{"targets": [f"{self._collector_ip}:8889"]}]}],
+#        )
+        self._resource_handler = None
         self._operator_service = "/ko-app/operator"
         self._container = self.unit.get_container(self._app_name)
         for event in [self.on.install, self.on.config_changed]:
             self.framework.observe(event, self._main)
+
+        self.framework.observe(self.on["otel-collector"].relation_changed, self._on_otel_collector_relation_changed)
         self.framework.observe(
             self.on.knative_operator_pebble_ready,
             self._on_knative_operator_pebble_ready,
@@ -49,11 +56,38 @@ class KnativeOperatorCharm(CharmBase):
         self.framework.observe(self.on.remove, self._on_remove)
 
     @property
+    def resource_handler(self):
+        logger.info(f"----TEMPLATE FILES INSIDE RES HAND: {self._template_files}")
+        if not self._resource_handler:
+            logger.info(f"----TEMPLATE FILES INSIDE IF RES HAND: {self._template_files}")
+            self._resource_handler = KRH(
+                template_files=self._template_files,
+                context=self._context,
+                field_manager=self._namespace,
+            )
+        return self._resource_handler
+
+    @property
     def _template_files(self):
-        src_dir = Path("src")
-        manifests_dir = src_dir / "manifests"
+        manifests_dir = self._src_dir / "manifests"
         eventing_manifests = [file for file in glob.glob(f"{manifests_dir}/*.yaml.j2")]
+        if self._template_files_ext:
+            eventing_manifests.append(self._template_files_ext)
+            logger.info(f"===========TEMP FILES: {eventing_manifests}")
         return eventing_manifests
+
+    @property
+    def _collector_ip(self):
+        # TODO: add proper exception handling
+        collector_ip = ""
+        try:
+            collector_service = self.resource_handler.lightkube_client.get(
+                res=Service, name="otel-export", namespace=self._namespace
+            )
+            collector_ip = collector_service.spec.clusterIP
+        except ApiError as e:
+            logger.info("The OpenTelemetry Collector may not be deployed")
+        return collector_ip
 
     @property
     def _context(self):
@@ -142,6 +176,21 @@ class KnativeOperatorCharm(CharmBase):
         self.unit.status = MaintenanceStatus("Configuring Pebble layer")
         self._update_layer(event)
 
+    def _on_otel_collector_relation_changed(self, event):
+        if not self._collector_ip:
+            self.unit.status = MaintenanceStatus("Applying otel collector")
+            self._template_files_ext = f"{self._src_dir}/manifests/observability/collector.yaml.j2"
+            logger.info(f"-----------TEMPLATE_FILES:{self._template_files}")
+            self._resource_handler = KRH(
+                template_files=self._template_files,
+                context=self._context,
+                field_manager=self._namespace,
+            )
+            self._apply_all_resources()
+        relation_data = self.model.get_relation("otel-collector").data[self.app]
+        relation_data.update({"otel-collector-svc-namespace": self.model.name, "otel-collector-svc-name": "otel-export", "otel-collector-port": "55678"})
+        self.unit.status = ActiveStatus()
+        
     def _on_remove(self, _):
         self.unit.status = MaintenanceStatus("Removing k8s resources")
         manifests = self.resource_handler.render_manifests()
