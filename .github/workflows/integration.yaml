@@ -46,7 +46,7 @@ jobs:
 
   integration:
     name: Integration Test
-    runs-on: self-hosted
+    runs-on: self-hosted-32gb
 
     steps:        
       - name: Check out repo
