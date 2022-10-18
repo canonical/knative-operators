@@ -60,6 +60,8 @@ jobs:
 
       - run: sg microk8s -c "microk8s enable metallb:'10.64.140.43-10.64.140.49,192.168.0.105-192.168.0.111'"
       - run: mkdir -p $HOME/.kube
+      - run: sudo usermod -a -G microk8s ubuntu
+      - run: sudo chown -f -R ubuntu ~/.kube
       - run: microk8s config > $HOME/.kube/config
       - run: juju add-model knative-test
       - run: echo $HOME/.kube/config
