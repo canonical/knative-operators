@@ -92,7 +92,7 @@ jobs:
           /usr/bin/sudo snap install juju-bundle --classic --channel=latest/stable
 
           echo "# Install microk8s"
-          /usr/bin/sudo snap install microk8s --classic
+          /usr/bin/sudo snap install microk8s --classic --channel=1.22/stable
 
           echo "# Initialize microk8s"
           /usr/bin/bash -c "sudo usermod -a -G microk8s $USER"
@@ -101,6 +101,7 @@ jobs:
           /usr/bin/sg microk8s -c "microk8s kubectl -n kube-system rollout status deployment/coredns"
           /usr/bin/sg microk8s -c "microk8s kubectl -n kube-system rollout status deployment/hostpath-provisioner"
           /usr/bin/sg microk8s -c "microk8s kubectl -n kube-system rollout status ds/calico-node"
+          /usr/bin/sg microk8s -c "microk8s config > $HOME/.kube/config"
 
           echo "# Bootstrap controller"
           sleep 180  # Microk8s needs time to initialize properly
