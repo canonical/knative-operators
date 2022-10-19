@@ -39,6 +39,7 @@ class KnativeEventingCharm(CharmBase):
 
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(self.on["otel-collector"].relation_changed, self._on_otel_collector_relation_changed)
         self.framework.observe(self.on.remove, self._on_remove)
 
     def _apply_and_set_status(self):
@@ -68,6 +69,27 @@ class KnativeEventingCharm(CharmBase):
     def _on_config_changed(self, _):
         self._apply_and_set_status()
 
+    def _get_relation_data(self, relation_name: str, source):
+        """Returns relation data from a specified relation name and source.
+
+        Args:
+            relation_name: the name of the endpoint for this charm
+            source: the application or unit whose data will be retrieved
+        """
+        relation = self.model.get_relation(relation_name)
+        return relation.data[source]
+
+    def _on_otel_collector_relation_changed(self, event):
+        """Event handler for on['otel-collector'].relation_changed."""
+        # Read relation data from knative-operator application bucket
+        otel_collector_rel_data = self._get_relation_data("otel-collector", event.app)
+        if otel_collector_rel_data:
+            # Extend context to render manifests
+            self._context_ext = otel_collector_rel_data
+            # Reset resource handler
+            self._resource_handler = None
+            self._apply_and_set_status()
+
     def _on_remove(self, _):
         self.unit.status = MaintenanceStatus("Removing k8s resources")
         manifests = self.resource_handler.render_manifests()
@@ -78,6 +100,7 @@ class KnativeEventingCharm(CharmBase):
             raise e
         self.unit.status = MaintenanceStatus("K8s resources removed")
 
+        
     @property
     def _template_files(self):
         src_dir = Path("src")
