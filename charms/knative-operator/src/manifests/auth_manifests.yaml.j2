@@ -22,7 +22,8 @@ aggregationRule:
 # automatically.
   - matchExpressions:
       - {key: serving.knative.dev/release, operator: Exists}
-rules: [] # Rules are automatically filled in by the controller manager.
+# Commenting out rules: [] due to https://github.com/gtsystem/lightkube/issues/32
+#rules: [] # Rules are automatically filled in by the controller manager.
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -220,7 +221,8 @@ aggregationRule:
     # automatically.
     - matchExpressions:
         - {key: eventing.knative.dev/release, operator: Exists}
-rules: [] # Rules are automatically filled in by the controller manager.
+# Commenting out rules: [] due to https://github.com/gtsystem/lightkube/issues/32
+#rules: [] # Rules are automatically filled in by the controller manager.
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
