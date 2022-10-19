@@ -34,12 +34,9 @@ class KnativeEventingCharm(CharmBase):
 
         self._app_name = self.app.name
         self._namespace = self.model.name
+        self._context_ext = None
+        self._resource_handler = None
 
-        self.resource_handler = KRH(
-            template_files=self._template_files,
-            context=self._context,
-            field_manager=self._namespace,
-        )
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.remove, self._on_remove)
@@ -94,7 +91,19 @@ class KnativeEventingCharm(CharmBase):
             "app_name": self._app_name,
             "eventing_namespace": self.model.config["namespace"],
         }
+        if self._context_ext:
+            context.update(self._context_ext)
         return context
+
+    @property
+    def resource_handler(self):
+        if not self._resource_handler:
+            self._resource_handler = KRH(
+                template_files=self._template_files,
+                context=self._context,
+                field_manager=self._namespace,
+            )
+        return self._resource_handler
 
 
 if __name__ == "__main__":
