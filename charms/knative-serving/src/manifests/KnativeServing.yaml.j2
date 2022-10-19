@@ -23,3 +23,9 @@ spec:
     # This is analogous to the config-domain configmap
     domain:
       {{ domain }}: ""
+{% if otel_collector_svc_name %}
+    observability:
+      metrics.backend-destination: opencensus
+      metrics.request-metrics-backend-destination: opencensus
+      metrics.opencensus-address: {{ otel_collector_svc_name }}.{{ otel_collector_svc_namespace }}:{{ otel_collector_port }}
+{% endif %}
