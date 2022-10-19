@@ -39,12 +39,17 @@ def test_events(harness, mocked_lightkube_client):
     harness.begin()
     harness.charm._on_install = MagicMock()
     harness.charm._on_config_changed = MagicMock()
+    harness.charm._on_otel_collector_relation_changed = MagicMock()
 
     harness.charm.on.install.emit()
     harness.charm._on_install.assert_called_once()
 
     harness.charm.on.config_changed.emit()
     harness.charm._on_config_changed.assert_called_once()
+
+    rel_id = harness.add_relation("otel-collector", "app")
+    harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
+    harness.charm._on_otel_collector_relation_changed.assert_called_once()
 
 
 def test_on_install_active(harness, mocked_lightkube_client):
@@ -81,6 +86,18 @@ def test_apply_and_set_status_blocked(
     with raised_exception:
         harness.charm.resource_handler.apply()
     assert isinstance(harness.model.unit.status, BlockedStatus)
+
+
+def test_otel_collector_relation_changed(harness):
+    harness.begin()
+    harness.charm._get_relation_data = MagicMock()
+    harness.charm._apply_and_set_status = MagicMock()
+
+    rel_id = harness.add_relation("otel-collector", "app")
+    harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
+
+    harness.charm._get_relation_data.assert_called_once()
+    harness.charm._apply_and_set_status.assert_called_once()
 
 
 @patch("charm.KRH")
