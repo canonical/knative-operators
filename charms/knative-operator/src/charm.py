@@ -60,6 +60,7 @@ class KnativeOperatorCharm(CharmBase):
 
     @property
     def resource_handler(self):
+        """Returns an instance of the KubernetesResourceHandler with initial parameters."""
         if not self._resource_handler:
             self._resource_handler = KRH(
                 template_files=self._template_files,
