@@ -14,6 +14,7 @@ from charmed_kubeflow_chisme.kubernetes import (  # noqa N813
     KubernetesResourceHandler as KRH,
 )
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from lightkube import ApiError
 from lightkube.resources.core_v1 import Service
 from ops.charm import CharmBase
@@ -38,6 +39,10 @@ class KnativeOperatorCharm(CharmBase):
         self._template_files_ext = None
         self._resource_handler = None
 
+        self._scraping = MetricsEndpointProvider(
+            self,
+            relation_name="metrics-endpoint",
+            jobs=[{"static_configs": [{"targets": [f"{self._otel_exporter_ip}:8889"]}]}],
         )
         self._operator_service = "/ko-app/operator"
         self._container = self.unit.get_container(self._app_name)
