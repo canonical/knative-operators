@@ -33,10 +33,10 @@ class KnativeOperatorCharm(CharmBase):
 
         self._app_name = self.model.app.name
         self._namespace = self.model.name
-        self.resource_handler = KRH(
-            template_files=self._template_files,
-            context=self._context,
-            field_manager=self._namespace,
+        self._src_dir = Path("src")
+        self._template_files_ext = None
+        self._resource_handler = None
+
         )
         self._operator_service = "/ko-app/operator"
         self._container = self.unit.get_container(self._app_name)
@@ -49,10 +49,23 @@ class KnativeOperatorCharm(CharmBase):
         self.framework.observe(self.on.remove, self._on_remove)
 
     @property
+    def resource_handler(self):
+        if not self._resource_handler:
+            self._resource_handler = KRH(
+                template_files=self._template_files,
+                context=self._context,
+                field_manager=self._namespace,
+            )
+        return self._resource_handler
+
+    @property
     def _template_files(self):
-        src_dir = Path("src")
-        manifests_dir = src_dir / "manifests"
+        manifests_dir = self._src_dir / "manifests"
         eventing_manifests = [file for file in glob.glob(f"{manifests_dir}/*.yaml.j2")]
+        # Extend the list of template files if needed
+        # self._template_files_ext should be a list
+        if self._template_files_ext:
+            eventing_manifests.extend(self._template_files_ext)
         return eventing_manifests
 
     @property
