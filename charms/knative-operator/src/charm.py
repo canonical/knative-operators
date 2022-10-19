@@ -15,6 +15,7 @@ from charmed_kubeflow_chisme.kubernetes import (  # noqa N813
 )
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from lightkube import ApiError
+from lightkube.resources.core_v1 import Service
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
@@ -42,6 +43,10 @@ class KnativeOperatorCharm(CharmBase):
         self._container = self.unit.get_container(self._app_name)
         for event in [self.on.install, self.on.config_changed]:
             self.framework.observe(event, self._main)
+
+        self.framework.observe(
+            self.on["otel-collector"].relation_changed, self._on_otel_collector_relation_changed
+        )
         self.framework.observe(
             self.on.knative_operator_pebble_ready,
             self._on_knative_operator_pebble_ready,
@@ -67,6 +72,26 @@ class KnativeOperatorCharm(CharmBase):
         if self._template_files_ext:
             eventing_manifests.extend(self._template_files_ext)
         return eventing_manifests
+
+    @property
+    def _otel_exporter_ip(self):
+        """Returns the ClusterIP of the otel-export service."""
+        try:
+            exporter_service = self.resource_handler.lightkube_client.get(
+                res=Service, name="otel-export", namespace=self._namespace
+            )
+            exporter_ip = exporter_service.spec.clusterIP
+        except ApiError as e:
+            if e.status.code == 404:
+                logger.info(
+                    "The OpenTelemetry Collector may not be deployed yet."
+                    "This may be temporary or due to a missing otel-collector relation."
+                )
+                return ""
+            logger.error(traceback.format_exc())
+            raise
+        else:
+            return exporter_ip
 
     @property
     def _context(self):
@@ -154,6 +179,29 @@ class KnativeOperatorCharm(CharmBase):
         """Event handler for on PebbleReadyEvent."""
         self.unit.status = MaintenanceStatus("Configuring Pebble layer")
         self._update_layer(event)
+
+    def _on_otel_collector_relation_changed(self, event):
+        """Event handler for on['otel-collector'].relation_changed."""
+        # Apply all changes only if the otel collector has not been deployed
+        if not self._otel_exporter_ip:
+            self.unit.status = MaintenanceStatus("Applying otel collector")
+            self._template_files_ext = [
+                f"{self._src_dir}/manifests/observability/collector.yaml.j2"
+            ]
+            # Reset the resource handler so it uses the expanded template files list
+            self._resource_handler = None
+            self._apply_all_resources()
+        # Write to its own application bucket
+        relation_data = self.model.get_relation("otel-collector", event.relation.id).data[self.app]
+        # Update own application bucket with otel collector information
+        relation_data.update(
+            {
+                "otel_collector_svc_namespace": self.model.name,
+                "otel_collector_svc_name": "otel-collector",
+                "otel_collector_port": "55678",
+            }
+        )
+        self.unit.status = ActiveStatus()
 
     def _on_remove(self, _):
         self.unit.status = MaintenanceStatus("Removing k8s resources")
