@@ -39,7 +39,9 @@ class KnativeEventingCharm(CharmBase):
 
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
-        self.framework.observe(self.on["otel-collector"].relation_changed, self._on_otel_collector_relation_changed)
+        self.framework.observe(
+            self.on["otel-collector"].relation_changed, self._on_otel_collector_relation_changed
+        )
         self.framework.observe(self.on.remove, self._on_remove)
 
     def _apply_and_set_status(self):
@@ -100,7 +102,6 @@ class KnativeEventingCharm(CharmBase):
             raise e
         self.unit.status = MaintenanceStatus("K8s resources removed")
 
-        
     @property
     def _template_files(self):
         src_dir = Path("src")
@@ -120,6 +121,7 @@ class KnativeEventingCharm(CharmBase):
 
     @property
     def resource_handler(self):
+        """Returns an instance of KubernetesResourceHandler."""
         if not self._resource_handler:
             self._resource_handler = KRH(
                 template_files=self._template_files,
