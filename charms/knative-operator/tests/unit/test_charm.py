@@ -67,16 +67,20 @@ def mocked_resource_handler(mocker):
     mocked_resource_handler_factory.return_value = mocked_resource_handler
     yield mocked_resource_handler
 
-
 @pytest.fixture()
 def mocked_container_replan(mocker):
     yield mocker.patch("ops.model.Container.replan")
 
+@pytest.fixture()
+def mocked_metrics_endpoint_provider(mocker):
+    """Yields a mocked MetricsEndpointProvider."""
+    yield mocker.patch("charm.MetricsEndpointProvider")
 
-def test_events(harness, mocked_resource_handler, mocker):
+def test_events(harness, mocked_resource_handler, mocked_metrics_endpoint_provider, mocker):
     harness.begin()
     main = mocker.patch("charm.KnativeOperatorCharm._main")
     pebble_ready = mocker.patch("charm.KnativeOperatorCharm._on_knative_operator_pebble_ready")
+    otel_relation_created = mocker.patch("charm.KnativeOperatorCharm._on_otel_collector_relation_created")
 
     harness.charm.on.install.emit()
     main.assert_called_once()
@@ -90,24 +94,27 @@ def test_events(harness, mocked_resource_handler, mocker):
     pebble_ready.assert_called_once()
     pebble_ready.reset_mock()
 
+    rel_id = harness.add_relation("otel-collector", "app")
+    harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
+    harness.charm._on_otel_collector_relation_created.assert_called_once()
 
-def test_apply_all_resources_active(harness, mocked_resource_handler):
+def test_apply_resources_active(harness, mocked_resource_handler, mocked_metrics_endpoint_provider):
     harness.begin()
-    harness.charm._apply_all_resources()
+    harness.charm._apply_resources(mocked_resource_handler)
     mocked_resource_handler.apply.assert_called()
     assert harness.model.unit.status == ActiveStatus()
 
 
-def test_apply_all_resource_exception(harness, mocked_resource_handler):
+def test_apply_resources_exception(harness, mocked_resource_handler, mocked_metrics_endpoint_provider):
     harness.begin()
     mocked_resource_handler.apply.side_effect = _FakeApiError()
-    harness.charm._apply_all_resources()
+    harness.charm._apply_resources(mocked_resource_handler)
     assert harness.model.unit.status == BlockedStatus(
         f"ApiError: {mocked_resource_handler.apply.side_effect.response.code}"
     )
 
 
-def test_update_layer_active(harness, mocked_resource_handler, mocker):
+def test_update_layer_active(harness, mocked_resource_handler, mocker, mocked_metrics_endpoint_provider):
     harness.begin()
     # Check the initial Pebble plan is empty
     initial_plan = harness.get_container_pebble_plan("knative-operator")
@@ -143,7 +150,7 @@ def test_update_layer_active(harness, mocked_resource_handler, mocker):
     assert harness.model.unit.status == ActiveStatus()
 
 
-def test_update_layer_exception(harness, mocked_resource_handler, mocked_container_replan):
+def test_update_layer_exception(harness, mocked_resource_handler, mocked_container_replan, mocked_metrics_endpoint_provider):
     harness.begin()
     mocked_container_replan.side_effect = _FakeChangeError()
     mocked_event = MagicMock()
@@ -158,6 +165,7 @@ def test_on_remove_success(
     delete_many: MagicMock,
     _: MagicMock,
     harness,
+    mocked_metrics_endpoint_provider
 ):
     harness.begin()
     harness.charm.on.remove.emit()
@@ -171,6 +179,7 @@ def test_on_remove_failure(
     delete_many: MagicMock,
     _: MagicMock,
     harness,
+    mocked_metrics_endpoint_provider
 ):
     harness.begin()
     delete_many.side_effect = _FakeApiError()
