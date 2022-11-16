@@ -34,7 +34,6 @@ class KnativeEventingCharm(CharmBase):
 
         self._app_name = self.app.name
         self._namespace = self.model.name
-        self._context_ext = None
         self._resource_handler = None
 
         self.framework.observe(self.on.install, self._on_install)
@@ -71,26 +70,9 @@ class KnativeEventingCharm(CharmBase):
     def _on_config_changed(self, _):
         self._apply_and_set_status()
 
-    def _get_relation_data(self, relation_name: str, source):
-        """Returns relation data from a specified relation name and source.
-
-        Args:
-            relation_name: the name of the endpoint for this charm
-            source: the application or unit whose data will be retrieved
-        """
-        relation = self.model.get_relation(relation_name)
-        return relation.data[source]
-
-    def _on_otel_collector_relation_changed(self, event):
+    def _on_otel_collector_relation_changed(self, _):
         """Event handler for on['otel-collector'].relation_changed."""
-        # Read relation data from knative-operator application bucket
-        otel_collector_rel_data = self._get_relation_data("otel-collector", event.app)
-        if otel_collector_rel_data:
-            # Extend context to render manifests
-            self._context_ext = otel_collector_rel_data
-            # Reset resource handler
-            self._resource_handler = None
-            self._apply_and_set_status()
+        self._apply_and_set_status()
 
     def _on_remove(self, _):
         self.unit.status = MaintenanceStatus("Removing k8s resources")
@@ -101,6 +83,15 @@ class KnativeEventingCharm(CharmBase):
             logger.warning(f"Failed to delete resources: {manifests} with: {e}")
             raise e
         self.unit.status = MaintenanceStatus("K8s resources removed")
+
+    @property
+    def _otel_collector_relation_data(self):
+        """Returns relation data from the otel-collector relation."""
+        relation = self.model.get_relation("otel-collector")
+        if relation:
+            return relation.data[relation.app]
+        logger.info("No otel-collector relation detected, observability won't be enabled for knative-eventing")
+        return {}
 
     @property
     def _template_files(self):
@@ -115,8 +106,8 @@ class KnativeEventingCharm(CharmBase):
             "app_name": self._app_name,
             "eventing_namespace": self.model.config["namespace"],
         }
-        if self._context_ext:
-            context.update(self._context_ext)
+        if self._otel_collector_relation_data:
+            context.update(self._otel_collector_relation_data)
         return context
 
     @property
