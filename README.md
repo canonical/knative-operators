@@ -62,6 +62,33 @@ where:
 
 * namespace: The namespace knative-eventing resources will be deployed into (it cannot be deployed into the same namespace as knative-operator or knative-serving
 
+## Collecting metrics
+
+Metrics are collected by an OpenTelemetry collector managed by the `knative-operator`, which is then scraped by `prometheus-k8s`. Please follow these instructions to enable metrics collection.
+
+1. Deploy `prometheus-k8s` and relate to `knative-operator`
+
+```bash
+juju deploy prometheus-k8s --trust
+juju relate prometheus-k8s:metrics-endpoint knative-operator:metrics-endpoint
+```
+
+2. Enable metric collection for `knative-eventing`
+
+```bash
+juju relate knative-eventing:otel-collector knative-operator:otel-collector
+```
+
+3. Wait for everything to be active and idle
+
+4. You can now [access the Prometheus dashboard](https://github.com/canonical/prometheus-k8s-operator#dashboard) to have access to the collected metrics. Alternatively, you could send GET requests to the OpenTelemetry metrics exporter directly using the `otel-export` `Service`, for example:
+
+```bash
+curl <otel-exporter service>:8889/metrics
+```
+
+Please refer to [Collecting Metrics in Knative](https://knative.dev/docs/eventing/observability/metrics/collecting-metrics/) for more information.
+
 ## Integration example
 
 To run a simple example that integrates both `eventing` and `serving`, you can run the one provided in `examples/`.
