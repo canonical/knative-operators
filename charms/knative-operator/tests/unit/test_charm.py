@@ -3,15 +3,14 @@
 # See LICENSE file for licensing details.
 
 import datetime
-from unittest.mock import MagicMock, patch
 from contextlib import nullcontext as does_not_raise
+from unittest.mock import MagicMock, patch
 
 import pytest
-import lightkube
 from lightkube.core.exceptions import ApiError
-from lightkube.resources.core_v1 import Service
-from lightkube.models.meta_v1 import ObjectMeta
 from lightkube.models.core_v1 import ServiceSpec
+from lightkube.models.meta_v1 import ObjectMeta
+from lightkube.resources.core_v1 import Service
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.pebble import Change, ChangeError, ChangeID
 from ops.testing import Harness
@@ -78,6 +77,7 @@ def mocked_lightkube_client(mocker, mocked_resource_handler):
     """Prevents lightkube clients from being created, returning a mock instead."""
     mocked_resource_handler.lightkube_client = MagicMock()
     yield mocked_resource_handler.lightkube_client
+
 
 @pytest.fixture()
 def mocked_container_replan(mocker):
@@ -183,24 +183,42 @@ def test_update_layer_exception(
         harness.charm._update_layer(mocked_event)
     assert harness.model.unit.status == BlockedStatus("Failed to replan")
 
-def test_otel_exporter_ip_on_404_apierror(mocker, harness, mocked_lightkube_client, mocked_metrics_endpoint_provider):
+
+def test_otel_exporter_ip_on_404_apierror(
+    mocker, harness, mocked_lightkube_client, mocked_metrics_endpoint_provider
+):
     mocked_lightkube_client.get.side_effect = _FakeApiError(404)
-    mocked_logger = mocker.patch('charm.logger')
+    mocked_logger = mocker.patch("charm.logger")
     harness.begin()
     ip = harness.charm._otel_exporter_ip
-    mocked_logger.info.assert_called_with('The OpenTelemetry Collector may not be deployed yet.This may be temporary or due to a missing otel-collector relation.')
+    mocked_logger.info.assert_called_with(
+        "The OpenTelemetry Collector may not be deployed yet.This may be temporary or due to a missing otel-collector relation."
+    )
     assert ip is None
 
-def test_otel_exporter_ip_on_any_apierror(mocker, harness, mocked_lightkube_client, mocked_metrics_endpoint_provider):
-    mocked_logger = mocker.patch('charm.logger')
+
+def test_otel_exporter_ip_on_any_apierror(
+    mocker, harness, mocked_lightkube_client, mocked_metrics_endpoint_provider
+):
+    mocked_logger = mocker.patch("charm.logger")
     mocked_lightkube_client.get.side_effect = _FakeApiError()
     with pytest.raises(ApiError):
         harness.begin()
-        mocked_logger.error.assert_called_with("Something went wrong trying to get the OpenTelemetry Collector")
+        mocked_logger.error.assert_called_with(
+            "Something went wrong trying to get the OpenTelemetry Collector"
+        )
 
-def test_otel_exporter_ip_success(harness, mocked_lightkube_client, mocked_metrics_endpoint_provider):
-    expected_ip = '10.10.10.10'
-    dummy_service = Service(apiVersion='v1', kind='Service', metadata=ObjectMeta(name='otel-exporter', namespace=harness.model.name), spec=ServiceSpec(clusterIP = f'{expected_ip}'))
+
+def test_otel_exporter_ip_success(
+    harness, mocked_lightkube_client, mocked_metrics_endpoint_provider
+):
+    expected_ip = "10.10.10.10"
+    dummy_service = Service(
+        apiVersion="v1",
+        kind="Service",
+        metadata=ObjectMeta(name="otel-exporter", namespace=harness.model.name),
+        spec=ServiceSpec(clusterIP=f"{expected_ip}"),
+    )
     mocked_lightkube_client.get.return_value = dummy_service
     harness.begin()
     with does_not_raise():
@@ -208,20 +226,23 @@ def test_otel_exporter_ip_success(harness, mocked_lightkube_client, mocked_metri
     assert ip == expected_ip
 
 
-def test_relation_created_databag(mocker, harness, mocked_metrics_endpoint_provider, mocked_lightkube_client):
-    harness.set_model_name(name='my-model')
+def test_relation_created_databag(
+    mocker, harness, mocked_metrics_endpoint_provider, mocked_lightkube_client
+):
+    harness.set_model_name(name="my-model")
     harness.begin()
     mocked_otel_exporter_ip = mocker.patch("charm.KnativeOperatorCharm._otel_exporter_ip")
     mocked_otel_exporter_ip.return_value = "10.10.10.10"
     expected_relation_data = {
-            "otel_collector_svc_namespace": harness.model.name,
-            "otel_collector_svc_name": "otel-collector",
-            "otel_collector_port": "55678",
-        }
+        "otel_collector_svc_namespace": harness.model.name,
+        "otel_collector_svc_name": "otel-collector",
+        "otel_collector_port": "55678",
+    }
     rel_id = harness.add_relation("otel-collector", "app")
     actual_relation_data = harness.get_relation_data(rel_id, harness.charm.app.name)
     assert expected_relation_data == actual_relation_data
     assert harness.model.unit.status == ActiveStatus()
+
 
 @patch("charm.KRH")
 @patch("charm.delete_many")
