@@ -95,10 +95,6 @@ class KnativeOperatorCharm(CharmBase):
             )
         return self._observability_resource_handler
 
-    @observability_resource_handler.setter
-    def observability_resource_handler(self, handler):
-        self._observability_resource_handler = handler
-
     @property
     def _otel_exporter_ip(self):
         """Returns the ClusterIP of the otel-export service."""
@@ -114,6 +110,7 @@ class KnativeOperatorCharm(CharmBase):
                     "This may be temporary or due to a missing otel-collector relation."
                 )
                 return None
+            logger.error("Something went wrong trying to get the OpenTelemetry Collector")
             raise
         else:
             return exporter_ip
@@ -213,6 +210,8 @@ class KnativeOperatorCharm(CharmBase):
             self._apply_resources(resource_handler=self.observability_resource_handler)
         relation_data = self.model.get_relation("otel-collector", event.relation.id).data[self.app]
         # Update own application bucket with otel collector information
+        # This will send data without ensuring the collector is correctly deployed
+        # See https://github.com/canonical/knative-operators/issues/60 for more info
         relation_data.update(
             {
                 "otel_collector_svc_namespace": self.model.name,
