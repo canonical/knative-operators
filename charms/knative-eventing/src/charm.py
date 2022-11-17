@@ -90,7 +90,9 @@ class KnativeEventingCharm(CharmBase):
         relation = self.model.get_relation("otel-collector")
         if relation:
             return relation.data[relation.app]
-        logger.info("No otel-collector relation detected, observability won't be enabled for knative-eventing")
+        logger.info(
+            "No otel-collector relation detected, observability won't be enabled for knative-eventing"
+        )
         return {}
 
     @property
