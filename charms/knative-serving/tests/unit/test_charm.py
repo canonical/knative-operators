@@ -1,5 +1,6 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
+from contextlib import nullcontext as does_not_raise
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -90,14 +91,44 @@ def test_apply_and_set_status_blocked(
 
 def test_otel_collector_relation_changed(harness):
     harness.begin()
-    harness.charm._get_relation_data = MagicMock()
     harness.charm._apply_and_set_status = MagicMock()
 
     rel_id = harness.add_relation("otel-collector", "app")
     harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
 
-    harness.charm._get_relation_data.assert_called_once()
     harness.charm._apply_and_set_status.assert_called_once()
+
+
+def test_context_changes(harness):
+    harness.update_config(
+        {
+            "namespace": "knative-serving",
+            "istio.gateway.name": "knative-gateway",
+            "istio.gateway.namespace": "istio-namespace",
+        }
+    )
+    harness.begin()
+    context = {
+        "app_name": harness.charm.app.name,
+        "domain": harness.model.config["domain.name"],
+        "gateway_name": harness.model.config["istio.gateway.name"],
+        "gateway_namespace": harness.model.config["istio.gateway.namespace"],
+        "serving_namespace": harness.model.config["namespace"],
+        "serving_version": harness.model.config["version"],
+    }
+
+    assert harness.charm._context == context
+
+    harness.charm.resource_handler.apply = MagicMock()
+    with does_not_raise():
+        rel_id = harness.add_relation("otel-collector", "app")
+        assert harness.charm._context == context
+
+    additional_context = {"some-key": "some-value"}
+    context.update(additional_context)
+    with does_not_raise():
+        harness.update_relation_data(rel_id, "app", additional_context)
+        assert harness.charm._context == context
 
 
 @patch("charm.KRH")
