@@ -64,7 +64,7 @@ where:
 
 ## Collecting metrics
 
-Metrics are collected by an OpenTelemetry collector managed by the `knative-operator`, which is then scraped by `prometheus-k8s`. Please follow these instructions to enable metrics collection.
+Metrics are collected by an OpenTelemetry collector managed by the `knative-operator`, which is then scraped by `prometheus-k8s`. Please follow these instructions to enable metrics collection for `knative-eventing` and `knative-serving`.
 
 1. Deploy `prometheus-k8s` and relate to `knative-operator`
 
@@ -73,10 +73,10 @@ juju deploy prometheus-k8s --trust
 juju relate prometheus-k8s:metrics-endpoint knative-operator:metrics-endpoint
 ```
 
-2. Enable metric collection for `knative-eventing`
+2. Enable metric collection for `knative-<eventing/serving>`
 
 ```bash
-juju relate knative-eventing:otel-collector knative-operator:otel-collector
+juju relate knative-<eventing/serving>:otel-collector knative-operator:otel-collector
 ```
 
 3. Wait for everything to be active and idle
