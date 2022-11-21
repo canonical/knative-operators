@@ -34,14 +34,13 @@ class KnativeEventingCharm(CharmBase):
 
         self._app_name = self.app.name
         self._namespace = self.model.name
+        self._resource_handler = None
 
-        self.resource_handler = KRH(
-            template_files=self._template_files,
-            context=self._context,
-            field_manager=self._namespace,
-        )
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(
+            self.on["otel-collector"].relation_changed, self._on_otel_collector_relation_changed
+        )
         self.framework.observe(self.on.remove, self._on_remove)
 
     def _apply_and_set_status(self):
@@ -71,6 +70,10 @@ class KnativeEventingCharm(CharmBase):
     def _on_config_changed(self, _):
         self._apply_and_set_status()
 
+    def _on_otel_collector_relation_changed(self, _):
+        """Event handler for on['otel-collector'].relation_changed."""
+        self._apply_and_set_status()
+
     def _on_remove(self, _):
         self.unit.status = MaintenanceStatus("Removing k8s resources")
         manifests = self.resource_handler.render_manifests()
@@ -80,6 +83,17 @@ class KnativeEventingCharm(CharmBase):
             logger.warning(f"Failed to delete resources: {manifests} with: {e}")
             raise e
         self.unit.status = MaintenanceStatus("K8s resources removed")
+
+    @property
+    def _otel_collector_relation_data(self):
+        """Returns relation data from the otel-collector relation."""
+        relation = self.model.get_relation("otel-collector")
+        if relation:
+            return relation.data[relation.app]
+        logger.info(
+            "No otel-collector relation detected, observability won't be enabled for knative-eventing"
+        )
+        return {}
 
     @property
     def _template_files(self):
@@ -94,7 +108,20 @@ class KnativeEventingCharm(CharmBase):
             "app_name": self._app_name,
             "eventing_namespace": self.model.config["namespace"],
         }
+        if self._otel_collector_relation_data:
+            context.update(self._otel_collector_relation_data)
         return context
+
+    @property
+    def resource_handler(self):
+        """Returns an instance of KubernetesResourceHandler."""
+        if not self._resource_handler:
+            self._resource_handler = KRH(
+                template_files=self._template_files,
+                context=self._context,
+                field_manager=self._namespace,
+            )
+        return self._resource_handler
 
 
 if __name__ == "__main__":

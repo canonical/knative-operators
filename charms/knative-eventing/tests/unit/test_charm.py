@@ -1,5 +1,6 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
+from contextlib import nullcontext as does_not_raise
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -39,12 +40,17 @@ def test_events(harness, mocked_lightkube_client):
     harness.begin()
     harness.charm._on_install = MagicMock()
     harness.charm._on_config_changed = MagicMock()
+    harness.charm._on_otel_collector_relation_changed = MagicMock()
 
     harness.charm.on.install.emit()
     harness.charm._on_install.assert_called_once()
 
     harness.charm.on.config_changed.emit()
     harness.charm._on_config_changed.assert_called_once()
+
+    rel_id = harness.add_relation("otel-collector", "app")
+    harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
+    harness.charm._on_otel_collector_relation_changed.assert_called_once()
 
 
 def test_on_install_active(harness, mocked_lightkube_client):
@@ -81,6 +87,38 @@ def test_apply_and_set_status_blocked(
     with raised_exception:
         harness.charm.resource_handler.apply()
     assert isinstance(harness.model.unit.status, BlockedStatus)
+
+
+def test_otel_collector_relation_changed(harness):
+    harness.begin()
+    harness.charm._apply_and_set_status = MagicMock()
+
+    rel_id = harness.add_relation("otel-collector", "app")
+    harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
+
+    harness.charm._apply_and_set_status.assert_called_once()
+
+
+def test_context_changes(harness):
+    harness.update_config({"namespace": "knative-eventing"})
+    harness.begin()
+    context = {
+        "app_name": harness.charm.app.name,
+        "eventing_namespace": harness.model.config["namespace"],
+    }
+
+    assert harness.charm._context == context
+
+    harness.charm.resource_handler.apply = MagicMock()
+    with does_not_raise():
+        rel_id = harness.add_relation("otel-collector", "app")
+        assert harness.charm._context == context
+
+    additional_context = {"some-key": "some-value"}
+    context.update(additional_context)
+    with does_not_raise():
+        harness.update_relation_data(rel_id, "app", additional_context)
+        assert harness.charm._context == context
 
 
 @patch("charm.KRH")
