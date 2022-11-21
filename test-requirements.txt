@@ -1,7 +1,7 @@
 # Remove once python-libjuju>2.9.10 is released
 git+https://github.com/juju/python-libjuju@master
-pytest-asyncio==0.19.0
-pytest-operator<1.0
-asyncio<3.5
+pytest-asyncio
+pytest-operator
+asyncio
 PyYAML==6.0
 flake8==4.0.1

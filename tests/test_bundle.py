@@ -15,52 +15,6 @@ from pytest_operator.plugin import OpsTest
 log = logging.getLogger(__name__)
 
 
-@pytest_asyncio.fixture
-async def gateway_ip(ops_test: OpsTest) -> str:
-    gateway_json = await ops_test.run(
-        "kubectl",
-        "get",
-        "services/istio-ingressgateway-workload",
-        "-n",
-        ops_test.model_name,
-        "-ojson",
-        check=True,
-    )
-
-    gateway_obj = json.loads(gateway_json[1])
-    return gateway_obj["status"]["loadBalancer"]["ingress"][0]["ip"]
-
-
-def send_message(url: str) -> requests.Response:
-    data = {"msg": "Hello CloudEvents!"}
-    headers = {
-        "Content-Type": "application/json",
-        "Ce-Id": "123456789",
-        "Ce-Specversion": "1.0",
-        "Ce-Type": "some-type",
-        "Ce-Source": "command-line",
-    }
-    response = requests.post(url, json=data, headers=headers, allow_redirects=False, verify=False)
-    if response.status_code != 202:
-        raise Exception(f"Failed to send message for url: {url}")
-
-    return response
-
-
-def get_player_received_messages(player_url: str) -> List[Dict]:
-    response = requests.get(f"{player_url}/messages", allow_redirects=False, verify=False)
-
-    if response.status_code != 200:
-        raise Exception(f"Failed get request for player: {player_url}")
-
-    messages = response.json()
-    received_messages = list(
-        filter(lambda message: message.get("type", None) == "RECEIVED", messages)
-    )
-
-    return received_messages
-
-
 @pytest.mark.abort_on_fail
 async def test_kubectl_access(ops_test: OpsTest):
     """Fails if kubectl not available or if no cluster context exists"""
@@ -236,3 +190,49 @@ def test_message_sent_to_broker_and_received_by_each_sink(gateway_ip: str, ops_t
     messages1 = get_player_received_messages(url_player1)
 
     assert len(messages1) == 1
+
+
+@pytest_asyncio.fixture
+async def gateway_ip(ops_test: OpsTest) -> str:
+    gateway_json = await ops_test.run(
+        "kubectl",
+        "get",
+        "services/istio-ingressgateway-workload",
+        "-n",
+        ops_test.model_name,
+        "-ojson",
+        check=True,
+    )
+
+    gateway_obj = json.loads(gateway_json[1])
+    return gateway_obj["status"]["loadBalancer"]["ingress"][0]["ip"]
+
+
+def send_message(url: str) -> requests.Response:
+    data = {"msg": "Hello CloudEvents!"}
+    headers = {
+        "Content-Type": "application/json",
+        "Ce-Id": "123456789",
+        "Ce-Specversion": "1.0",
+        "Ce-Type": "some-type",
+        "Ce-Source": "command-line",
+    }
+    response = requests.post(url, json=data, headers=headers, allow_redirects=False, verify=False)
+    if response.status_code != 202:
+        raise Exception(f"Failed to send message for url: {url}")
+
+    return response
+
+
+def get_player_received_messages(player_url: str) -> List[Dict]:
+    response = requests.get(f"{player_url}/messages", allow_redirects=False, verify=False)
+
+    if response.status_code != 200:
+        raise Exception(f"Failed get request for player: {player_url}")
+
+    messages = response.json()
+    received_messages = list(
+        filter(lambda message: message.get("type", None) == "RECEIVED", messages)
+    )
+
+    return received_messages
