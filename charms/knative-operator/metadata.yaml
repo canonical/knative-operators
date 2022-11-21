@@ -8,6 +8,11 @@ description: |
 containers:
   knative-operator:
     resource: knative-operator-image
+provides:
+  otel-collector:
+    interface: otel-collector
+  metrics-endpoint:
+    interface: prometheus_scrape
 resources:
   knative-operator-image:
     type: oci-image
