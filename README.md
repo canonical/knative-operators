@@ -24,8 +24,9 @@ juju add-model ${MODEL_NAME}
 Knative (in particular `knative-serving`) requires `istio-operators` to be deployed in the model. To correctly configure them, you can:
 
 ```
-juju deploy istio-pilot --config default-gateway=${DEFAULT_GATEWAY} --trust
-juju deploy istio-gateway istio-ingressgateway --config kind="ingress" --trust
+ISTIO_CHANNEL=1.11/stable
+juju deploy istio-pilot --config default-gateway=${DEFAULT_GATEWAY} --channel ${ISTIO_CHANNEL} --trust
+juju deploy istio-gateway istio-ingressgateway --config kind="ingress" --channel ${ISTIO_CHANNEL} --trust
 juju relate istio-pilot istio-ingressgateway
 ```
 
@@ -34,7 +35,8 @@ juju relate istio-pilot istio-ingressgateway
 The `knative-operator` is responsible for installing, configuring, and managing the `serving` and `eventing` components. You must deploy the charmed `knative-operator` before any other Knative component.
 
 ```
-juju deploy knative-operator --trust
+KNATIVE_CHANNEL=1.1/edge
+juju deploy knative-operator --trust --channel ${KNATIVE_CHANNEL}
 ```
 
 ### `knative-serving`
@@ -42,7 +44,7 @@ juju deploy knative-operator --trust
 `knative-serving` provides components that enable rapid deployment of serverless containers, autoscaling (including down to zero), support for multiple layers, and revision tracking. Charmed `knative-serving` can be deployed as follows:
 
 ```
-juju deploy knative-serving --config namespace="knative-serving" --config istio.gateway.namespace=${MODEL_NAME} --config istio.gateway.name=${DEFAULT_GATEWAY} --trust
+juju deploy knative-serving --config namespace="knative-serving" --config istio.gateway.namespace=${MODEL_NAME} --config istio.gateway.name=${DEFAULT_GATEWAY} --channel ${KNATIVE_CHANNEL} --trust
 ```
 
 where:
@@ -56,7 +58,7 @@ where:
 `knative-eventing` provides tools for routing events from producers to sinks, enabling developers to use an event-driven architecture with their applications. Charmed `knative-eventing` can be deployed as follows:
 
 ```
-juju deploy knative-eventing --config namespace="knative-eventing" --trust
+juju deploy knative-eventing --config namespace="knative-eventing" --channel ${KNATIVE_CHANNEL} --trust
 ```
 where:
 
