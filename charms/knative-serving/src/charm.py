@@ -72,7 +72,7 @@ class KnativeServingCharm(CharmBase):
     def _on_config_changed(self, _):
         self._apply_and_set_status()
 
-    def _on_otel_collector_relation_changed(self, event):
+    def _on_otel_collector_relation_changed(self, _):
         """Event handler for on['otel-collector'].relation_changed."""
         self._apply_and_set_status()
 
