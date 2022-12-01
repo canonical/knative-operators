@@ -1,5 +1,4 @@
-# Remove once python-libjuju>2.9.10 is released
-git+https://github.com/juju/python-libjuju@master
+juju==3.0.*
 pytest-operator<1.0
 asyncio<3.5
 PyYAML==6.0
