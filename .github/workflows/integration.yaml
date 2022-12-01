@@ -69,7 +69,7 @@ jobs:
         env:
           KUBECONFIG: /home/runner/.kube/config
 
-  observability-integration:
+  integration-observability:
     name: Observability Integration Test
     runs-on: ubuntu-20.04
 
