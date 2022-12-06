@@ -1,6 +1,8 @@
 venv/
 build/
 *.charm
+.kube
+.mypy_cache
 .tox/
 .coverage
 __pycache__/

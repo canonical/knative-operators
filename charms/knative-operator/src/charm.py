@@ -10,9 +10,7 @@ import traceback
 from pathlib import Path
 
 from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
-from charmed_kubeflow_chisme.kubernetes import (  # noqa N813
-    KubernetesResourceHandler as KRH,
-)
+from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from lightkube import ApiError
@@ -22,7 +20,7 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.pebble import ChangeError, Layer
 
-REQUEST_LOG_TEMPLATE = '{"httpRequest": {"requestMethod": "{{.Request.Method}}", "requestUrl": "{{js .Request.RequestURI}}", "requestSize": "{{.Request.ContentLength}}", "status": {{.Response.Code}}, "responseSize": "{{.Response.Size}}", "userAgent": "{{js .Request.UserAgent}}", "remoteIp": "{{js .Request.RemoteAddr}}", "serverIp": "{{.Revision.PodIP}}", "referer": "{{js .Request.Referer}}", "latency": "{{.Response.Latency}}s", "protocol": "{{.Request.Proto}}"}, "traceId": "{{index .Request.Header "X-B3-Traceid"}}"}'
+REQUEST_LOG_TEMPLATE = '{"httpRequest": {"requestMethod": "{{.Request.Method}}", "requestUrl": "{{js .Request.RequestURI}}", "requestSize": "{{.Request.ContentLength}}", "status": {{.Response.Code}}, "responseSize": "{{.Response.Size}}", "userAgent": "{{js .Request.UserAgent}}", "remoteIp": "{{js .Request.RemoteAddr}}", "serverIp": "{{.Revision.PodIP}}", "referer": "{{js .Request.Referer}}", "latency": "{{.Response.Latency}}s", "protocol": "{{.Request.Proto}}"}, "traceId": "{{index .Request.Header "X-B3-Traceid"}}"}'  # noqa: E501
 
 OBSERVABILITY_RESOURCES_FILES = [
     "src/manifests/observability/collector.yaml.j2",

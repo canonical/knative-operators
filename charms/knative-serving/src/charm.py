@@ -12,9 +12,7 @@ import traceback
 from pathlib import Path
 
 from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
-from charmed_kubeflow_chisme.kubernetes import (  # noqa N813
-    KubernetesResourceHandler as KRH,
-)
+from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from lightkube.core.exceptions import ApiError
 from ops.charm import CharmBase
@@ -93,7 +91,7 @@ class KnativeServingCharm(CharmBase):
         if relation:
             return relation.data[relation.app]
         logger.info(
-            "No otel-collector relation detected, observability won't be enabled for knative-serving"
+            "No otel-collector relation detected, observability won't be enabled for knative-serving"  # noqa: E501
         )
         return {}
 
