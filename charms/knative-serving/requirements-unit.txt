@@ -10,7 +10,7 @@ anyio==3.6.2
     #   httpcore
 attrs==22.1.0
     # via pytest
-certifi==2022.9.24
+certifi==2022.12.7
     # via
     #   -r ./charms/knative-serving/requirements.txt
     #   httpcore
@@ -68,12 +68,10 @@ ordered-set==4.1.0
     # via
     #   -r ./charms/knative-serving/requirements.txt
     #   deepdiff
-packaging==21.3
+packaging==22.0
     # via pytest
 pluggy==1.0.0
     # via pytest
-pyparsing==3.0.9
-    # via packaging
 pytest==7.2.0
     # via
     #   -r ./charms/knative-serving/requirements-unit.in
