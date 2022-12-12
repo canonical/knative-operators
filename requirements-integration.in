@@ -1,0 +1,6 @@
+juju
+pytest-operator
+asyncio
+PyYAML
+flake8
+tenacity
