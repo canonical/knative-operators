@@ -1,6 +1,7 @@
-juju
-pytest-operator
 asyncio
-PyYAML
 flake8
+juju
+lightkube
+pytest-operator
+PyYAML
 tenacity
