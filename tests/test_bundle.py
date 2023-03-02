@@ -1,44 +1,28 @@
 # Copyright 2022 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-import json
 import logging
+from pathlib import Path
+import time
 
+import lightkube.codecs
+from lightkube import Client
+from lightkube.generic_resource import create_namespaced_resource
+from lightkube.resources.core_v1 import Service
 import pytest
-import requests
-import yaml
 from pytest_operator.plugin import OpsTest
+import requests
+from tenacity import (
+    Retrying,
+    stop_after_delay,
+    wait_fixed,
+)
 
 log = logging.getLogger(__name__)
 
-
-@pytest.mark.abort_on_fail
-async def test_kubectl_access(ops_test: OpsTest):
-    """Fails if kubectl not available or if no cluster context exists"""
-    _, stdout, _ = await ops_test.run(
-        "kubectl",
-        "config",
-        "view",
-        check=True,
-        fail_msg="Failed to execute kubectl - is kubectl installed?",
-    )
-
-    # Check if kubectl has a context, failing if it does not
-    kubectl_config = yaml.safe_load(stdout)
-    error_message = (
-        "Found no kubectl contexts - did you populate KUBECONFIG?  Ex:"
-        " 'KUBECONFIG=/home/runner/.kube/config tox ...' or"
-        " 'KUBECONFIG=/home/runner/.kube/config tox ...'"
-    )
-    assert kubectl_config["contexts"] is not None, error_message
-
-    await ops_test.run(
-        "kubectl",
-        "get",
-        "pods",
-        check=True,
-        fail_msg="Failed to do a simple kubectl task - is KUBECONFIG properly configured?",
-    )
+KSVC = create_namespaced_resource(
+    group="serving.knative.dev", version="v1", kind="Service", plural="services"
+)
 
 
 @pytest.mark.abort_on_fail
@@ -112,37 +96,74 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
 
-async def test_cloud_events_player_example(ops_test: OpsTest):
-    await ops_test.run(
-        "kubectl",
-        "apply",
-        "-f",
-        "./examples/cloudevents-player.yaml",
-        check=True,
-    )
-    await ops_test.run(
-        "kubectl",
-        "wait",
-        "--for=condition=ready",
-        "ksvc",
-        "cloudevents-player",
-        "--timeout=5m",
-        check=True,
-    )
+RETRY_FOR_MINUTE = Retrying(
+    stop=stop_after_delay(60),
+    wait=wait_fixed(5),
+    reraise=True,
+)
 
-    gateway_json = await ops_test.run(
-        "kubectl",
-        "get",
-        "services/istio-ingressgateway-workload",
-        "-n",
-        ops_test.model_name,
-        "-ojson",
-        check=True,
-    )
 
-    gateway_obj = json.loads(gateway_json[1])
-    gateway_ip = gateway_obj["status"]["loadBalancer"]["ingress"][0]["ip"]
-    url = f"http://cloudevents-player.default.{gateway_ip}.nip.io"
+@pytest.fixture()
+def wait_for_ksvc():
+    """Waits until KNative Serving Service is available, to a maximum 1 minute"""
+    lightkube_client = Client()
+    for attempt in RETRY_FOR_MINUTE:
+        with attempt:
+            ksvcs = list(lightkube_client.list(KSVC))
+
+
+@pytest.fixture()
+def remove_cloudevents_player_example(ops_test: OpsTest):
+    """Fixture that attempts to remove the cloudevents-player example after a test has run"""
+    yield
+    lightkube_client = Client()
+    lightkube_client.delete(KSVC, "cloudevents-player", namespace=ops_test.model_name)
+
+
+def wait_for_ready(resource, name, namespace):
+    """Waits for a ksvc to to be ready, to a maximum of timeout seconds."""
+    lightkube_client = Client()
+
+    timeout_error = TimeoutError("Timed out waiting for ksvc to be ready")
+
+    for attempt in RETRY_FOR_MINUTE:
+        with attempt:
+            # Validate that ksvc has "Ready" status and pass this loop, or raise an exception to
+            # trigger the next attempt
+            ksvc = lightkube_client.get(res=resource, name=name, namespace=namespace)
+            status = ksvc.status
+            if status is None:
+                # status not yet available
+                log.info("Waiting on ksvc for status to be available")
+                raise timeout_error
+
+            conditions = [c for c in status.get("conditions", []) if c["status"] == "True"]
+            log.info(f"Waiting on ksvc with conditions {conditions} to be Ready")
+
+            # Raise if ksvc is not ready
+            if not any(c["type"] == "Ready" for c in conditions):
+                raise timeout_error
+
+
+async def test_cloud_events_player_example(
+    ops_test: OpsTest, wait_for_ksvc, remove_cloudevents_player_example
+):
+    manifest = lightkube.codecs.load_all_yaml(
+        Path("./examples/cloudevents-player.yaml").read_text()
+    )
+    lightkube_client = Client()
+
+    for obj in manifest:
+        lightkube_client.create(obj, namespace=ops_test.model_name)
+
+    wait_for_ready(resource=KSVC, name="cloudevents-player", namespace=ops_test.model_name)
+
+    gateway_svc = lightkube_client.get(
+        Service, "istio-ingressgateway-workload", namespace=ops_test.model_name
+    )
+    gateway_ip = gateway_svc.status.loadBalancer.ingress[0].ip
+
+    url = f"http://cloudevents-player.{ops_test.model_name}.{gateway_ip}.nip.io"
     data = {"msg": "Hello CloudEvents!"}
     headers = {
         "Content-Type": "application/json",
