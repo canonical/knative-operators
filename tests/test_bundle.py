@@ -120,25 +120,29 @@ def remove_cloudevents_player_example():
     lightkube_client.delete(KSVC, "cloudevents-player")
 
 
-def wait_for_ready(resource, name, namespace, timeout=60, wait=5):
+def wait_for_ready(resource, name, namespace):
     """Waits for a ksvc to to be ready, to a maximum of timeout seconds."""
     lightkube_client = Client()
 
-    start = time.time()
-    while time.time() - start < timeout:
-        ksvc = lightkube_client.get(res=resource, name=name, namespace=namespace)
-        status = ksvc.status
-        if status is None:
-            # status not yet available
-            time.sleep(wait)
-            continue
-        conditions = [c for c in status.get("conditions", []) if c["status"] == "True"]
-        print(f"Waiting on ksvc with conditions {conditions} to be Ready")
-        if any(c["type"] == "Ready" for c in conditions):
-            return ksvc
-        time.sleep(wait)
+    timeout_error = TimeoutError("Timed out waiting for ksvc to be ready")
 
-    raise TimeoutError("Timed out waiting for ksvc to be ready")
+    for attempt in RETRY_FOR_MINUTE:
+        with attempt:
+            # Validate that ksvc has "Ready" status and pass this loop, or raise an exception to
+            # trigger the next attempt
+            ksvc = lightkube_client.get(res=resource, name=name, namespace=namespace)
+            status = ksvc.status
+            if status is None:
+                # status not yet available
+                log.info("Waiting on ksvc for status to be available")
+                raise timeout_error
+
+            conditions = [c for c in status.get("conditions", []) if c["status"] == "True"]
+            log.info(f"Waiting on ksvc with conditions {conditions} to be Ready")
+
+            # Raise if ksvc is not ready
+            if not any(c["type"] == "Ready" for c in conditions):
+                raise timeout_error
 
 
 async def test_cloud_events_player_example(
