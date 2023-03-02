@@ -3,11 +3,11 @@
 
 import logging
 from pathlib import Path
-import time
 
 import lightkube.codecs
 from lightkube import Client
 from lightkube.generic_resource import create_namespaced_resource
+from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
 from lightkube.resources.core_v1 import Service
 import pytest
 from pytest_operator.plugin import OpsTest
@@ -23,6 +23,7 @@ log = logging.getLogger(__name__)
 KSVC = create_namespaced_resource(
     group="serving.knative.dev", version="v1", kind="Service", plural="services"
 )
+KNATIVE_SERVING_SERVICE = "services.serving.knative.dev"
 
 
 @pytest.mark.abort_on_fail
@@ -109,7 +110,7 @@ def wait_for_ksvc():
     lightkube_client = Client()
     for attempt in RETRY_FOR_MINUTE:
         with attempt:
-            ksvcs = list(lightkube_client.list(KSVC))
+            crd = lightkube_client.get(CustomResourceDefinition, KNATIVE_SERVING_SERVICE)
 
 
 @pytest.fixture()
