@@ -108,8 +108,10 @@ RETRY_FOR_MINUTE = Retrying(
 def wait_for_ksvc():
     """Waits until KNative Serving Service is available, to a maximum 1 minute"""
     lightkube_client = Client()
+    log.info("Waiting on ksvc to exist")
     for attempt in RETRY_FOR_MINUTE:
         with attempt:
+            log.info("Checking for ksvc CRD")
             crd = lightkube_client.get(CustomResourceDefinition, KNATIVE_SERVING_SERVICE)
 
 
@@ -129,6 +131,7 @@ def wait_for_ready(resource, name, namespace):
 
     for attempt in RETRY_FOR_MINUTE:
         with attempt:
+            log.info("Checking ksvc status")
             # Validate that ksvc has "Ready" status and pass this loop, or raise an exception to
             # trigger the next attempt
             ksvc = lightkube_client.get(res=resource, name=name, namespace=namespace)
