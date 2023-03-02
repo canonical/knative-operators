@@ -113,11 +113,11 @@ def wait_for_ksvc():
 
 
 @pytest.fixture()
-def remove_cloudevents_player_example():
+def remove_cloudevents_player_example(ops_test: OpsTest):
     """Fixture that attempts to remove the cloudevents-player example after a test has run"""
     yield
     lightkube_client = Client()
-    lightkube_client.delete(KSVC, "cloudevents-player")
+    lightkube_client.delete(KSVC, "cloudevents-player", namespace=ops_test.model_name)
 
 
 def wait_for_ready(resource, name, namespace):
