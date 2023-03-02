@@ -69,6 +69,16 @@ jobs:
         env:
           KUBECONFIG: /home/runner/.kube/config
 
+      - run: kubectl get all -A
+        if: failure()
+
+      - run: kubectl get crds
+        if: failure()
+
+      - run: juju status
+        if: failure()
+
+
   integration-observability:
     name: Observability Integration Test
     runs-on: ubuntu-20.04
