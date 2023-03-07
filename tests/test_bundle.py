@@ -3,6 +3,7 @@
 
 import logging
 from pathlib import Path
+import yaml
 
 import lightkube.codecs
 from lightkube import Client
@@ -18,12 +19,16 @@ from tenacity import (
     wait_fixed,
 )
 
+
 log = logging.getLogger(__name__)
 
 KSVC = create_namespaced_resource(
     group="serving.knative.dev", version="v1", kind="Service", plural="services"
 )
 KNATIVE_SERVING_SERVICE = "services.serving.knative.dev"
+METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
+KNATIVE_OPERATOR_IMAGE = METADATA["resources"]["knative-operator-image"]["upstream-source"]
+KNATIVE_OPERATOR_RESOURCES = {"knative-operator-image": KNATIVE_OPERATOR_IMAGE}
 
 
 @pytest.mark.abort_on_fail
@@ -60,12 +65,11 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
     # Deploy knative charms
-    knative_operator_image = "gcr.io/knative-releases/knative.dev/operator/cmd/operator:v1.1.0"
     await ops_test.model.deploy(
         knative_charms["knative-operator"],
         application_name="knative-operator",
         trust=True,
-        resources={"knative-operator-image": knative_operator_image},
+        resources=KNATIVE_OPERATOR_RESOURCES,
     )
 
     await ops_test.model.wait_for_idle(
