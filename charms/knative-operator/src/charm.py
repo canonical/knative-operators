@@ -151,25 +151,26 @@ class KnativeOperatorCharm(CharmBase):
         }
         return Layer(layer_config)
 
-    def _update_layer_knative_operator(self, event) -> None:
+    def _update_layer(self, event, container_name: str) -> None:
         """Updates the Pebble configuration layer for knative operator if changed."""
-        if not self._containers[KNATIVE_OPERATOR].can_connect():
+        if not self._containers[container_name].can_connect():
             self.unit.status = MaintenanceStatus("Waiting for pod startup to complete")
             event.defer()
             return
 
         # Get current config
-        current_layer = self._containers[KNATIVE_OPERATOR].get_plan()
+        current_layer = self._containers[container_name].get_plan()
         # Create a new config layer
         new_layer = self._knative_operator_layer
         if current_layer.services != new_layer.services:
-            self._containers[KNATIVE_OPERATOR].add_layer(KNATIVE_OPERATOR, new_layer, combine=True)
+            self._containers[container_name].add_layer(container_name, new_layer, combine=True)
             try:
                 logger.info("Pebble plan updated with new configuration, replanning")
-                self._containers[KNATIVE_OPERATOR].replan()
+                self._containers[container_name].replan()
             except ChangeError as e:
+                # TODO: Handle this error like we do elsewhere using ErrorWithStatus?
                 logger.error(traceback.format_exc())
-                self.unit.status = BlockedStatus("Failed to replan")
+                self.unit.status = BlockedStatus(f"Failed to replan for {container_name}")
                 raise e
         self.unit.status = ActiveStatus()
 
@@ -194,7 +195,7 @@ class KnativeOperatorCharm(CharmBase):
         """Event handler for changing Pebble configuration and applying k8s resources."""
         # Update Pebble configuration layer if it has changed
         self.unit.status = MaintenanceStatus("Configuring Pebble layers")
-        self._update_layer_knative_operator(event)
+        self._update_layer(event, KNATIVE_OPERATOR)
 
         # Apply Kubernetes resources
         self.unit.status = MaintenanceStatus("Applying resources")
@@ -203,7 +204,7 @@ class KnativeOperatorCharm(CharmBase):
     def _on_knative_operator_pebble_ready(self, event):
         """Event handler for on PebbleReadyEvent."""
         self.unit.status = MaintenanceStatus("Configuring Pebble layer")
-        self._update_layer_knative_operator(event)
+        self._update_layer(event, KNATIVE_OPERATOR)
 
     def _on_otel_collector_relation_created(self, event):
         """Event handler for on['otel-collector'].relation_changed."""
