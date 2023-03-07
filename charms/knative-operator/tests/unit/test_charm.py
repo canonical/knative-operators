@@ -176,12 +176,13 @@ def test_update_layer_active(
 def test_update_layer_exception(
     harness, mocked_resource_handler, mocked_container_replan, mocked_metrics_endpoint_provider
 ):
+    container_name = "knative-operator"
     harness.begin()
     mocked_container_replan.side_effect = _FakeChangeError()
     mocked_event = MagicMock()
     with pytest.raises(ChangeError):
-        harness.charm._update_layer_knative_operator(mocked_event)
-    assert harness.model.unit.status == BlockedStatus("Failed to replan")
+        harness.charm._update_layer(mocked_event, container_name)
+    assert harness.model.unit.status == BlockedStatus(f"Failed to replan for {container_name}")
 
 
 def test_otel_exporter_ip_on_404_apierror(
