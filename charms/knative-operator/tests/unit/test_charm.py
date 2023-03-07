@@ -15,7 +15,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.pebble import Change, ChangeError, ChangeID
 from ops.testing import Harness
 
-from charm import KnativeOperatorCharm
+from charm import KnativeOperatorCharm, KNATIVE_OPERATOR
 
 
 class _FakeChange:
@@ -149,7 +149,7 @@ def test_update_layer_active(
 
     expected_plan = {
         "services": {
-            "/ko-app/operator": {
+            KNATIVE_OPERATOR: {
                 "summary": "entrypoint of the knative-operator image",
                 "startup": "enabled",
                 "override": "replace",
@@ -167,7 +167,7 @@ def test_update_layer_active(
     updated_plan = harness.get_container_pebble_plan("knative-operator").to_dict()
     assert expected_plan == updated_plan
 
-    service = harness.model.unit.get_container("knative-operator").get_service("/ko-app/operator")
+    service = harness.model.unit.get_container("knative-operator").get_service(KNATIVE_OPERATOR)
     assert service.is_running() is True
 
     assert harness.model.unit.status == ActiveStatus()
