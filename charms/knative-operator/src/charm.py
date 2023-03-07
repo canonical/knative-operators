@@ -138,7 +138,7 @@ class KnativeOperatorCharm(CharmBase):
                         "POD_NAME": self._app_name,
                         "SYSTEM_NAMESPACE": self._namespace,
                         "METRICS_DOMAIN": "knative.dev/operator",
-                        "CONFIG_LOGGING_NAME": "config-loggig",
+                        "CONFIG_LOGGING_NAME": "config-logging",
                         "CONFIG_OBSERVABILITY_NAME": "config-observability",
                     },
                 }
