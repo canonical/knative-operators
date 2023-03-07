@@ -158,7 +158,7 @@ def test_update_layer_active(
                     "POD_NAME": harness.model.app.name,
                     "SYSTEM_NAMESPACE": harness.model.name,
                     "METRICS_DOMAIN": "knative.dev/operator",
-                    "CONFIG_LOGGING_NAME": "config-loggig",
+                    "CONFIG_LOGGING_NAME": "config-logging",
                     "CONFIG_OBSERVABILITY_NAME": "config-observability",
                 },
             }
