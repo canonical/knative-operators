@@ -180,7 +180,7 @@ def test_update_layer_exception(
     mocked_container_replan.side_effect = _FakeChangeError()
     mocked_event = MagicMock()
     with pytest.raises(ChangeError):
-        harness.charm._update_layer(mocked_event)
+        harness.charm._update_layer_knative_operator(mocked_event)
     assert harness.model.unit.status == BlockedStatus("Failed to replan")
 
 
