@@ -8,6 +8,7 @@ import glob
 import logging
 import traceback
 from pathlib import Path
+import time
 
 from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
@@ -193,13 +194,24 @@ class KnativeOperatorCharm(CharmBase):
 
     def _main(self, event):
         """Event handler for changing Pebble configuration and applying k8s resources."""
+        # Apply Kubernetes resources
+        self.unit.status = MaintenanceStatus("Applying resources")
+        self._apply_resources(resource_handler=self.resource_handler)
+
+        # TODO: This mitigates the race condition between generating knative operator's configmaps
+        #  in the above apply_resources and starting the processes via pebble.  Need to find a
+        #  cleaner way of doing this, perhaps by monitoring and automatically restarting the
+        #  pebble containers.
+        #  Without this, the pebble containers attempt to start, panic with error messages
+        #  mentioning memory overflows and observability configurations, and never restart.
+        sleep_time = 15
+        logger.info(f"Sleeping {sleep_time} seconds to allow resources to be available")
+        time.sleep(sleep_time)
+
         # Update Pebble configuration layer if it has changed
         self.unit.status = MaintenanceStatus("Configuring Pebble layers")
         self._update_layer(event, KNATIVE_OPERATOR)
 
-        # Apply Kubernetes resources
-        self.unit.status = MaintenanceStatus("Applying resources")
-        self._apply_resources(resource_handler=self.resource_handler)
 
     def _on_knative_operator_pebble_ready(self, event):
         """Event handler for on PebbleReadyEvent."""
