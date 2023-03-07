@@ -15,7 +15,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.pebble import Change, ChangeError, ChangeID
 from ops.testing import Harness
 
-from charm import KnativeOperatorCharm, KNATIVE_OPERATOR
+from charm import KNATIVE_OPERATOR, KnativeOperatorCharm
 
 
 class _FakeChange:
