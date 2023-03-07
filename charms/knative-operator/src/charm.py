@@ -134,10 +134,11 @@ class KnativeOperatorCharm(CharmBase):
             "summary": "knative-operator layer",
             "description": "pebble config layer for knative-operator",
             "services": {
-                KNATIVE_OPERATOR: {
+                # TODO: Change this to be the app name, not the command
+                KNATIVE_OPERATOR_COMMAND: {
                     "override": "replace",
                     "summary": "entrypoint of the knative-operator image",
-                    "command": self._operator_service,
+                    "command": KNATIVE_OPERATOR_COMMAND,
                     "startup": "enabled",
                     "environment": {
                         "POD_NAME": self._app_name,
@@ -163,7 +164,7 @@ class KnativeOperatorCharm(CharmBase):
         # Create a new config layer
         new_layer = self._knative_operator_layer
         if current_layer.services != new_layer.services:
-            self._containers[KNATIVE_OPERATOR].add_layer(self._operator_service, new_layer, combine=True)
+            self._containers[KNATIVE_OPERATOR].add_layer(KNATIVE_OPERATOR, new_layer, combine=True)
             try:
                 logger.info("Pebble plan updated with new configuration, replanning")
                 self._containers[KNATIVE_OPERATOR].replan()
