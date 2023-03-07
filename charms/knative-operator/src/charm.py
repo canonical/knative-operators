@@ -134,8 +134,7 @@ class KnativeOperatorCharm(CharmBase):
             "summary": "knative-operator layer",
             "description": "pebble config layer for knative-operator",
             "services": {
-                # TODO: Change this to be the app name, not the command
-                KNATIVE_OPERATOR_COMMAND: {
+                KNATIVE_OPERATOR: {
                     "override": "replace",
                     "summary": "entrypoint of the knative-operator image",
                     "command": KNATIVE_OPERATOR_COMMAND,
