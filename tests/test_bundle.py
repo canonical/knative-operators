@@ -26,8 +26,8 @@ KSVC = create_namespaced_resource(
     group="serving.knative.dev", version="v1", kind="Service", plural="services"
 )
 KNATIVE_SERVING_SERVICE = "services.serving.knative.dev"
-METADATA = yaml.safe_load(Path("./metadata.yaml").read_text())
-KNATIVE_OPERATOR_IMAGE = METADATA["resources"]["knative-operator-image"]["upstream-source"]
+KNATIVE_OPERATOR_METADATA = yaml.safe_load(Path("./charms/knative-operator/metadata.yaml").read_text())
+KNATIVE_OPERATOR_IMAGE = KNATIVE_OPERATOR_METADATA["resources"]["knative-operator-image"]["upstream-source"]
 KNATIVE_OPERATOR_RESOURCES = {"knative-operator-image": KNATIVE_OPERATOR_IMAGE}
 
 
