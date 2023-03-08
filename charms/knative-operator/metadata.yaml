@@ -8,6 +8,8 @@ description: |
 containers:
   knative-operator:
     resource: knative-operator-image
+  knative-operator-webhook:
+    resource: knative-operator-webhook-image
 provides:
   otel-collector:
     interface: otel-collector
@@ -18,3 +20,7 @@ resources:
     type: oci-image
     description: OCI image for knative-operator
     upstream-source: gcr.io/knative-releases/knative.dev/operator/cmd/operator:v1.8.1
+  knative-operator-webhook-image:
+    type: oci-image
+    description: OCI image for knative-operator's operator-webhook component
+    upstream-source: gcr.io/knative-releases/knative.dev/operator/cmd/webhook:v1.8.1

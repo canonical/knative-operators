@@ -32,6 +32,9 @@ logger = logging.getLogger(__name__)
 KNATIVE_OPERATOR = "knative-operator"
 KNATIVE_OPERATOR_COMMAND = "/ko-app/operator"
 
+KNATIVE_OPERATOR_WEBHOOK = "knative-operator-webhook"
+KNATIVE_OPERATOR_WEBHOOK_COMMAND = "/ko-app/webhook"
+
 
 class KnativeOperatorCharm(CharmBase):
     """A Juju Charm for knative-operator."""
@@ -55,6 +58,12 @@ class KnativeOperatorCharm(CharmBase):
 
         self._containers = {
             KNATIVE_OPERATOR: self.unit.get_container(KNATIVE_OPERATOR),
+            KNATIVE_OPERATOR_WEBHOOK: self.unit.get_container(KNATIVE_OPERATOR_WEBHOOK),
+        }
+
+        self._layer_properties = {
+            KNATIVE_OPERATOR: self._knative_operator_layer,
+            KNATIVE_OPERATOR_WEBHOOK: self._knative_operator_webhook_layer,
         }
 
         for event in [self.on.install, self.on.config_changed]:
@@ -66,6 +75,10 @@ class KnativeOperatorCharm(CharmBase):
         self.framework.observe(
             self.on.knative_operator_pebble_ready,
             self._on_knative_operator_pebble_ready,
+        )
+        self.framework.observe(
+            self.on.knative_operator_webhook_pebble_ready,
+            self._on_knative_operator_webhook_pebble_ready,
         )
         self.framework.observe(self.on.remove, self._on_remove)
 
@@ -130,14 +143,14 @@ class KnativeOperatorCharm(CharmBase):
 
     @property
     def _knative_operator_layer(self) -> Layer:
-        """Returns a pre-configured Pebble layer."""
+        """Returns a pre-configured Pebble layer for knative operator."""
         layer_config = {
-            "summary": "knative-operator layer",
-            "description": "pebble config layer for knative-operator",
+            "summary": f"{KNATIVE_OPERATOR} layer",
+            "description": f"pebble config layer for {KNATIVE_OPERATOR}",
             "services": {
                 KNATIVE_OPERATOR: {
                     "override": "replace",
-                    "summary": "entrypoint of the knative-operator image",
+                    "summary": f"entrypoint of the {KNATIVE_OPERATOR} image",
                     "command": KNATIVE_OPERATOR_COMMAND,
                     "startup": "enabled",
                     "environment": {
@@ -146,6 +159,32 @@ class KnativeOperatorCharm(CharmBase):
                         "METRICS_DOMAIN": "knative.dev/operator",
                         "CONFIG_LOGGING_NAME": "config-logging",
                         "CONFIG_OBSERVABILITY_NAME": "config-observability",
+                    },
+                }
+            },
+        }
+        return Layer(layer_config)
+
+    @property
+    def _knative_operator_webhook_layer(self) -> Layer:
+        """Returns a pre-configured Pebble layer for knative operator's webhook."""
+        layer_config = {
+            "summary": f"{KNATIVE_OPERATOR_WEBHOOK} layer",
+            "description": f"pebble config layer for {KNATIVE_OPERATOR_WEBHOOK}",
+            "services": {
+                KNATIVE_OPERATOR_WEBHOOK: {
+                    "override": "replace",
+                    "summary": f"entrypoint of the {KNATIVE_OPERATOR_WEBHOOK} image",
+                    "command": KNATIVE_OPERATOR_WEBHOOK_COMMAND,
+                    "startup": "enabled",
+                    "environment": {
+                        "POD_NAME": self._app_name,
+                        "SYSTEM_NAMESPACE": self._namespace,
+                        "METRICS_DOMAIN": "knative.dev/operator",
+                        "CONFIG_LOGGING_NAME": "config-logging",
+                        "CONFIG_OBSERVABILITY_NAME": "config-observability",
+                        "WEBHOOK_NAME": "operator-webhook",
+                        "WEBHOOK_PORT": "8443",
                     },
                 }
             },
@@ -162,7 +201,7 @@ class KnativeOperatorCharm(CharmBase):
         # Get current config
         current_layer = self._containers[container_name].get_plan()
         # Create a new config layer
-        new_layer = self._knative_operator_layer
+        new_layer = self._layer_properties[container_name]
         if current_layer.services != new_layer.services:
             self._containers[container_name].add_layer(container_name, new_layer, combine=True)
             try:
@@ -198,25 +237,34 @@ class KnativeOperatorCharm(CharmBase):
         self.unit.status = MaintenanceStatus("Applying resources")
         self._apply_resources(resource_handler=self.resource_handler)
 
-        # TODO: This mitigates the race condition between generating knative operator's configmaps
-        #  in the above apply_resources and starting the processes via pebble.  Need to find a
-        #  cleaner way of doing this, perhaps by monitoring and automatically restarting the
-        #  pebble containers.
-        #  Without this, the pebble containers attempt to start, panic with error messages
-        #  mentioning memory overflows and observability configurations, and never restart.
-        sleep_time = 15
+        # TODO: There is a race condition between creating the configmaps and secrets that
+        #  knative operator/webhook need, and starting their processes.  Without these resources,
+        #  their processes panic and exit with non-zero error codes quickly (<1s).  Pebble sees
+        #  this quick exit not as a start and fail, not as not starting at all (see
+        #  https://github.com/canonical/pebble#viewing-starting-and-stopping-services), which
+        #  means Pebble will not auto-restart the service.  Health checks also do not seem to
+        #  be able to restart the service.
+        #  Need a better way to handle this.
+        sleep_time = 5
         logger.info(f"Sleeping {sleep_time} seconds to allow resources to be available")
         time.sleep(sleep_time)
 
         # Update Pebble configuration layer if it has changed
         self.unit.status = MaintenanceStatus("Configuring Pebble layers")
         self._update_layer(event, KNATIVE_OPERATOR)
-
+        self._update_layer(event, KNATIVE_OPERATOR_WEBHOOK)
 
     def _on_knative_operator_pebble_ready(self, event):
-        """Event handler for on PebbleReadyEvent."""
-        self.unit.status = MaintenanceStatus("Configuring Pebble layer")
+        """Event handler for the knative operator PebbleReadyEvent."""
+        self.unit.status = MaintenanceStatus(f"Configuring Pebble layer for {KNATIVE_OPERATOR}")
         self._update_layer(event, KNATIVE_OPERATOR)
+
+    def _on_knative_operator_webhook_pebble_ready(self, event):
+        """Event handler for the knative operator webhook PebbleReadyEvent."""
+        self.unit.status = MaintenanceStatus(
+            f"Configuring Pebble layer for {KNATIVE_OPERATOR_WEBHOOK}"
+        )
+        self._update_layer(event, KNATIVE_OPERATOR_WEBHOOK)
 
     def _on_otel_collector_relation_created(self, event):
         """Event handler for on['otel-collector'].relation_changed."""
