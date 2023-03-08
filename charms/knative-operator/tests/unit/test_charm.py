@@ -93,8 +93,12 @@ def mocked_metrics_endpoint_provider(mocker):
 def test_events(harness, mocked_resource_handler, mocked_metrics_endpoint_provider, mocker):
     harness.begin()
     main = mocker.patch("charm.KnativeOperatorCharm._main")
-    pebble_ready_knative_operator = mocker.patch("charm.KnativeOperatorCharm._on_knative_operator_pebble_ready")
-    pebble_ready_knative_operator_webhook = mocker.patch("charm.KnativeOperatorCharm._on_knative_operator_webhook_pebble_ready")
+    pebble_ready_knative_operator = mocker.patch(
+        "charm.KnativeOperatorCharm._on_knative_operator_pebble_ready"
+    )
+    pebble_ready_knative_operator_webhook = mocker.patch(
+        "charm.KnativeOperatorCharm._on_knative_operator_webhook_pebble_ready"
+    )
     otel_relation_created = mocker.patch(
         "charm.KnativeOperatorCharm._on_otel_collector_relation_created"
     )
@@ -139,12 +143,13 @@ def test_apply_resources_exception(
         f"ApiError: {mocked_resource_handler.apply.side_effect.response.code}"
     )
 
+
 @pytest.mark.parametrize(
     "container_name",
     [
         "knative-operator",
         "knative-operator-webhook",
-    ]
+    ],
 )
 def test_update_layer_active(
     container_name, harness, mocked_resource_handler, mocker, mocked_metrics_endpoint_provider
@@ -216,12 +221,16 @@ def test_update_layer_active(
 @pytest.mark.parametrize(
     "container_name",
     [
-            "knative-operator",
-            "knative-operator-webhook",
-    ]
+        "knative-operator",
+        "knative-operator-webhook",
+    ],
 )
 def test_update_layer_exception(
-    container_name, harness, mocked_resource_handler, mocked_container_replan, mocked_metrics_endpoint_provider
+    container_name,
+    harness,
+    mocked_resource_handler,
+    mocked_container_replan,
+    mocked_metrics_endpoint_provider,
 ):
     harness.begin()
     mocked_container_replan.side_effect = _FakeChangeError()

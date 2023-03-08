@@ -6,9 +6,9 @@
 
 import glob
 import logging
+import time
 import traceback
 from pathlib import Path
-import time
 
 from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
