@@ -9,6 +9,8 @@ import requests
 import tenacity
 from pytest_operator.plugin import OpsTest
 
+from test_bundle import KNATIVE_OPERATOR_RESOURCES
+
 log = logging.getLogger(__name__)
 
 
@@ -21,12 +23,11 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
     # Deploy knative charms
-    knative_operator_image = "gcr.io/knative-releases/knative.dev/operator/cmd/operator:v1.1.0"
     await ops_test.model.deploy(
         knative_charms["knative-operator"],
         application_name="knative-operator",
         trust=True,
-        resources={"knative-operator-image": knative_operator_image},
+        resources=KNATIVE_OPERATOR_RESOURCES,
     )
 
     await ops_test.model.wait_for_idle(
