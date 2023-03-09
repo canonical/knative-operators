@@ -154,6 +154,8 @@ def test_apply_resources_exception(
 def test_update_layer_active(
     container_name, harness, mocked_resource_handler, mocker, mocked_metrics_endpoint_provider
 ):
+    # The charm uses a service name that is the same as the container name
+    service_name = container_name
     harness.begin()
     # Check the initial Pebble plan is empty
     initial_plan = harness.get_container_pebble_plan(container_name)
@@ -172,7 +174,7 @@ def test_update_layer_active(
     if container_name == "knative-operator":
         expected_plan = {
             "services": {
-                KNATIVE_OPERATOR: {
+                service_name: {
                     "summary": "entrypoint of the knative-operator image",
                     "startup": "enabled",
                     "override": "replace",
@@ -190,7 +192,7 @@ def test_update_layer_active(
     elif container_name == "knative-operator-webhook":
         expected_plan = {
             "services": {
-                container_name: {
+                service_name: {
                     "summary": "entrypoint of the knative-operator-webhook image",
                     "startup": "enabled",
                     "override": "replace",
@@ -207,12 +209,10 @@ def test_update_layer_active(
                 }
             },
         }
-    else:
-        raise ValueError(f"Unknown container name: {container_name}")
     updated_plan = harness.get_container_pebble_plan(container_name).to_dict()
     assert expected_plan == updated_plan
 
-    service = harness.model.unit.get_container(container_name).get_service(container_name)
+    service = harness.model.unit.get_container(container_name).get_service(service_name)
     assert service.is_running() is True
 
     assert harness.model.unit.status == ActiveStatus()
