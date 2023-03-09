@@ -126,7 +126,7 @@ def wait_for_ksvc():
     for attempt in RETRY_FOR_THREE_MINUTES:
         with attempt:
             log.info("Checking for ksvc CRD")
-            crd = lightkube_client.get(CustomResourceDefinition, KNATIVE_SERVING_SERVICE)
+            lightkube_client.get(CustomResourceDefinition, KNATIVE_SERVING_SERVICE)
 
 
 @pytest.fixture()
