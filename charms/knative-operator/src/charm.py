@@ -6,7 +6,6 @@
 
 import glob
 import logging
-import time
 import traceback
 from pathlib import Path
 
@@ -14,12 +13,13 @@ from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
-from lightkube import ApiError
-from lightkube.resources.core_v1 import Service
+from lightkube import ApiError, Client
+from lightkube.resources.core_v1 import ConfigMap, Secret, Service
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.pebble import ChangeError, Layer
+from tenacity import Retrying, stop_after_delay, wait_fixed
 
 REQUEST_LOG_TEMPLATE = '{"httpRequest": {"requestMethod": "{{.Request.Method}}", "requestUrl": "{{js .Request.RequestURI}}", "requestSize": "{{.Request.ContentLength}}", "status": {{.Response.Code}}, "responseSize": "{{.Response.Size}}", "userAgent": "{{js .Request.UserAgent}}", "remoteIp": "{{js .Request.RemoteAddr}}", "serverIp": "{{.Revision.PodIP}}", "referer": "{{js .Request.Referer}}", "latency": "{{.Response.Latency}}s", "protocol": "{{.Request.Proto}}"}, "traceId": "{{index .Request.Header "X-B3-Traceid"}}"}'  # noqa: E501
 
@@ -234,17 +234,8 @@ class KnativeOperatorCharm(CharmBase):
         self.unit.status = MaintenanceStatus("Applying resources")
         self._apply_resources(resource_handler=self.resource_handler)
 
-        # TODO: There is a race condition between creating the configmaps and secrets that
-        #  knative operator/webhook need, and starting their processes.  Without these resources,
-        #  their processes panic and exit with non-zero error codes quickly (<1s).  Pebble sees
-        #  this quick exit not as a start and fail, not as not starting at all (see
-        #  https://github.com/canonical/pebble#viewing-starting-and-stopping-services), which
-        #  means Pebble will not auto-restart the service.  Health checks also do not seem to
-        #  be able to restart the service.
-        #  Need a better way to handle this.
-        sleep_time = 5
-        logger.info(f"Sleeping {sleep_time} seconds to allow resources to be available")
-        time.sleep(sleep_time)
+        # Handle [this race condition](https://github.com/canonical/knative-operators/issues/90)
+        wait_for_required_kubernetes_resources(self._namespace, DEFAULT_RETRYER)
 
         # Update Pebble configuration layer if it has changed
         self.unit.status = MaintenanceStatus("Configuring Pebble layers")
@@ -283,6 +274,30 @@ class KnativeOperatorCharm(CharmBase):
             logger.warning(f"Failed to delete resources: {manifests} with: {e}")
             raise e
         self.unit.status = MaintenanceStatus("K8s resources removed")
+
+
+REQUIRED_CONFIGMAPS = ["config-observability", "config-logging"]
+REQUIRED_SECRETS = ["operator-webhook-certs"]
+DEFAULT_RETRYER = Retrying(
+    stop=stop_after_delay(15),
+    wait=wait_fixed(3),
+    reraise=True,
+)
+
+
+def wait_for_required_kubernetes_resources(namespace: str, retryer: Retrying):
+    """Waits for required kubernetes resources to be created, raising if we exceed a timeout"""
+    client = Client()
+    for attempt in retryer:
+        with attempt:
+            for cm in REQUIRED_CONFIGMAPS:
+                logger.info(f"Looking for required configmap {cm}")
+                client.get(ConfigMap, name=cm, namespace=namespace)
+                logger.info(f"Found required configmap {cm}")
+            for secret in REQUIRED_SECRETS:
+                logger.info(f"Looking for required secret {secret}")
+                client.get(Secret, name=secret, namespace=namespace)
+                logger.info(f"Found required secret {cm}")
 
 
 if __name__ == "__main__":
