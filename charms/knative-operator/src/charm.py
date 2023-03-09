@@ -66,19 +66,16 @@ class KnativeOperatorCharm(CharmBase):
             KNATIVE_OPERATOR_WEBHOOK: self._knative_operator_webhook_layer,
         }
 
-        for event in [self.on.install, self.on.config_changed]:
+        for event in [
+            self.on.install,
+            self.on.config_changed,
+            self.on.knative_operator_pebble_ready,
+            self.on.knative_operator_webhook_pebble_ready,
+        ]:
             self.framework.observe(event, self._main)
 
         self.framework.observe(
             self.on["otel-collector"].relation_created, self._on_otel_collector_relation_created
-        )
-        self.framework.observe(
-            self.on.knative_operator_pebble_ready,
-            self._on_knative_operator_pebble_ready,
-        )
-        self.framework.observe(
-            self.on.knative_operator_webhook_pebble_ready,
-            self._on_knative_operator_webhook_pebble_ready,
         )
         self.framework.observe(self.on.remove, self._on_remove)
 
@@ -252,18 +249,6 @@ class KnativeOperatorCharm(CharmBase):
         # Update Pebble configuration layer if it has changed
         self.unit.status = MaintenanceStatus("Configuring Pebble layers")
         self._update_layer(event, KNATIVE_OPERATOR)
-        self._update_layer(event, KNATIVE_OPERATOR_WEBHOOK)
-
-    def _on_knative_operator_pebble_ready(self, event):
-        """Event handler for the knative operator PebbleReadyEvent."""
-        self.unit.status = MaintenanceStatus(f"Configuring Pebble layer for {KNATIVE_OPERATOR}")
-        self._update_layer(event, KNATIVE_OPERATOR)
-
-    def _on_knative_operator_webhook_pebble_ready(self, event):
-        """Event handler for the knative operator webhook PebbleReadyEvent."""
-        self.unit.status = MaintenanceStatus(
-            f"Configuring Pebble layer for {KNATIVE_OPERATOR_WEBHOOK}"
-        )
         self._update_layer(event, KNATIVE_OPERATOR_WEBHOOK)
 
     def _on_otel_collector_relation_created(self, event):
