@@ -14,8 +14,16 @@ from lightkube.resources.core_v1 import Service
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.pebble import Change, ChangeError, ChangeID
 from ops.testing import Harness
+from tenacity import Retrying, stop_after_attempt
 
-from charm import KnativeOperatorCharm
+from charm import (
+    KNATIVE_OPERATOR,
+    KNATIVE_OPERATOR_WEBHOOK,
+    REQUIRED_CONFIGMAPS,
+    REQUIRED_SECRETS,
+    KnativeOperatorCharm,
+    wait_for_required_kubernetes_resources,
+)
 
 
 class _FakeChange:
@@ -93,7 +101,6 @@ def mocked_metrics_endpoint_provider(mocker):
 def test_events(harness, mocked_resource_handler, mocked_metrics_endpoint_provider, mocker):
     harness.begin()
     main = mocker.patch("charm.KnativeOperatorCharm._main")
-    pebble_ready = mocker.patch("charm.KnativeOperatorCharm._on_knative_operator_pebble_ready")
     otel_relation_created = mocker.patch(
         "charm.KnativeOperatorCharm._on_otel_collector_relation_created"
     )
@@ -107,8 +114,12 @@ def test_events(harness, mocked_resource_handler, mocked_metrics_endpoint_provid
     main.reset_mock()
 
     harness.charm.on.knative_operator_pebble_ready.emit("knative-operator")
-    pebble_ready.assert_called_once()
-    pebble_ready.reset_mock()
+    main.assert_called_once()
+    main.reset_mock()
+
+    harness.charm.on.knative_operator_webhook_pebble_ready.emit("knative-operator-webhook")
+    main.assert_called_once()
+    main.reset_mock()
 
     rel_id = harness.add_relation("otel-collector", "app")
     harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
@@ -135,53 +146,103 @@ def test_apply_resources_exception(
     )
 
 
+@pytest.mark.parametrize(
+    "container_name",
+    [
+        "knative-operator",
+        "knative-operator-webhook",
+    ],
+)
 def test_update_layer_active(
-    harness, mocked_resource_handler, mocker, mocked_metrics_endpoint_provider
+    container_name, harness, mocked_resource_handler, mocker, mocked_metrics_endpoint_provider
 ):
+    # The charm uses a service name that is the same as the container name
+    service_name = container_name
+
+    mocker.patch("charm.wait_for_required_kubernetes_resources")
+
     harness.begin()
     # Check the initial Pebble plan is empty
-    initial_plan = harness.get_container_pebble_plan("knative-operator")
+    initial_plan = harness.get_container_pebble_plan(container_name)
     assert initial_plan.to_yaml() == "{}\n"
 
     # Check the layer gets created
-    harness.charm.on.knative_operator_pebble_ready.emit("knative-operator")
-    assert harness.get_container_pebble_plan("knative-operator")._services is not None
-
-    expected_plan = {
-        "services": {
-            "/ko-app/operator": {
-                "summary": "entrypoint of the knative-operator image",
-                "startup": "enabled",
-                "override": "replace",
-                "command": "/ko-app/operator",
-                "environment": {
-                    "POD_NAME": harness.model.app.name,
-                    "SYSTEM_NAMESPACE": harness.model.name,
-                    "METRICS_DOMAIN": "knative.dev/operator",
-                    "CONFIG_LOGGING_NAME": "config-loggig",
-                    "CONFIG_OBSERVABILITY_NAME": "config-observability",
-                },
-            }
-        },
+    harness_events = {
+        KNATIVE_OPERATOR: harness.charm.on.knative_operator_pebble_ready,
+        KNATIVE_OPERATOR_WEBHOOK: harness.charm.on.knative_operator_webhook_pebble_ready,
     }
-    updated_plan = harness.get_container_pebble_plan("knative-operator").to_dict()
+    harness_events[container_name].emit(container_name)
+    assert harness.get_container_pebble_plan(container_name)._services is not None
+
+    # TODO: This could be extracted and made cleaner
+    expected_plan = {}
+    if container_name == "knative-operator":
+        expected_plan = {
+            "services": {
+                service_name: {
+                    "summary": "entrypoint of the knative-operator image",
+                    "startup": "enabled",
+                    "override": "replace",
+                    "command": "/ko-app/operator",
+                    "environment": {
+                        "POD_NAME": harness.model.app.name,
+                        "SYSTEM_NAMESPACE": harness.model.name,
+                        "METRICS_DOMAIN": "knative.dev/operator",
+                        "CONFIG_LOGGING_NAME": "config-logging",
+                        "CONFIG_OBSERVABILITY_NAME": "config-observability",
+                    },
+                }
+            },
+        }
+    elif container_name == "knative-operator-webhook":
+        expected_plan = {
+            "services": {
+                service_name: {
+                    "summary": "entrypoint of the knative-operator-webhook image",
+                    "startup": "enabled",
+                    "override": "replace",
+                    "command": "/ko-app/webhook",
+                    "environment": {
+                        "POD_NAME": harness.model.app.name,
+                        "SYSTEM_NAMESPACE": harness.model.name,
+                        "METRICS_DOMAIN": "knative.dev/operator",
+                        "CONFIG_LOGGING_NAME": "config-logging",
+                        "CONFIG_OBSERVABILITY_NAME": "config-observability",
+                        "WEBHOOK_NAME": "operator-webhook",
+                        "WEBHOOK_PORT": "8443",
+                    },
+                }
+            },
+        }
+    updated_plan = harness.get_container_pebble_plan(container_name).to_dict()
     assert expected_plan == updated_plan
 
-    service = harness.model.unit.get_container("knative-operator").get_service("/ko-app/operator")
+    service = harness.model.unit.get_container(container_name).get_service(service_name)
     assert service.is_running() is True
 
     assert harness.model.unit.status == ActiveStatus()
 
 
+@pytest.mark.parametrize(
+    "container_name",
+    [
+        "knative-operator",
+        "knative-operator-webhook",
+    ],
+)
 def test_update_layer_exception(
-    harness, mocked_resource_handler, mocked_container_replan, mocked_metrics_endpoint_provider
+    container_name,
+    harness,
+    mocked_resource_handler,
+    mocked_container_replan,
+    mocked_metrics_endpoint_provider,
 ):
     harness.begin()
     mocked_container_replan.side_effect = _FakeChangeError()
     mocked_event = MagicMock()
     with pytest.raises(ChangeError):
-        harness.charm._update_layer(mocked_event)
-    assert harness.model.unit.status == BlockedStatus("Failed to replan")
+        harness.charm._update_layer(mocked_event, container_name)
+    assert harness.model.unit.status == BlockedStatus(f"Failed to replan for {container_name}")
 
 
 def test_otel_exporter_ip_on_404_apierror(
@@ -264,3 +325,78 @@ def test_on_remove_failure(
     delete_many.side_effect = _FakeApiError()
     with pytest.raises(ApiError):
         harness.charm.on.remove.emit()
+
+
+@pytest.fixture()
+def mocked_lightkube_base_client(mocker):
+    """Mocks the actual Lightkube Client class rather than the resource handler's Client."""
+    mocked_lightkube_client = MagicMock()
+    mocked_lightkube_client_class = mocker.patch("charm.Client")
+    mocked_lightkube_client_class.return_value = mocked_lightkube_client
+    yield mocked_lightkube_client
+
+
+def test_wait_for_required_kubernetes_resources_success(mocked_lightkube_base_client):
+    """Tests case where resources do exist after some time.
+
+    Given an environment that will eventually (after a few tries) have the required resources,
+    assert that the function returns successfully
+    """
+    mocked_lightkube_client = mocked_lightkube_base_client
+
+    # Lightkube will fail the first 3 access, then return successfully after
+    mocked_lightkube_client.get.side_effect = [
+        _FakeApiError(404),
+        _FakeApiError(404),
+        _FakeApiError(404),
+        None,
+        None,
+        None,
+    ]
+
+    retryer = Retrying(
+        stop=stop_after_attempt(15),
+        reraise=True,
+    )
+
+    wait_for_required_kubernetes_resources("", retryer=retryer)
+
+    # Assert we had 3 attempts end in a failure after one get, and then a 4th attempt that had
+    # 3 successful returns
+    assert mocked_lightkube_client.get.call_count == 6
+
+    # Assert that the last 3 calls of .get attempted to get the required resources
+    required_resource_names = REQUIRED_CONFIGMAPS + REQUIRED_SECRETS
+
+    # call_args_list returns a list of Call objects, each of which are a tuple of (args, kwargs).
+    # We assert that the kwargs has the correct resource name.
+    requested_resource_names = [
+        kwargs["name"] for (_, kwargs) in mocked_lightkube_client.get.call_args_list[-3:]
+    ]
+    for name in required_resource_names:
+        assert name in requested_resource_names
+
+
+def test_wait_for_required_kubernetes_failure(mocked_lightkube_base_client):
+    """Tests case where resources do not exist and the wait should raise an exception.
+
+    Given an environment that will never have the required resources,
+    assert that the function raises after the expected number of attempts.
+    """
+    mocked_lightkube_client = mocked_lightkube_base_client
+
+    # Lightkube's Client.get will always raise an exception
+    mocked_lightkube_client.get.side_effect = _FakeApiError(404)
+
+    n_attempts = 3
+    retryer = Retrying(
+        stop=stop_after_attempt(n_attempts),
+        reraise=True,
+    )
+
+    with pytest.raises(ApiError):
+        wait_for_required_kubernetes_resources("", retryer=retryer)
+
+    # Assert we had 3 attempts end in a failure after one get, and then a 4th attempt that had
+    # 3 successful returns
+    assert mocked_lightkube_client.get.call_count == n_attempts

@@ -25,6 +25,60 @@ aggregationRule:
 # Commenting out rules: [] due to https://github.com/gtsystem/lightkube/issues/32
 #rules: [] # Rules are automatically filled in by the controller manager.
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: knative-serving-operator-aggregated-stable
+  labels:
+    operator.knative.dev/release: devel
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/part-of: knative-operator
+aggregationRule:
+  clusterRoleSelectors:
+    # This (along with escalate below) allows the Operator to pick up any
+    # roles that are provided to the admin of the cluster by knative serving
+    # automatically.
+    - matchExpressions:
+        - {key: app.kubernetes.io/name, operator: In, values: ["knative-serving"]}
+# Commenting out rules: [] due to https://github.com/gtsystem/lightkube/issues/32
+#rules: [] # Rules are automatically filled in by the controller manager.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: knative-eventing-operator-aggregated
+  labels:
+    operator.knative.dev/release: devel
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/part-of: knative-operator
+aggregationRule:
+  clusterRoleSelectors:
+    # This (along with escalate below) allows the Operator to pick up any
+    # roles that are provided to the admin of the cluster by knative eventing
+    # automatically.
+    - matchExpressions:
+        - {key: eventing.knative.dev/release, operator: Exists}
+# Commenting out rules: [] due to https://github.com/gtsystem/lightkube/issues/32
+#rules: [] # Rules are automatically filled in by the controller manager.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: knative-eventing-operator-aggregated-stable
+  labels:
+    operator.knative.dev/release: devel
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/part-of: knative-operator
+aggregationRule:
+  clusterRoleSelectors:
+    # This (along with escalate below) allows the Operator to pick up any
+    # roles that are provided to the admin of the cluster by knative eventing
+    # automatically.
+    - matchExpressions:
+        - {key: app.kubernetes.io/name, operator: In, values: ["knative-eventing"]}
+# Commenting out rules: [] due to https://github.com/gtsystem/lightkube/issues/32
+#rules: [] # Rules are automatically filled in by the controller manager.
+---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -210,20 +264,6 @@ rules:
   verbs:
   - delete
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: knative-eventing-operator-aggregated
-aggregationRule:
-  clusterRoleSelectors:
-    # This (along with escalate below) allows the Operator to pick up any
-    # roles that are provided to the admin of the cluster by knative eventing
-    # automatically.
-    - matchExpressions:
-        - {key: eventing.knative.dev/release, operator: Exists}
-# Commenting out rules: [] due to https://github.com/gtsystem/lightkube/issues/32
-#rules: [] # Rules are automatically filled in by the controller manager.
----
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -379,20 +419,210 @@ rules:
     - knative-eventing-operator
     verbs:
     - delete
+  # for RabbitMQ messaging topology objects
+  - apiGroups:
+      - rabbitmq.com
+    resources:
+      - rabbitmqclusters
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+  - apiGroups:
+      - rabbitmq.com
+    resources:
+      - bindings
+      - queues
+      - exchanges
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - rabbitmq.com
+    resources:
+      - bindings/status
+      - queues/status
+      - exchanges/status
+    verbs:
+      - get
+  # for Kafka eventing source
+  - apiGroups:
+      - keda.sh
+    resources:
+      - scaledobjects
+      - scaledobjects/finalizers
+      - scaledobjects/status
+      - triggerauthentications
+      - triggerauthentications/status
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+  # Internal APIs
+  - apiGroups:
+      - "internal.kafka.eventing.knative.dev"
+    resources:
+      - "consumers"
+      - "consumers/status"
+      - "consumergroups"
+      - "consumergroups/status"
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - patch
+      - update
+      - delete
+  - apiGroups:
+      - "internal.kafka.eventing.knative.dev"
+    resources:
+      - "consumers/finalizers"
+      - "consumergroups/finalizers"
+    verbs:
+      - update
+      - delete
+  - apiGroups:
+      - apps
+    resources:
+      - statefulsets/scale
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+    verbs:
+      - watch
+  - apiGroups:
+      - "*"
+    resources:
+      - configmaps
+    verbs:
+      - delete
+  - apiGroups:
+      - "*"
+    resources:
+      - configmaps
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+  - apiGroups:
+      - "*"
+    resources:
+      - pods
+    verbs:
+      - list
+      - update
+      - get
+      - watch
+  - apiGroups:
+      - "*"
+    resources:
+      - pods/finalizers
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - delete
+  - apiGroups:
+      - "*"
+    resources:
+      - events
+    verbs:
+      - patch
+      - create
+  - apiGroups:
+      - "*"
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+  - apiGroups:
+      - "*"
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - "*"
+    resources:
+      - serviceaccounts
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - create
+      - delete
+  - apiGroups:
+      - "*"
+    resources:
+      - configmaps
+    resourceNames:
+      - kafka-channel-config
+    verbs:
+      - patch
+  - apiGroups:
+      - "*"
+    resources:
+      - horizontalpodautoscalers
+    resourceNames:
+      - kafka-webhook
+    verbs:
+      - delete
+  - apiGroups:
+      - "*"
+    resources:
+      - leases
+    verbs:
+      - delete
+  - apiGroups:
+      - "*"
+    resources:
+      - poddisruptionbudgets
+    resourceNames:
+      - kafka-webhook
+    verbs:
+      - delete
+  - apiGroups:
+      - "*"
+    resources:
+      - services
+    verbs:
+      - patch
+  - apiGroups:
+      - "apps"
+    resources:
+      - deployments
+    verbs:
+      - deletecollection
 ---
-# Copyright 2020 The Knative Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 # TODO: Consider restriction of non-aggregated role to knativeservings namespaces.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -402,19 +632,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: knative-serving-operator
-subjects:
-- kind: ServiceAccount
-  name: {{ name }}-workload
-  namespace: {{ namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: knative-serving-operator-aggregated
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: knative-serving-operator-aggregated
 subjects:
 - kind: ServiceAccount
   name: {{ name }}-workload
@@ -430,6 +647,209 @@ roleRef:
   kind: ClusterRole
   name: knative-eventing-operator
 subjects:
+- kind: ServiceAccount
+  name: {{ name }}-workload
+  namespace: {{ namespace }}
+---
+
+# Copyright 2022 The Knative Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: knative-operator-webhook
+rules:
+  # For manipulating certs into secrets.
+  - apiGroups:
+      - ""
+    resources:
+      - "secrets"
+    verbs:
+      - "get"
+      - "create"
+      - "update"
+      - "list"
+      - "watch"
+      - "patch"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: knative-operator-webhook
+rules:
+  # For watching logging configuration and getting certs.
+  - apiGroups:
+      - ""
+    resources:
+      - "configmaps"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+
+  # For manipulating certs into secrets.
+  - apiGroups:
+      - ""
+    resources:
+      - "namespaces"
+    verbs:
+      - "get"
+      - "create"
+      - "update"
+      - "list"
+      - "watch"
+      - "patch"
+
+  # finalizers are needed for the owner reference of the webhook
+  - apiGroups:
+      - ""
+    resources:
+      - "namespaces/finalizers"
+    verbs:
+      - "update"
+
+  # For getting our Deployment so we can decorate with ownerref.
+  - apiGroups:
+      - "apps"
+    resources:
+      - "deployments"
+    verbs:
+      - "get"
+
+  - apiGroups:
+      - "apps"
+    resources:
+      - "deployments/finalizers"
+    verbs:
+      - update
+
+  # For actually registering our webhook.
+  - apiGroups:
+      - "admissionregistration.k8s.io"
+    resources:
+      - "mutatingwebhookconfigurations"
+      - "validatingwebhookconfigurations"
+    verbs: &everything
+      - "get"
+      - "list"
+      - "create"
+      - "update"
+      - "delete"
+      - "patch"
+      - "watch"
+
+  # For leader election
+  - apiGroups:
+      - "coordination.k8s.io"
+    resources:
+      - "leases"
+    verbs: *everything
+
+  # Necessary for conversion webhook. These are copied from the serving
+  # TODO: Do we really need all these permissions?
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "create", "update", "delete", "patch", "watch"]
+---
+
+# Copyright 2022 The Knative Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: default
+  name: knative-operator-webhook
+subjects:
+  - kind: ServiceAccount
+    name: knative-operator-webhook
+    namespace: {{ namespace }}
+roleRef:
+  kind: Role
+  name: knative-operator-webhook
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: knative-operator-webhook
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: knative-operator-webhook
+subjects:
+- kind: ServiceAccount
+  name: knative-operator-webhook
+  namespace: {{ namespace }}
+---
+# Copyright 2020 The Knative Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: knative-serving-operator-aggregated
+  labels:
+    operator.knative.dev/release: "v1.8.1"
+    app.kubernetes.io/version: "1.8.1"
+    app.kubernetes.io/part-of: knative-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: knative-serving-operator-aggregated
+subjects:
+  - kind: ServiceAccount
+    name: {{ name }}-workload
+    namespace: {{ namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: knative-serving-operator-aggregated-stable
+  labels:
+    operator.knative.dev/release: "v1.8.1"
+    app.kubernetes.io/version: "1.8.1"
+    app.kubernetes.io/part-of: knative-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: knative-serving-operator-aggregated-stable
+subjects:
   - kind: ServiceAccount
     name: {{ name }}-workload
     namespace: {{ namespace }}
@@ -438,6 +858,10 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: knative-eventing-operator-aggregated
+  labels:
+    operator.knative.dev/release: "v1.8.1"
+    app.kubernetes.io/version: "1.8.1"
+    app.kubernetes.io/part-of: knative-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -446,3 +870,40 @@ subjects:
   - kind: ServiceAccount
     name: {{ name }}-workload
     namespace: {{ namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: knative-eventing-operator-aggregated-stable
+  labels:
+    operator.knative.dev/release: "v1.8.1"
+    app.kubernetes.io/version: "1.8.1"
+    app.kubernetes.io/part-of: knative-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: knative-eventing-operator-aggregated-stable
+subjects:
+  - kind: ServiceAccount
+    name: {{ name }}-workload
+    namespace: {{ namespace }}
+---
+# Copyright 2020 The Knative Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: knative-operator-webhook
+  namespace: {{ namespace }}

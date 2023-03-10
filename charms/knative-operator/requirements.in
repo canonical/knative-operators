@@ -2,3 +2,4 @@ charmed-kubeflow-chisme
 jinja2
 ops
 lightkube
+tenacity

@@ -4,10 +4,12 @@
 import logging
 from pathlib import Path
 import time
+import yaml
 
 import lightkube.codecs
-from lightkube import Client
+from lightkube import Client, ApiError
 from lightkube.generic_resource import create_namespaced_resource
+from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
 from lightkube.resources.core_v1 import Service
 import pytest
 from pytest_operator.plugin import OpsTest
@@ -18,11 +20,26 @@ from tenacity import (
     wait_fixed,
 )
 
+
 log = logging.getLogger(__name__)
 
 KSVC = create_namespaced_resource(
     group="serving.knative.dev", version="v1", kind="Service", plural="services"
 )
+KNATIVE_SERVING_SERVICE = "services.serving.knative.dev"
+KNATIVE_OPERATOR_METADATA = yaml.safe_load(
+    Path("./charms/knative-operator/metadata.yaml").read_text()
+)
+KNATIVE_OPERATOR_IMAGE = KNATIVE_OPERATOR_METADATA["resources"]["knative-operator-image"][
+    "upstream-source"
+]
+KNATIVE_OPERATOR_WEBHOOK_IMAGE = KNATIVE_OPERATOR_METADATA["resources"][
+    "knative-operator-webhook-image"
+]["upstream-source"]
+KNATIVE_OPERATOR_RESOURCES = {
+    "knative-operator-image": KNATIVE_OPERATOR_IMAGE,
+    "knative-operator-webhook-image": KNATIVE_OPERATOR_WEBHOOK_IMAGE,
+}
 
 
 @pytest.mark.abort_on_fail
@@ -59,12 +76,11 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
     # Deploy knative charms
-    knative_operator_image = "gcr.io/knative-releases/knative.dev/operator/cmd/operator:v1.1.0"
     await ops_test.model.deploy(
         knative_charms["knative-operator"],
         application_name="knative-operator",
         trust=True,
-        resources={"knative-operator-image": knative_operator_image},
+        resources=KNATIVE_OPERATOR_RESOURCES,
     )
 
     await ops_test.model.wait_for_idle(
@@ -95,9 +111,14 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
         timeout=90 * 10,
     )
 
+    # Sleep here to avoid a race condition between the rest of the tests and knative
+    # eventing/serving coming up.  This race condition is because of:
+    # https://github.com/canonical/knative-operators/issues/50
+    time.sleep(120)
 
-RETRY_FOR_MINUTE = Retrying(
-    stop=stop_after_delay(60),
+
+RETRY_FOR_THREE_MINUTES = Retrying(
+    stop=stop_after_delay(60 * 3),
     wait=wait_fixed(5),
     reraise=True,
 )
@@ -107,9 +128,11 @@ RETRY_FOR_MINUTE = Retrying(
 def wait_for_ksvc():
     """Waits until KNative Serving Service is available, to a maximum 1 minute"""
     lightkube_client = Client()
-    for attempt in RETRY_FOR_MINUTE:
+    log.info("Waiting on ksvc to exist")
+    for attempt in RETRY_FOR_THREE_MINUTES:
         with attempt:
-            ksvcs = list(lightkube_client.list(KSVC))
+            log.info("Checking for ksvc CRD")
+            lightkube_client.get(CustomResourceDefinition, KNATIVE_SERVING_SERVICE)
 
 
 @pytest.fixture()
@@ -117,7 +140,14 @@ def remove_cloudevents_player_example(ops_test: OpsTest):
     """Fixture that attempts to remove the cloudevents-player example after a test has run"""
     yield
     lightkube_client = Client()
-    lightkube_client.delete(KSVC, "cloudevents-player", namespace=ops_test.model_name)
+    try:
+        lightkube_client.delete(KSVC, "cloudevents-player", namespace=ops_test.model_name)
+    except ApiError as e:
+        # If the ksvc doesn't exist, we can ignore the error
+        if e.code == 404:
+            log.info("Tried to delete cloudevents-player knative service, but it didn't exist")
+        else:
+            raise e
 
 
 def wait_for_ready(resource, name, namespace):
@@ -126,8 +156,9 @@ def wait_for_ready(resource, name, namespace):
 
     timeout_error = TimeoutError("Timed out waiting for ksvc to be ready")
 
-    for attempt in RETRY_FOR_MINUTE:
+    for attempt in RETRY_FOR_THREE_MINUTES:
         with attempt:
+            log.info("Checking ksvc status")
             # Validate that ksvc has "Ready" status and pass this loop, or raise an exception to
             # trigger the next attempt
             ksvc = lightkube_client.get(res=resource, name=name, namespace=namespace)

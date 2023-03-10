@@ -19,7 +19,7 @@ from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 
-from lightkube_custom_resources.operator import KnativeEventing_v1alpha1  # noqa F401
+from lightkube_custom_resources.operator import KnativeEventing_v1beta1  # noqa F401
 
 logger = logging.getLogger(__name__)
 

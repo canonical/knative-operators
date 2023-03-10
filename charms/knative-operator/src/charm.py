@@ -13,12 +13,13 @@ from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
-from lightkube import ApiError
-from lightkube.resources.core_v1 import Service
+from lightkube import ApiError, Client
+from lightkube.resources.core_v1 import ConfigMap, Secret, Service
 from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.pebble import ChangeError, Layer
+from tenacity import Retrying, stop_after_delay, wait_fixed
 
 REQUEST_LOG_TEMPLATE = '{"httpRequest": {"requestMethod": "{{.Request.Method}}", "requestUrl": "{{js .Request.RequestURI}}", "requestSize": "{{.Request.ContentLength}}", "status": {{.Response.Code}}, "responseSize": "{{.Response.Size}}", "userAgent": "{{js .Request.UserAgent}}", "remoteIp": "{{js .Request.RemoteAddr}}", "serverIp": "{{.Revision.PodIP}}", "referer": "{{js .Request.Referer}}", "latency": "{{.Response.Latency}}s", "protocol": "{{.Request.Proto}}"}, "traceId": "{{index .Request.Header "X-B3-Traceid"}}"}'  # noqa: E501
 
@@ -27,6 +28,12 @@ OBSERVABILITY_RESOURCES_FILES = [
 ]
 
 logger = logging.getLogger(__name__)
+
+KNATIVE_OPERATOR = "knative-operator"
+KNATIVE_OPERATOR_COMMAND = "/ko-app/operator"
+
+KNATIVE_OPERATOR_WEBHOOK = "knative-operator-webhook"
+KNATIVE_OPERATOR_WEBHOOK_COMMAND = "/ko-app/webhook"
 
 
 class KnativeOperatorCharm(CharmBase):
@@ -49,17 +56,26 @@ class KnativeOperatorCharm(CharmBase):
                 jobs=[{"static_configs": [{"targets": [f"{self._otel_exporter_ip}:8889"]}]}],
             )
 
-        self._operator_service = "/ko-app/operator"
-        self._container = self.unit.get_container(self._app_name)
-        for event in [self.on.install, self.on.config_changed]:
+        self._containers = {
+            KNATIVE_OPERATOR: self.unit.get_container(KNATIVE_OPERATOR),
+            KNATIVE_OPERATOR_WEBHOOK: self.unit.get_container(KNATIVE_OPERATOR_WEBHOOK),
+        }
+
+        self._layer_properties = {
+            KNATIVE_OPERATOR: self._knative_operator_layer,
+            KNATIVE_OPERATOR_WEBHOOK: self._knative_operator_webhook_layer,
+        }
+
+        for event in [
+            self.on.install,
+            self.on.config_changed,
+            self.on.knative_operator_pebble_ready,
+            self.on.knative_operator_webhook_pebble_ready,
+        ]:
             self.framework.observe(event, self._main)
 
         self.framework.observe(
             self.on["otel-collector"].relation_created, self._on_otel_collector_relation_created
-        )
-        self.framework.observe(
-            self.on.knative_operator_pebble_ready,
-            self._on_knative_operator_pebble_ready,
         )
         self.framework.observe(self.on.remove, self._on_remove)
 
@@ -124,21 +140,21 @@ class KnativeOperatorCharm(CharmBase):
 
     @property
     def _knative_operator_layer(self) -> Layer:
-        """Returns a pre-configured Pebble layer."""
+        """Returns a pre-configured Pebble layer for knative operator."""
         layer_config = {
-            "summary": "knative-operator layer",
-            "description": "pebble config layer for knative-operator",
+            "summary": f"{KNATIVE_OPERATOR} layer",
+            "description": f"pebble config layer for {KNATIVE_OPERATOR}",
             "services": {
-                self._operator_service: {
+                KNATIVE_OPERATOR: {
                     "override": "replace",
-                    "summary": "entrypoint of the knative-operator image",
-                    "command": self._operator_service,
+                    "summary": f"entrypoint of the {KNATIVE_OPERATOR} image",
+                    "command": KNATIVE_OPERATOR_COMMAND,
                     "startup": "enabled",
                     "environment": {
                         "POD_NAME": self._app_name,
                         "SYSTEM_NAMESPACE": self._namespace,
                         "METRICS_DOMAIN": "knative.dev/operator",
-                        "CONFIG_LOGGING_NAME": "config-loggig",
+                        "CONFIG_LOGGING_NAME": "config-logging",
                         "CONFIG_OBSERVABILITY_NAME": "config-observability",
                     },
                 }
@@ -146,25 +162,52 @@ class KnativeOperatorCharm(CharmBase):
         }
         return Layer(layer_config)
 
-    def _update_layer(self, event) -> None:
-        """Updates the Pebble configuration layer if changed."""
-        if not self._container.can_connect():
+    @property
+    def _knative_operator_webhook_layer(self) -> Layer:
+        """Returns a pre-configured Pebble layer for knative operator's webhook."""
+        layer_config = {
+            "summary": f"{KNATIVE_OPERATOR_WEBHOOK} layer",
+            "description": f"pebble config layer for {KNATIVE_OPERATOR_WEBHOOK}",
+            "services": {
+                KNATIVE_OPERATOR_WEBHOOK: {
+                    "override": "replace",
+                    "summary": f"entrypoint of the {KNATIVE_OPERATOR_WEBHOOK} image",
+                    "command": KNATIVE_OPERATOR_WEBHOOK_COMMAND,
+                    "startup": "enabled",
+                    "environment": {
+                        "POD_NAME": self._app_name,
+                        "SYSTEM_NAMESPACE": self._namespace,
+                        "METRICS_DOMAIN": "knative.dev/operator",
+                        "CONFIG_LOGGING_NAME": "config-logging",
+                        "CONFIG_OBSERVABILITY_NAME": "config-observability",
+                        "WEBHOOK_NAME": "operator-webhook",
+                        "WEBHOOK_PORT": "8443",
+                    },
+                }
+            },
+        }
+        return Layer(layer_config)
+
+    def _update_layer(self, event, container_name: str) -> None:
+        """Updates the Pebble configuration layer for knative operator if changed."""
+        if not self._containers[container_name].can_connect():
             self.unit.status = MaintenanceStatus("Waiting for pod startup to complete")
             event.defer()
             return
 
         # Get current config
-        current_layer = self._container.get_plan()
+        current_layer = self._containers[container_name].get_plan()
         # Create a new config layer
-        new_layer = self._knative_operator_layer
+        new_layer = self._layer_properties[container_name]
         if current_layer.services != new_layer.services:
-            self._container.add_layer(self._operator_service, new_layer, combine=True)
+            self._containers[container_name].add_layer(container_name, new_layer, combine=True)
             try:
                 logger.info("Pebble plan updated with new configuration, replanning")
-                self._container.replan()
+                self._containers[container_name].replan()
             except ChangeError as e:
+                # TODO: Handle this error like we do elsewhere using ErrorWithStatus?
                 logger.error(traceback.format_exc())
-                self.unit.status = BlockedStatus("Failed to replan")
+                self.unit.status = BlockedStatus(f"Failed to replan for {container_name}")
                 raise e
         self.unit.status = ActiveStatus()
 
@@ -187,18 +230,17 @@ class KnativeOperatorCharm(CharmBase):
 
     def _main(self, event):
         """Event handler for changing Pebble configuration and applying k8s resources."""
-        # Update Pebble configuration layer if it has changed
-        self.unit.status = MaintenanceStatus("Configuring Pebble layer")
-        self._update_layer(event)
-
         # Apply Kubernetes resources
         self.unit.status = MaintenanceStatus("Applying resources")
         self._apply_resources(resource_handler=self.resource_handler)
 
-    def _on_knative_operator_pebble_ready(self, event):
-        """Event handler for on PebbleReadyEvent."""
-        self.unit.status = MaintenanceStatus("Configuring Pebble layer")
-        self._update_layer(event)
+        # Handle [this race condition](https://github.com/canonical/knative-operators/issues/90)
+        wait_for_required_kubernetes_resources(self._namespace, DEFAULT_RETRYER)
+
+        # Update Pebble configuration layer if it has changed
+        self.unit.status = MaintenanceStatus("Configuring Pebble layers")
+        self._update_layer(event, KNATIVE_OPERATOR)
+        self._update_layer(event, KNATIVE_OPERATOR_WEBHOOK)
 
     def _on_otel_collector_relation_created(self, event):
         """Event handler for on['otel-collector'].relation_changed."""
@@ -232,6 +274,30 @@ class KnativeOperatorCharm(CharmBase):
             logger.warning(f"Failed to delete resources: {manifests} with: {e}")
             raise e
         self.unit.status = MaintenanceStatus("K8s resources removed")
+
+
+REQUIRED_CONFIGMAPS = ["config-observability", "config-logging"]
+REQUIRED_SECRETS = ["operator-webhook-certs"]
+DEFAULT_RETRYER = Retrying(
+    stop=stop_after_delay(15),
+    wait=wait_fixed(3),
+    reraise=True,
+)
+
+
+def wait_for_required_kubernetes_resources(namespace: str, retryer: Retrying):
+    """Waits for required kubernetes resources to be created, raising if we exceed a timeout"""
+    client = Client()
+    for attempt in retryer:
+        with attempt:
+            for cm in REQUIRED_CONFIGMAPS:
+                logger.info(f"Looking for required configmap {cm}")
+                client.get(ConfigMap, name=cm, namespace=namespace)
+                logger.info(f"Found required configmap {cm}")
+            for secret in REQUIRED_SECRETS:
+                logger.info(f"Looking for required secret {secret}")
+                client.get(Secret, name=secret, namespace=namespace)
+                logger.info(f"Found required secret {cm}")
 
 
 if __name__ == "__main__":

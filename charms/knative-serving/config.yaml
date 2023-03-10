@@ -3,8 +3,8 @@
 
 options:
   version:
-    default: "1.1.0"
-    description: Version of knative-serving component. If not set, it defaults to 1.1.0. If configured, this version has to be >1.1.0
+    default: "1.8.0"
+    description: Version of knative-serving component.
     type: string
   namespace:
     default: ""

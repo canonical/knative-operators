@@ -1,6 +1,4 @@
-# beta1 is for knative operator v1.3
-# apiVersion: operator.knative.dev/v1beta1
-apiVersion: operator.knative.dev/v1alpha1
+apiVersion: operator.knative.dev/v1beta1
 kind: KnativeServing
 metadata:
   name: {{ app_name }}
@@ -13,7 +11,7 @@ spec:
     istio:
       # TODO
       # To define the external gateway:
-      # gateway.NAMESPACE-OF-GATEWAY.NAME-OF-GATEWAY: SOME-SERVICE.SOME-NAMESPACE.svc.cluste.local (I dont know what this is for, but if we cite an invalid namespace here the knative-serving object will not fully deploy)
+      # gateway.NAMESPACE-OF-GATEWAY.NAME-OF-GATEWAY: SOME-SERVICE.SOME-NAMESPACE.svc.cluster.local (I dont know what this is for, but if we cite an invalid namespace here the knative-serving object will not fully deploy)
       gateway.{{ gateway_namespace }}.{{ gateway_name }}: "some-workload.knative-operator.svc.cluster.local"
       # Defines the internal (inside cluster) gateway:
       # local-gateway.<local-gateway-namespace>.knative-local-gateway: "knative-local-gateway.<istio-namespace>.svc.cluster.local"
