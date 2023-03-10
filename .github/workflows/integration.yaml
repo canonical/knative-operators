@@ -114,3 +114,9 @@ jobs:
 
       - run: juju status
         if: failure()
+
+      # DEBUG
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 90
+        if: failure()
