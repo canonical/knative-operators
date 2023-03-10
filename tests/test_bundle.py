@@ -3,10 +3,11 @@
 
 import logging
 from pathlib import Path
+import time
 import yaml
 
 import lightkube.codecs
-from lightkube import Client
+from lightkube import Client, ApiError
 from lightkube.generic_resource import create_namespaced_resource
 from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
 from lightkube.resources.core_v1 import Service
@@ -109,6 +110,11 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
         raise_on_blocked=False,
         timeout=90 * 10,
     )
+
+    # Sleep here to avoid a race condition between the rest of the tests and knative
+    # eventing/serving coming up.  This race condition is because of:
+    # https://github.com/canonical/knative-operators/issues/50
+    time.sleep(120)
 
 
 RETRY_FOR_THREE_MINUTES = Retrying(

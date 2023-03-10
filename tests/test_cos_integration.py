@@ -3,6 +3,7 @@
 
 import json
 import logging
+import time
 
 import pytest
 import requests
@@ -57,6 +58,11 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
         raise_on_blocked=False,
         timeout=120 * 10,
     )
+
+    # Sleep here to avoid a race condition between the rest of the tests and knative
+    # eventing/serving coming up.  This race condition is because of:
+    # https://github.com/canonical/knative-operators/issues/50
+    time.sleep(120)
 
 
 # knative-operator is the charm that actually talks to prometheus
