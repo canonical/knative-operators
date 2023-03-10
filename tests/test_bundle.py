@@ -140,7 +140,14 @@ def remove_cloudevents_player_example(ops_test: OpsTest):
     """Fixture that attempts to remove the cloudevents-player example after a test has run"""
     yield
     lightkube_client = Client()
-    lightkube_client.delete(KSVC, "cloudevents-player", namespace=ops_test.model_name)
+    try:
+        lightkube_client.delete(KSVC, "cloudevents-player", namespace=ops_test.model_name)
+    except ApiError as e:
+        # If the ksvc doesn't exist, we can ignore the error
+        if e.code == 404:
+            log.info("Tried to delete cloudevents-player knative service, but it didn't exist")
+        else:
+            raise e
 
 
 def wait_for_ready(resource, name, namespace):
