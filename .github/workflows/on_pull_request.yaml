@@ -11,13 +11,11 @@ jobs:
 
   tests:
     name: Run Tests
-    uses: ./.github/workflows/integration.yaml
-    secrets:
-      charmcraft-credentials: ${{ secrets.CHARMCRAFT_CREDENTIALS }}
+    uses: ./.github/workflows/integrate.yaml
+    secrets: inherit
 
   # publish runs in parallel with tests, as we always publish in this situation
   publish-charm:
     name: Publish Charm
     uses: ./.github/workflows/publish.yaml
-    secrets:
-      CHARMCRAFT_CREDENTIALS: ${{ secrets.CHARMCRAFT_CREDENTIALS }}
+    secrets: inherit
