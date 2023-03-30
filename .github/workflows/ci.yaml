@@ -39,19 +39,25 @@ jobs:
     with:
       charm-name: ${{ matrix.charm }}
 
-  integration-tests:
-    name: Integration Tests
+# uncomment when integration tests are added
+#  integration-tests:
+#    name: Integration Tests
+#    needs: quality-checks
+#    strategy:
+#      matrix:
+#        charm:
+#          - knative-eventing
+#          - knative-operator
+#          - knative-serving
+#    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_integration-tests.yaml@all
+#    secrets: inherit
+#    with:
+#      charm-name: ${{ matrix.charm }}
+
+  bundle-tests:
+    name: Bundle Tests
     needs: quality-checks
-    strategy:
-      matrix:
-        charm:
-          - knative-eventing
-          - knative-operator
-          - knative-serving
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_integration-tests.yaml@all
-    secrets: inherit
-    with:
-      charm-name: ${{ matrix.charm }}
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_bundle.yaml@all
 
   observability-tests:
     name: Observability Tests
