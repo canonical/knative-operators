@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+    - main
+    - track/**
+
+jobs:
+  quality-checks:
+    name: Quality Checks
+    strategy:
+      matrix:
+        charm:
+          - knative-eventing
+          - knative-operator
+          - knative-serving
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_quality-checks.yaml@all
+    with:
+      charm-path: ./charms/${{ matrix.charm }}
+      charm-name: ${{ matrix.charm }}
+
+  unit-tests:
+    name: Unit Tests
+    strategy:
+      matrix:
+        charm:
+          - knative-eventing
+          - knative-operator
+          - knative-serving
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_unit-tests.yaml@all
+    secrets: inherit
+    with:
+      charm-name: ${{ matrix.charm }}
+
+  integration-tests:
+    name: Integration Tests
+    needs: quality-checks
+    strategy:
+      matrix:
+        charm:
+          - knative-eventing
+          - knative-operator
+          - knative-serving
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_integration-tests.yaml@all
+    secrets: inherit
+    with:
+      charm-name: ${{ matrix.charm }}
+
+  observability-tests:
+    name: Observability Tests
+    needs: quality-checks
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_observability.yaml@all
+
+  publish-on-success:
+    # only publish on push to main or track/** and if all tests pass
+    name: Publish
+    if: github.event_name == 'push'
+    needs: [quality-checks, unit-tests, integration-tests, bundle-tests]
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_publish.yaml@all
+    secrets: inherit
+
+  publish:
+    # always publish on PR
+    name: Publish
+    if: github.event_name == 'pull_request'
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_publish.yaml@all
+    secrets: inherit
