@@ -60,7 +60,7 @@ jobs:
 
   publish-on-success:
     # only publish on push to main or track/** and if all tests pass
-    name: Publish
+    name: Publish on Success
     if: github.event_name == 'push'
     needs: [quality-checks, unit-tests, integration-tests, observability-tests]
     uses: canonical/charmed-kubeflow-workflows/.github/workflows/_publish.yaml@all
