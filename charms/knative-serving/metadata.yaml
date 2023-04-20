@@ -10,6 +10,11 @@ description: |
   request a Knative Serving application from the a Knative Operator.
 summary: |
   Knative Serving deployment for Charmed Operators in Kubernetes
+provides:
+  ingress-gateway:
+    interface: istio-ingress-gateway
+  local-gateway:
+    interface: serving-local-gateway
 requires:
   otel-collector:
     interface: otel-collector
