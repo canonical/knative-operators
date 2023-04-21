@@ -95,12 +95,16 @@ def test_apply_and_set_status_blocked(
         (
             "ingress-gateway",
             {"istio.gateway.name": "test-name", "istio.gateway.namespace": "test-model"},
-            {"gateway_name": "test-name", "gateway_namespace": "test-model"},
+            {"gateway_name": "test-name", "gateway_namespace": "test-model", "gateway_up": "true"},
         ),
         (
             "local-gateway",
             {"namespace": "test-serving"},
-            {"gateway_name": "knative-local-gateway", "gateway_namespace": "test-serving"},
+            {
+                "gateway_name": "knative-local-gateway",
+                "gateway_namespace": "test-serving",
+                "gateway_up": "true",
+            },
         ),
     ),
 )
