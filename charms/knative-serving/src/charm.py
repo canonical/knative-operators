@@ -14,7 +14,7 @@ from pathlib import Path
 from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
-from charms.istio_pilot.v0.istio_gateway_info import GatewayProvider, GatewayRelationMissingError
+from charms.istio_pilot.v0.istio_gateway_info import GatewayProvider
 from lightkube.core.exceptions import ApiError
 from ops.charm import CharmBase
 from ops.main import main
@@ -79,34 +79,30 @@ class KnativeServingCharm(CharmBase):
         self._apply_and_set_status()
 
     def _on_config_changed(self, _):
+        self._send_ingress_gateway_data()
+        self._send_local_gateway_data()
         self._apply_and_set_status()
 
     def _on_ingress_gateway_relation_changed(self, _) -> None:
-        """Sends the ingress gateway info through the gateway-info relation."""
-        try:
-            self._ingress_gateway_provider.send_gateway_relation_data(
-                gateway_name=self.model.config["istio.gateway.name"],
-                gateway_namespace=self.model.config["istio.gateway.namespace"],
-            )
-        except GatewayRelationMissingError:
-            # If there is no relation, we cannot send data. In reality, the execution
-            # should not get this far.
-            self.unit.status = BlockedStatus("Please add gateway-info relation.")
-            return
+        self._send_ingress_gateway_data()
 
     def _on_local_gateway_relation_changed(self, _) -> None:
+        self._send_local_gateway_data()
+
+    def _send_ingress_gateway_data(self) -> None:
+        """Sends the ingress gateway info through the gateway-info relation."""
+        self._ingress_gateway_provider.send_gateway_relation_data(
+            gateway_name=self.model.config["istio.gateway.name"],
+            gateway_namespace=self.model.config["istio.gateway.namespace"],
+        )
+
+    def _send_local_gateway_data(self) -> None:
         """Sends the local gateway info through the gateway-info relation."""
-        try:
-            # FIXME: The local gateway name is hardcoded in the KnativeServing.yaml.j2
-            self._local_gateway_provider.send_gateway_relation_data(
-                gateway_name="knative-local-gateway",
-                gateway_namespace=self.model.config["namespace"],
-            )
-        except GatewayRelationMissingError:
-            # If there is no relation, we cannot send data. In reality, the execution
-            # should not get this far.
-            self.unit.status = BlockedStatus("Please add gateway-info relation.")
-            return
+        # FIXME: The local gateway name is hardcoded in the KnativeServing.yaml.j2
+        self._local_gateway_provider.send_gateway_relation_data(
+            gateway_name="knative-local-gateway",
+            gateway_namespace=self.model.config["namespace"],
+        )
 
     def _on_otel_collector_relation_changed(self, _):
         """Event handler for on['otel-collector'].relation_changed."""
