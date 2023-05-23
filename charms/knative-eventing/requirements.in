@@ -1,2 +1,2 @@
 ops
-charmed-kubeflow-chisme
+charmed-kubeflow-chisme>=0.0.9
