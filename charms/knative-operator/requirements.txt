@@ -36,7 +36,7 @@ lightkube-models==1.25.4.4
     # via lightkube
 markupsafe==2.1.1
     # via jinja2
-ops==1.5.4
+ops==2.2.0
     # via
     #   -r ./charms/knative-operator/requirements.in
     #   charmed-kubeflow-chisme
@@ -58,4 +58,6 @@ sniffio==1.3.0
     #   httpcore
     #   httpx
 tenacity==8.2.2
-    # via -r ./requirements.in
+    # via -r ./charms/knative-operator/requirements.in
+websocket-client==1.5.2
+    # via ops

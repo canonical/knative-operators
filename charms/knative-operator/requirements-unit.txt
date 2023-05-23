@@ -60,7 +60,7 @@ markupsafe==2.1.1
     # via
     #   -r ./charms/knative-operator/requirements.txt
     #   jinja2
-ops==1.5.4
+ops==2.2.0
     # via
     #   -r ./charms/knative-operator/requirements.txt
     #   charmed-kubeflow-chisme
@@ -105,6 +105,10 @@ sniffio==1.3.0
     #   httpcore
     #   httpx
 tenacity==8.2.2
-    # via -r ./requirements.txt
+    # via -r ./charms/knative-operator/requirements.txt
 tomli==2.0.1
     # via pytest
+websocket-client==1.5.2
+    # via
+    #   -r ./charms/knative-operator/requirements.txt
+    #   ops

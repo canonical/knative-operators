@@ -242,7 +242,7 @@ sniffio==1.3.0
 stack-data==0.6.2
     # via ipython
 tenacity==8.2.2
-    # via -r ./requirements.txt
+    # via -r ./charms/knative-operator/requirements.txt
 theblues==0.5.2
     # via juju
 toml==0.10.2
