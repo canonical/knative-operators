@@ -1,6 +1,6 @@
 asyncio
 flake8
-juju<3.0
+juju>=2.9.42.3,<3.0
 lightkube
 pytest-operator
 PyYAML

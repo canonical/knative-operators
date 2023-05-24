@@ -1,6 +1,6 @@
 aiohttp
 jinja2
-juju<3.1
+juju>=2.9.42.3,<3.0
 pytest-operator
 requests
 -r requirements.txt
