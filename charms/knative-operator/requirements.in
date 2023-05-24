@@ -1,5 +1,5 @@
 charmed-kubeflow-chisme
 jinja2
-ops>2.0
+ops
 lightkube
 tenacity
