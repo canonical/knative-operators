@@ -254,7 +254,7 @@ typing-extensions==4.6.1
     # via
     #   ipython
     #   typing-inspect
-typing-inspect==0.8.0
+typing-inspect==0.9.0
     # via juju
 urllib3==1.26.16
     # via
