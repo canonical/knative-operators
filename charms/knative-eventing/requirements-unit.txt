@@ -4,7 +4,7 @@
 #
 #    pip-compile requirements-unit.in
 #
-anyio==3.6.2
+anyio==3.7.0
     # via
     #   -r requirements.txt
     #   httpcore
@@ -15,14 +15,17 @@ certifi==2023.5.7
     #   httpx
 charmed-kubeflow-chisme==0.0.9
     # via -r requirements.txt
-coverage==7.2.6
+coverage==7.2.7
     # via -r requirements-unit.in
 deepdiff==6.2.1
     # via
     #   -r requirements.txt
     #   charmed-kubeflow-chisme
 exceptiongroup==1.1.1
-    # via pytest
+    # via
+    #   -r requirements.txt
+    #   anyio
+    #   pytest
 h11==0.14.0
     # via
     #   -r requirements.txt
@@ -84,7 +87,7 @@ pyyaml==6.0
     #   -r requirements.txt
     #   lightkube
     #   ops
-ruamel-yaml==0.17.26
+ruamel-yaml==0.17.29
     # via
     #   -r requirements.txt
     #   charmed-kubeflow-chisme
