@@ -42,7 +42,7 @@ executing==1.2.0
     # via stack-data
 flake8==5.0.4
     # via -r requirements-integration.in
-google-auth==2.19.1
+google-auth==2.20.0
     # via kubernetes
 h11==0.14.0
     # via httpcore
