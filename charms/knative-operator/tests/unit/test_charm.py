@@ -161,10 +161,7 @@ def test_update_layer_active(
 
     mocker.patch("charm.wait_for_required_kubernetes_resources")
 
-    harness.begin()
-    # Check the initial Pebble plan is empty
-    initial_plan = harness.get_container_pebble_plan(container_name)
-    assert initial_plan.to_yaml() == "{}\n"
+    harness.begin_with_initial_hooks()
 
     # Check the layer gets created
     harness_events = {
@@ -230,6 +227,7 @@ def test_update_layer_active(
         "knative-operator-webhook",
     ],
 )
+@patch("charm.wait_for_required_kubernetes_resources", lambda *args, **kwargs: None)
 def test_update_layer_exception(
     container_name,
     harness,
@@ -240,6 +238,7 @@ def test_update_layer_exception(
     harness.begin()
     mocked_container_replan.side_effect = _FakeChangeError()
     mocked_event = MagicMock()
+    harness.set_can_connect(container_name, True)
     with pytest.raises(ChangeError):
         harness.charm._update_layer(mocked_event, container_name)
     assert harness.model.unit.status == BlockedStatus(f"Failed to replan for {container_name}")

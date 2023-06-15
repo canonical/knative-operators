@@ -14,6 +14,7 @@ from pathlib import Path
 from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
+from charms.istio_pilot.v0.istio_gateway_info import GatewayProvider
 from lightkube.core.exceptions import ApiError
 from ops.charm import CharmBase
 from ops.main import main
@@ -33,9 +34,19 @@ class KnativeServingCharm(CharmBase):
         self._app_name = self.app.name
         self._namespace = self.model.name
         self._resource_handler = None
+        # Instantiate the GatewayProvider class, one instance for sharing the local gateway
+        # another one for sharing the ingress gateway
+        self._ingress_gateway_provider = GatewayProvider(self, relation_name="ingress-gateway")
+        self._local_gateway_provider = GatewayProvider(self, relation_name="local-gateway")
 
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(
+            self.on["ingress-gateway"].relation_changed, self._on_ingress_gateway_relation_changed
+        )
+        self.framework.observe(
+            self.on["local-gateway"].relation_changed, self._on_local_gateway_relation_changed
+        )
         self.framework.observe(
             self.on["otel-collector"].relation_changed, self._on_otel_collector_relation_changed
         )
@@ -45,16 +56,13 @@ class KnativeServingCharm(CharmBase):
         try:
             self.unit.status = MaintenanceStatus("Configuring/deploying resources")
             self.resource_handler.apply()
-        except (ApiError, ErrorWithStatus) as e:
+        except ApiError as e:
             logger.debug(traceback.format_exc())
-            if isinstance(e, ApiError):
-                logger.error(
-                    f"Applying resources failed with ApiError status code {e.status.code}"
-                )
-                self.unit.status = BlockedStatus(f"ApiError: {e.status.code}")
-            else:
-                logger.error(e.msg)
-                self.unit.status = e.status
+            logger.error(f"Applying resources failed with ApiError status code {e.status.code}")
+            self.unit.status = BlockedStatus(f"ApiError: {e.status.code}")
+        except ErrorWithStatus as e:
+            logger.error(e.msg)
+            self.unit.status = e.status
         else:
             # TODO: once the resource handler v0.0.2 is out,
             # let's use the compute_status() method to set (or not)
@@ -68,7 +76,30 @@ class KnativeServingCharm(CharmBase):
         self._apply_and_set_status()
 
     def _on_config_changed(self, _):
+        self._send_ingress_gateway_data()
+        self._send_local_gateway_data()
         self._apply_and_set_status()
+
+    def _on_ingress_gateway_relation_changed(self, _) -> None:
+        self._send_ingress_gateway_data()
+
+    def _on_local_gateway_relation_changed(self, _) -> None:
+        self._send_local_gateway_data()
+
+    def _send_ingress_gateway_data(self) -> None:
+        """Sends the ingress gateway info through the gateway-info relation."""
+        self._ingress_gateway_provider.send_gateway_relation_data(
+            gateway_name=self.model.config["istio.gateway.name"],
+            gateway_namespace=self.model.config["istio.gateway.namespace"],
+        )
+
+    def _send_local_gateway_data(self) -> None:
+        """Sends the local gateway info through the gateway-info relation."""
+        # FIXME: The local gateway name is hardcoded in the KnativeServing.yaml.j2
+        self._local_gateway_provider.send_gateway_relation_data(
+            gateway_name="knative-local-gateway",
+            gateway_namespace=self.model.config["namespace"],
+        )
 
     def _on_otel_collector_relation_changed(self, _):
         """Event handler for on['otel-collector'].relation_changed."""
