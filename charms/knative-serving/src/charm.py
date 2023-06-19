@@ -140,6 +140,8 @@ class KnativeServingCharm(CharmBase):
             "domain": self.model.config["domain.name"],
             "gateway_name": self.model.config["istio.gateway.name"],
             "gateway_namespace": self.model.config["istio.gateway.namespace"],
+            "ingress_name": "istio-ingressgateway-workload",
+            "ingress_namespace": self.model.config["istio.gateway.name"],
             "serving_namespace": self.model.config["namespace"],
             "serving_version": self.model.config["version"],
         }

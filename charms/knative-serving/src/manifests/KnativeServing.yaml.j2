@@ -9,15 +9,23 @@ spec:
   config:
     # This is analogous to the config-istio configmap
     istio:
-      # TODO
-      # To define the external gateway:
-      # gateway.NAMESPACE-OF-GATEWAY.NAME-OF-GATEWAY: SOME-SERVICE.SOME-NAMESPACE.svc.cluster.local (I dont know what this is for, but if we cite an invalid namespace here the knative-serving object will not fully deploy)
-      gateway.{{ gateway_namespace }}.{{ gateway_name }}: "some-workload.knative-operator.svc.cluster.local"
-      # Defines the internal (inside cluster) gateway:
-      # local-gateway.<local-gateway-namespace>.knative-local-gateway: "knative-local-gateway.<istio-namespace>.svc.cluster.local"
-      # Where local-gateway-namespace is the same as the knative-namespace and istio-namespace is where istio is deployed, in this particular
-      # case we know the gateway namespace and the istio namespace will be the same
-      local-gateway.{{ serving_namespace }}.knative-local-gateway: "knative-local-gateway.{{ gateway_namespace }}.svc.cluster.local"
+      # A gateway and Istio service to serve external traffic.
+      # The configuration format should be
+      # `gateway.{{gateway_namespace}}.{{gateway_name}}: "{{ingress_name}}.{{ingress_namespace}}.svc.cluster.local"`.
+      # The {{gateway_namespace}} is optional; when it is omitted, the system will search for
+      # the gateway in the serving system namespace `knative-serving`.
+      # Example in the Kubeflow context: gateway.kubeflow.kubeflow-gateway: "istio-ingressgateway-workload.kubeflow.svc.cluster.local"
+      gateway.{{ gateway_namespace }}.{{ gateway_name }}: "{{ ingress_name }}.{{ ingress_namespace }}.svc.cluster.local"
+      # A cluster local gateway to allow pods outside of the mesh to access
+      # Services and Routes not exposing through an ingress.  If the users
+      # do have a service mesh setup, this isn't required and can be removed.
+      # The configuration format should be `local-gateway.{{local_gateway_namespace}}.
+      # {{local_gateway_name}}: "{{cluster_local_gateway_name}}.
+      # {{cluster_local_gateway_namespace}}.svc.cluster.local"`. The
+      # {{local_gateway_namespace}} is optional; when it is omitted, the system
+      # will search for the local gateway in the serving system namespace
+      # `knative-serving`
+      # local-gateway.{{ local_gateway_namespace }}.{{ local_gateway_name }}: "{{ cluster_local_gateway_name }}.{{ cluster_local_gateway_namespace }}.svc.cluster.local"
     # This is analogous to the config-domain configmap
     domain:
       {{ domain }}: ""
