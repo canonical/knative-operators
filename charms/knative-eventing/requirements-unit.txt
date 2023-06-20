@@ -80,14 +80,14 @@ pytest==7.3.2
     #   pytest-mock
 pytest-lazy-fixture==0.6.3
     # via -r requirements-unit.in
-pytest-mock==3.10.0
+pytest-mock==3.11.1
     # via -r requirements-unit.in
 pyyaml==6.0
     # via
     #   -r requirements.txt
     #   lightkube
     #   ops
-ruamel-yaml==0.17.31
+ruamel-yaml==0.17.32
     # via
     #   -r requirements.txt
     #   charmed-kubeflow-chisme
@@ -107,7 +107,7 @@ tenacity==8.2.2
     #   charmed-kubeflow-chisme
 tomli==2.0.1
     # via pytest
-websocket-client==1.5.3
+websocket-client==1.6.0
     # via
     #   -r requirements.txt
     #   ops
