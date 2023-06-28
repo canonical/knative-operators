@@ -209,7 +209,7 @@ urllib3==1.26.16
     #   requests
 wcwidth==0.2.6
     # via prompt-toolkit
-websocket-client==1.5.3
+websocket-client==1.6.0
     # via kubernetes
 websockets==7.0
     # via juju
