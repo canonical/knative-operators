@@ -45,14 +45,13 @@ class KnativeEventingCharm(CharmBase):
         try:
             self.unit.status = MaintenanceStatus("Configuring/deploying resources")
             self.resource_handler.apply()
-        except (ApiError, ErrorWithStatus) as e:
+        except ApiError as e:
             logger.debug(traceback.format_exc())
-            if isinstance(e, ApiError):
-                logger.info(f"Applying resources failed with ApiError status code {e.status.code}")
-                self.unit.status = BlockedStatus(f"ApiError: {e.status.code}")
-            else:
-                logger.info(e.msg)
-                self.unit.status = e.status
+            logger.error(f"Applying resources failed with ApiError status code {e.status.code}")
+            self.unit.status = BlockedStatus(f"ApiError: {e.status.code}")
+        except ErrorWithStatus as e:
+            logger.error(e.msg)
+            self.unit.status = e.status
         else:
             # TODO: once the resource handler v0.0.2 is out,
             # let's use the compute_status() method to set (or not)

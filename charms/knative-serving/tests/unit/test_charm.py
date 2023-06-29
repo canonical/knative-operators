@@ -89,6 +89,61 @@ def test_apply_and_set_status_blocked(
     assert isinstance(harness.model.unit.status, BlockedStatus)
 
 
+@pytest.mark.parametrize(
+    "gateway_relation, charm_config, expected_data",
+    (
+        (
+            "ingress-gateway",
+            {"istio.gateway.name": "test-name", "istio.gateway.namespace": "test-model"},
+            {"gateway_name": "test-name", "gateway_namespace": "test-model", "gateway_up": "true"},
+        ),
+        (
+            "local-gateway",
+            {"namespace": "test-serving"},
+            {
+                "gateway_name": "knative-local-gateway",
+                "gateway_namespace": "test-serving",
+                "gateway_up": "true",
+            },
+        ),
+    ),
+)
+def test_gateway_relation_data(
+    gateway_relation, charm_config, expected_data, harness, mocked_lightkube_client
+):
+    """Assert that the data sent through the relation is accurate."""
+    harness.set_model_name("test-model")
+    harness.begin()
+
+    # Update config values with test values
+    harness.update_config(charm_config)
+
+    # Add one relation, send data, and assert the data is correct
+    relation_id = harness.add_relation(gateway_relation, "app")
+    # Add relation unit and "update" the relation data to trigger relation-changed hook
+    harness.add_relation_unit(relation_id, "app/0")
+    harness.update_relation_data(relation_id, "app", {"ingress-address": "test-address"})
+
+    if gateway_relation == "local-gateway":
+        relations = harness.charm._local_gateway_provider.model.relations[gateway_relation]
+    else:
+        relations = harness.charm._ingress_gateway_provider.model.relations[gateway_relation]
+
+    for relation in relations:
+        actual_data = relation.data[harness.charm.app]
+        assert expected_data == actual_data
+
+    # Add a second relation and assert the data
+    relation_id = harness.add_relation(gateway_relation, "app2")
+    # Add relation unit and "update" the relation data to trigger relation-changed hook
+    harness.add_relation_unit(relation_id, "app2/0")
+    harness.update_relation_data(relation_id, "app2", {"ingress-address": "test-address"})
+
+    for relation in relations:
+        actual_data = relation.data[harness.charm.app]
+        assert expected_data == actual_data
+
+
 def test_otel_collector_relation_changed(harness):
     harness.begin()
     harness.charm._apply_and_set_status = MagicMock()
