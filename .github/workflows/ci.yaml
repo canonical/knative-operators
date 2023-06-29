@@ -1,16 +1,16 @@
 name: CI
 
+# cancel all previous jobs in the same branch if new commits are pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
   push:
     branches:
     - main
     - track/**
-
-# kill all previous jobs in the same branch if new commits are pushed
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   quality-checks:
@@ -21,7 +21,7 @@ jobs:
           - knative-eventing
           - knative-operator
           - knative-serving
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_quality-checks.yaml@all
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_quality-checks.yaml@v1
     with:
       charm-path: ./charms/${{ matrix.charm }}
       charm-name: ${{ matrix.charm }}
@@ -34,47 +34,49 @@ jobs:
           - knative-eventing
           - knative-operator
           - knative-serving
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_unit-tests.yaml@all
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_unit-tests.yaml@v1
     secrets: inherit
     with:
       charm-name: ${{ matrix.charm }}
 
-# uncomment when integration tests are added
-#  integration-tests:
-#    name: Integration Tests
-#    needs: quality-checks
+# todo uncomment when integration tests are added
+#  individual-integration-tests:
+#    name: Individual Integration Tests
+#    needs: [quality-checks, unit-tests]
 #    strategy:
 #      matrix:
 #        charm:
 #          - knative-eventing
 #          - knative-operator
 #          - knative-serving
-#    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_integration-tests.yaml@all
+#    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_integration-tests.yaml@v1
 #    secrets: inherit
 #    with:
 #      charm-name: ${{ matrix.charm }}
 
   bundle-tests:
     name: Bundle Tests
-    needs: quality-checks
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_bundle.yaml@all
+    needs: [quality-checks, unit-tests]
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_bundle.yaml@v1
 
   observability-tests:
     name: Observability Tests
-    needs: quality-checks
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_observability.yaml@all
+    needs: [quality-checks, unit-tests]
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_observability.yaml@v1
 
   publish-on-success:
-    # only publish on push to main or track/** and if all tests pass
+    # publish on push to main or track/** only if all tests pass
     name: Publish on Success
     if: github.event_name == 'push'
+    # todo add individual-integration-tests when added
     needs: [quality-checks, unit-tests, bundle-tests, observability-tests]
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_publish.yaml@all
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_publish.yaml@v1
     secrets: inherit
 
   publish:
-    # always publish on PR
+    # publish on PR if unittests and quality checks pass
     name: Publish
+    needs: [quality-checks, unit-tests]
     if: github.event_name == 'pull_request'
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_publish.yaml@all
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_publish.yaml@v1
     secrets: inherit
