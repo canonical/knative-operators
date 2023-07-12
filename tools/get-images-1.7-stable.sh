@@ -6,7 +6,7 @@
 STATIC_IMAGE_LIST=(
 )
 # dynamic list
-git checkout origin/track/1.8
+#git checkout origin/track/1.8
 IMAGE_LIST=()
 IMAGE_LIST+=($(grep image charms/knative-operator/src/manifests/observability/collector.yaml.j2 | awk '{print $2}' | sort --unique))
 
