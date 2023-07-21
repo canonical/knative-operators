@@ -1,4 +1,4 @@
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 from contextlib import nullcontext as does_not_raise
 from unittest.mock import MagicMock, patch

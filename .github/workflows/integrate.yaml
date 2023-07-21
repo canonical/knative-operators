@@ -47,21 +47,18 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: microk8s
-          channel: 1.24/stable
-          # Pinned to 2.3.34 due to https://bugs.launchpad.net/juju/+bug/1992833
-          # This should be fixed on release of juju 2.3.36 + libjuju 3.0.3
-          bootstrap-options: --agent-version="2.9.34"
-      - run: sg microk8s -c "microk8s enable metallb:'10.64.140.43-10.64.140.49,192.168.0.105-192.168.0.111'"
-      - run: juju add-model knative-test
+      uses: charmed-kubernetes/actions-operator@main
+      with:
+        provider: microk8s
+        channel: 1.24/stable
+        juju-channel: 2.9/stable
+        charmcraft-channel: latest/candidate
+        microk8s-addons: "dns storage rbac metallb:10.64.140.43-10.64.140.49"
 
       - name: Run integration tests
-
-        run: tox -vve integration -- --model knative-test --destructive-mode
-        env:
-          KUBECONFIG: /home/runner/.kube/config
+        run: |
+          sg microk8s -c "juju add-model knative-test"
+          sg microk8s -c "tox -vve integration -- --model knative-test --destructive-mode"
 
       - run: kubectl get all -A
         if: failure()
@@ -82,20 +79,18 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: microk8s
-          channel: 1.24/stable
-          # Pinned to 2.3.34 due to https://bugs.launchpad.net/juju/+bug/1992833
-          # This should be fixed on release of juju 2.3.36 + libjuju 3.0.3
-          bootstrap-options: --agent-version="2.9.34"
-      - run: juju add-model cos-test
+      uses: charmed-kubernetes/actions-operator@main
+      with:
+        provider: microk8s
+        channel: 1.24/stable
+        juju-channel: 2.9/stable
+        charmcraft-channel: latest/candidate
+        microk8s-addons: "dns storage rbac metallb:10.64.140.43-10.64.140.49"
 
       - name: Run integration tests
-
-        run: tox -vve cos-integration -- --model cos-test --destructive-mode
-        env:
-          KUBECONFIG: /home/runner/.kube/config
+        run: |
+          sg microk8s -c "juju add-model cos-test"
+          sg microk8s -c "tox -vve cos-integration -- --model cos-test --destructive-mode"
 
       - run: kubectl get pod/prometheus-k8s-0 -n knative-test -o=jsonpath='{.status}'
         if: failure()
