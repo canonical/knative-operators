@@ -9,7 +9,6 @@ import pytest
 import requests
 import tenacity
 from pytest_operator.plugin import OpsTest
-
 from test_bundle import KNATIVE_OPERATOR_RESOURCES
 
 log = logging.getLogger(__name__)
