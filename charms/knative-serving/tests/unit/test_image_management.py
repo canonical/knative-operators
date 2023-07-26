@@ -25,7 +25,7 @@ from image_management import parse_image_config, update_images
             # Test empty string, which is converted to empty dict
             "",
             {},
-            pytest.raises(ValueError),
+            nullcontext(),
         ),
         (
             # Test invalid yaml

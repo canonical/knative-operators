@@ -219,23 +219,6 @@ def test_custom_images_config_context(custom_image_config, expected_custom_image
     assert actual_custom_images == expected_custom_images
 
 
-def test_custom_images_config_context(harness, mocked_lightkube_client):
-    """Asserts that the custom_images context is as expected.
-
-    Note: This test is trivial now, where custom_image_config always equals custom_images.  But
-    this will not be the case when we set the DEFAULT_IMAGES dict in the Charm to have our own
-    custom images.
-    """
-    harness.begin()
-    harness.update_config({"custom_images": yaml.dump({})})
-
-    mocked_lightkube_client
-
-    assert harness.charm.unit.status == ActiveStatus
-
-    pass
-
-
 @patch("charm.KRH")
 @patch("charm.delete_many")
 def test_on_remove_success(
