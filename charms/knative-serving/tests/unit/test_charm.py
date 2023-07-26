@@ -9,7 +9,7 @@ from charmed_kubeflow_chisme.lightkube.mocking import FakeApiError
 from lightkube import ApiError
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 
-from charm import DEFAULT_IMAGES, CUSTOM_IMAGE_CONFIG_NAME
+from charm import CUSTOM_IMAGE_CONFIG_NAME, DEFAULT_IMAGES
 
 
 class _FakeResponse:
@@ -201,7 +201,7 @@ def test_context_changes(harness):
             yaml.dump({}),
             {},
         ),
-    ]
+    ],
 )
 def test_custom_images_config_context(custom_image_config, expected_custom_images, harness):
     """Asserts that the custom_images context is as expected.
@@ -210,11 +210,7 @@ def test_custom_images_config_context(custom_image_config, expected_custom_image
     this will not be the case when we set the DEFAULT_IMAGES dict in the Charm to have our own
     custom images.
     """
-    harness.update_config(
-        {
-            "custom_images": custom_image_config
-        }
-    )
+    harness.update_config({"custom_images": custom_image_config})
     harness.begin()
 
     actual_context = harness.charm._context
@@ -231,18 +227,13 @@ def test_custom_images_config_context(harness, mocked_lightkube_client):
     custom images.
     """
     harness.begin()
-    harness.update_config(
-        {
-            "custom_images": yaml.dump({})
-        }
-    )
+    harness.update_config({"custom_images": yaml.dump({})})
 
     mocked_lightkube_client
 
     assert harness.charm.unit.status == ActiveStatus
 
     pass
-
 
 
 @patch("charm.KRH")

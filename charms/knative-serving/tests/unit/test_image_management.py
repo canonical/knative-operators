@@ -1,4 +1,5 @@
 from contextlib import nullcontext
+
 import pytest
 import yaml
 
@@ -21,18 +22,18 @@ from image_management import parse_image_config, update_images
             nullcontext(),
         ),
         (
-                # Test empty string, which is converted to empty dict
-                "",
-                {},
-                pytest.raises(ValueError),
+            # Test empty string, which is converted to empty dict
+            "",
+            {},
+            pytest.raises(ValueError),
         ),
         (
-                # Test invalid yaml
-                "{",
-                {},
-                pytest.raises(ValueError),
-        )
-    ]
+            # Test invalid yaml
+            "{",
+            {},
+            pytest.raises(ValueError),
+        ),
+    ],
 )
 def test_parse_image_config(image_config_str, expected_images_dict, context_raised):
     # Arrange
@@ -53,7 +54,7 @@ def test_parse_image_config(image_config_str, expected_images_dict, context_rais
             {"key2": "value2b", "key3": "value3"},
             {"key1": "value1", "key2": "value2b", "key3": "value3"},
         )
-    ]
+    ],
 )
 def test_update_images(default_images, custom_images, expected_images):
     actual_images = update_images(default_images, custom_images)

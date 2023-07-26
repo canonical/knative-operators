@@ -142,7 +142,9 @@ class KnativeServingCharm(CharmBase):
     def _context(self):
         try:
             custom_images = parse_image_config(self.model.config[CUSTOM_IMAGE_CONFIG_NAME])
-            custom_images = update_images(default_images=DEFAULT_IMAGES, custom_images=custom_images)
+            custom_images = update_images(
+                default_images=DEFAULT_IMAGES, custom_images=custom_images
+            )
         except ValueError as err:
             raise ErrorWithStatus(str(err), BlockedStatus)
 
