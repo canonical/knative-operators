@@ -1,4 +1,4 @@
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import json
@@ -9,7 +9,6 @@ import pytest
 import requests
 import tenacity
 from pytest_operator.plugin import OpsTest
-
 from test_bundle import KNATIVE_OPERATOR_RESOURCES
 
 log = logging.getLogger(__name__)
