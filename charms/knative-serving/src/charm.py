@@ -20,9 +20,14 @@ from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 
+from image_management import parse_image_config, update_images
 from lightkube_custom_resources.operator import KnativeServing_v1beta1  # noqa F401
 
 logger = logging.getLogger(__name__)
+
+
+CUSTOM_IMAGE_CONFIG_NAME = "custom_images"
+DEFAULT_IMAGES = {}
 
 
 class KnativeServingCharm(CharmBase):
@@ -135,6 +140,12 @@ class KnativeServingCharm(CharmBase):
 
     @property
     def _context(self):
+        try:
+            custom_images = parse_image_config(self.model.config[CUSTOM_IMAGE_CONFIG_NAME])
+            custom_images = update_images(default_images=DEFAULT_IMAGES, custom_images=custom_images)
+        except ValueError as err:
+            raise ErrorWithStatus(str(err), BlockedStatus)
+
         context = {
             "app_name": self._app_name,
             "domain": self.model.config["domain.name"],
@@ -142,6 +153,7 @@ class KnativeServingCharm(CharmBase):
             "gateway_namespace": self.model.config["istio.gateway.namespace"],
             "serving_namespace": self.model.config["namespace"],
             "serving_version": self.model.config["version"],
+            "custom_images": custom_images,
         }
         if self._otel_collector_relation_data:
             context.update(self._otel_collector_relation_data)

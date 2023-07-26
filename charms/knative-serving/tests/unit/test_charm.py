@@ -4,9 +4,12 @@ from contextlib import nullcontext as does_not_raise
 from unittest.mock import MagicMock, patch
 
 import pytest
+import yaml
 from charmed_kubeflow_chisme.lightkube.mocking import FakeApiError
 from lightkube import ApiError
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
+
+from charm import DEFAULT_IMAGES, CUSTOM_IMAGE_CONFIG_NAME
 
 
 class _FakeResponse:
@@ -170,6 +173,7 @@ def test_context_changes(harness):
         "gateway_namespace": harness.model.config["istio.gateway.namespace"],
         "serving_namespace": harness.model.config["namespace"],
         "serving_version": harness.model.config["version"],
+        CUSTOM_IMAGE_CONFIG_NAME: DEFAULT_IMAGES,
     }
 
     assert harness.charm._context == context
@@ -184,6 +188,61 @@ def test_context_changes(harness):
     with does_not_raise():
         harness.update_relation_data(rel_id, "app", additional_context)
         assert harness.charm._context == context
+
+
+@pytest.mark.parametrize(
+    "custom_image_config, expected_custom_images",
+    [
+        (
+            yaml.dump({"name1": "image1", "name2": "image2"}),
+            {"name1": "image1", "name2": "image2"},
+        ),
+        (
+            yaml.dump({}),
+            {},
+        ),
+    ]
+)
+def test_custom_images_config_context(custom_image_config, expected_custom_images, harness):
+    """Asserts that the custom_images context is as expected.
+
+    Note: This test is trivial now, where custom_image_config always equals custom_images.  But
+    this will not be the case when we set the DEFAULT_IMAGES dict in the Charm to have our own
+    custom images.
+    """
+    harness.update_config(
+        {
+            "custom_images": custom_image_config
+        }
+    )
+    harness.begin()
+
+    actual_context = harness.charm._context
+    actual_custom_images = actual_context["custom_images"]
+
+    assert actual_custom_images == expected_custom_images
+
+
+def test_custom_images_config_context(harness, mocked_lightkube_client):
+    """Asserts that the custom_images context is as expected.
+
+    Note: This test is trivial now, where custom_image_config always equals custom_images.  But
+    this will not be the case when we set the DEFAULT_IMAGES dict in the Charm to have our own
+    custom images.
+    """
+    harness.begin()
+    harness.update_config(
+        {
+            "custom_images": yaml.dump({})
+        }
+    )
+
+    mocked_lightkube_client
+
+    assert harness.charm.unit.status == ActiveStatus
+
+    pass
+
 
 
 @patch("charm.KRH")
