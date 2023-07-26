@@ -14,9 +14,6 @@ from test_bundle import KNATIVE_OPERATOR_RESOURCES
 log = logging.getLogger(__name__)
 
 
-@pytest.mark.skip(
-    "Skipping until https://github.com/canonical/knative-operators/issues/127 is resolved."
-)
 @pytest.mark.abort_on_fail
 async def test_build_deploy_knative_charms(ops_test: OpsTest):
     # Build knative charms
@@ -72,9 +69,6 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
 APP_NAME = "knative-operator"
 
 
-@pytest.mark.skip(
-    "Skipping until https://github.com/canonical/knative-operators/issues/127 is resolved."
-)
 async def test_prometheus_grafana_integration(ops_test: OpsTest):
     """Deploy prometheus and required relations, then test the metrics."""
     prometheus = "prometheus-k8s"
