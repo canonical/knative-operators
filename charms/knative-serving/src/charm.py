@@ -11,6 +11,7 @@ import logging
 import traceback
 from pathlib import Path
 
+import yaml
 from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
@@ -82,9 +83,15 @@ class KnativeServingCharm(CharmBase):
             custom_images = update_images(
                 default_images=default_images, custom_images=custom_images
             )
-        except ValueError as err:
-            msg = str(err) + f"  To unblock, fix the config in `{CUSTOM_IMAGE_CONFIG_NAME}."
-            raise ErrorWithStatus(msg, BlockedStatus)
+        except yaml.YAMLError as err:
+            logger.error(
+                f"Charm Blocked due to error parsing the `custom_images` config.  "
+                f"Caught error: {str(err)}"
+            )
+            raise ErrorWithStatus(
+                "Error parsing the `custom_images` config.  See logs for more details",
+                BlockedStatus,
+            )
         return custom_images
 
     def _on_install(self, _):

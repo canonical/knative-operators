@@ -10,15 +10,10 @@ import yaml
 def parse_image_config(image_config: str) -> Dict[str, str]:
     """Parses config data for a dict of images, returning the parsed value as a dict.
 
-    If a YAMLError is raised during config parsing, it will be re-raised as a ValueError with a
-    simplified error message.
+    This helper does not catch YAML parsing errors, leaving that up to the calling function.
+    Generally, this should be called inside a `try/except YAMLError` block.
     """
-    try:
-        images_from_config = yaml.safe_load(image_config)
-    except yaml.YAMLError as err:
-        raise ValueError(
-            f"Encountered error while parsing image config with value '{image_config}'."
-        ) from err
+    images_from_config = yaml.safe_load(image_config)
 
     if not images_from_config:
         images_from_config = {}
