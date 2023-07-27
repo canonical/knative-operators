@@ -20,7 +20,7 @@ from ops.charm import CharmBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 
-from image_management import parse_image_config, update_images
+from image_management import parse_image_config, remove_empty_images, update_images
 from lightkube_custom_resources.operator import KnativeServing_v1beta1  # noqa F401
 
 logger = logging.getLogger(__name__)
@@ -73,6 +73,19 @@ class KnativeServingCharm(CharmBase):
             # let's use the compute_status() method to set (or not)
             # an active status
             self.unit.status = ActiveStatus()
+
+    def _get_custom_images(self):
+        """Parses custom_images from config and defaults, returning a dict of images."""
+        try:
+            default_images = remove_empty_images(DEFAULT_IMAGES)
+            custom_images = parse_image_config(self.model.config[CUSTOM_IMAGE_CONFIG_NAME])
+            custom_images = update_images(
+                default_images=default_images, custom_images=custom_images
+            )
+        except ValueError as err:
+            msg = str(err) + f"  To unblock, fix the config in `{CUSTOM_IMAGE_CONFIG_NAME}."
+            raise ErrorWithStatus(msg, BlockedStatus)
+        return custom_images
 
     def _on_install(self, _):
         if not self.model.config["namespace"]:
@@ -140,13 +153,6 @@ class KnativeServingCharm(CharmBase):
 
     @property
     def _context(self):
-        try:
-            custom_images = parse_image_config(self.model.config[CUSTOM_IMAGE_CONFIG_NAME])
-            custom_images = update_images(
-                default_images=DEFAULT_IMAGES, custom_images=custom_images
-            )
-        except ValueError as err:
-            raise ErrorWithStatus(str(err), BlockedStatus)
 
         context = {
             "app_name": self._app_name,
@@ -155,7 +161,7 @@ class KnativeServingCharm(CharmBase):
             "gateway_namespace": self.model.config["istio.gateway.namespace"],
             "serving_namespace": self.model.config["namespace"],
             "serving_version": self.model.config["version"],
-            "custom_images": custom_images,
+            "custom_images": self._get_custom_images(),
         }
         if self._otel_collector_relation_data:
             context.update(self._otel_collector_relation_data)

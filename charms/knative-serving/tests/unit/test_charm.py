@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
+from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.lightkube.mocking import FakeApiError
 from lightkube import ApiError
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
@@ -206,9 +207,9 @@ def test_context_changes(harness):
 def test_custom_images_config_context(custom_image_config, expected_custom_images, harness):
     """Asserts that the custom_images context is as expected.
 
-    Note: This test is trivial now, where custom_image_config always equals custom_images.  But
-    this will not be the case when we set the DEFAULT_IMAGES dict in the Charm to have our own
-    custom images.
+    Note: This test is trivial now, where custom_image_config always equals custom_images, but
+    once we've implemented rocks for this charm those will be used as the defaults and this test
+    will be more helpful.
     """
     harness.update_config({"custom_images": custom_image_config})
     harness.begin()
@@ -217,6 +218,16 @@ def test_custom_images_config_context(custom_image_config, expected_custom_image
     actual_custom_images = actual_context["custom_images"]
 
     assert actual_custom_images == expected_custom_images
+
+
+def test_custom_images_config_context_with_incorrect_config(harness):
+    """Asserts that the custom_images context correctly raises on corrupted config input."""
+    harness.update_config({"custom_images": "{"})
+    harness.begin()
+
+    with pytest.raises(ErrorWithStatus) as err:
+        harness.charm._context
+        assert isinstance(err.status, BlockedStatus)
 
 
 @patch("charm.KRH")

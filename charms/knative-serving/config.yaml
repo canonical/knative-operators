@@ -34,5 +34,6 @@ options:
       queue-proxy: ''
     description: >
       YAML or JSON formatted input defining images to use in Knative Serving.  Any image omitted or set to '' here will
-      use a default image.  For usage details, see https://github.com/canonical/knative-operators/.
+      use a default image.  For usage details, see 
+      https://github.com/canonical/knative-operators/blob/main/charms/knative-serving/README.md#setting-custom-images-for-knative-serving.
     type: string
