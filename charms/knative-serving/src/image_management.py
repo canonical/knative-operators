@@ -32,8 +32,9 @@ def remove_empty_images(images: Dict[str, str]):
     """Removes any image with a value of an empty string."""
     return {name: value for name, value in images.items() if value != ""}
 
+
 def update_images(default_images: Dict[str, str], custom_images: Dict[str, str]) -> Dict[str, str]:
-    """Returns a copy of default_images that is updated with overrides fom custom_images."""
+    """Returns a copy of default_images that is updated with overrides from custom_images."""
     images = default_images.copy()
     images.update(custom_images)
     return images

@@ -153,7 +153,6 @@ class KnativeServingCharm(CharmBase):
 
     @property
     def _context(self):
-
         context = {
             "app_name": self._app_name,
             "domain": self.model.config["domain.name"],

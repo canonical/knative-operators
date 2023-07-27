@@ -32,4 +32,4 @@ controller: 'my.repo/my-controller:v1.2.3'
 juju config knative-serving custom_images=@./images_to_override.yaml
 ```
 
-For conveneince, the default value for `custom_images` in [config.yaml](./config.yaml) lists all images, where an empty string in the dictionary means the default will be used.
+For convenience, the default value for `custom_images` in [config.yaml](./config.yaml) lists all images, where an empty string in the dictionary means the default will be used.
