@@ -21,7 +21,7 @@ jobs:
           - knative-eventing
           - knative-operator
           - knative-serving
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_quality-checks.yaml@v1
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_quality-checks.yaml@beta-craft
     with:
       charm-path: ./charms/${{ matrix.charm }}
       charm-name: ${{ matrix.charm }}
@@ -34,7 +34,7 @@ jobs:
           - knative-eventing
           - knative-operator
           - knative-serving
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_unit-tests.yaml@v1
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_unit-tests.yaml@beta-craft
     secrets: inherit
     with:
       charm-name: ${{ matrix.charm }}
@@ -49,7 +49,7 @@ jobs:
 #          - knative-eventing
 #          - knative-operator
 #          - knative-serving
-#    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_integration-tests.yaml@v1
+#    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_integration-tests.yaml@beta-craft
 #    secrets: inherit
 #    with:
 #      charm-name: ${{ matrix.charm }}
@@ -57,12 +57,12 @@ jobs:
   bundle-tests:
     name: Bundle Tests
     needs: [quality-checks, unit-tests]
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_bundle.yaml@v1
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_bundle.yaml@beta-craft
 
   observability-tests:
     name: Observability Tests
     needs: [quality-checks, unit-tests]
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_observability.yaml@v1
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_observability.yaml@beta-craft
 
   publish-on-success:
     # publish on push to main or track/** only if all tests pass
@@ -70,7 +70,7 @@ jobs:
     if: github.event_name == 'push'
     # todo add individual-integration-tests when added
     needs: [quality-checks, unit-tests, bundle-tests, observability-tests]
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_publish.yaml@v1
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_publish.yaml@beta-craft
     secrets: inherit
 
   publish:
@@ -78,5 +78,5 @@ jobs:
     name: Publish
     needs: [quality-checks, unit-tests]
     if: github.event_name == 'pull_request'
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_publish.yaml@v1
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/_publish.yaml@beta-craft
     secrets: inherit
