@@ -24,7 +24,6 @@ jobs:
     uses: canonical/charmed-kubeflow-workflows/.github/workflows/_quality-checks.yaml@beta-craft
     with:
       charm-path: ./charms/${{ matrix.charm }}
-      charm-name: ${{ matrix.charm }}
 
   unit-tests:
     name: Unit Tests
