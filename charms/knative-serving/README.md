@@ -18,7 +18,7 @@ where:
 
 ### Setting Custom Images for Knative Serving
 
-Knative deploys with a set of preconfigured images.  To override one or more of these images, specify the images to override via the Juju config `custom_images`.  For example:
+Knative deploys with a set of preconfigured images.  To override one or more of the images for Knative Serving, specify the images to override via the Juju config `custom_images`.  For example:
 
 images_to_override.yaml
 ```yaml
