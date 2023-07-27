@@ -31,7 +31,7 @@ from image_management import parse_image_config, update_images
             # Test invalid yaml
             "{",
             {},
-            pytest.raises(ValueError),
+            pytest.raises(yaml.YAMLError),
         ),
     ],
 )
