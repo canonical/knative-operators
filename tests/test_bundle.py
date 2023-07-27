@@ -1,25 +1,20 @@
-# Copyright 2022 Canonical Ltd.
+# Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import logging
-from pathlib import Path
 import time
-import yaml
+from pathlib import Path
 
 import lightkube.codecs
-from lightkube import Client, ApiError
+import pytest
+import requests
+import yaml
+from lightkube import ApiError, Client
 from lightkube.generic_resource import create_namespaced_resource
 from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
 from lightkube.resources.core_v1 import Service
-import pytest
 from pytest_operator.plugin import OpsTest
-import requests
-from tenacity import (
-    Retrying,
-    stop_after_delay,
-    wait_fixed,
-)
-
+from tenacity import Retrying, stop_after_delay, wait_fixed
 
 log = logging.getLogger(__name__)
 
