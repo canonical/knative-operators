@@ -18,7 +18,9 @@ where:
 
 ### Setting Custom Images for Knative Serving
 
-Knative deploys with a set of preconfigured images.  To override one or more of the images for Knative Serving, specify the images to override via the Juju config `custom_images`.  For example:
+Knative deploys with a set of preconfigured images.  These images, listed in the [upstream documentation](https://knative.dev/docs/install/operator/configuring-serving-cr/#download-images-individually-without-secrets), can be overridden using the charm config `custom_images`.
+
+For example:
 
 images_to_override.yaml
 ```yaml
@@ -30,4 +32,4 @@ controller: 'my.repo/my-controller:v1.2.3'
 juju config knative-serving custom_images=@./images_to_override.yaml
 ```
 
-See [config.yaml](./config.yaml) or the [upstream documentation](https://knative.dev/docs/install/operator/configuring-serving-cr/#download-images-individually-without-secrets) for the full list of image.
+For conveneince, the default value for `custom_images` in [config.yaml](./config.yaml) lists all images, where an empty string in the dictionary means the default will be used.
