@@ -16,5 +16,5 @@ options:
     description: >
       YAML or JSON formatted input defining images to use in Knative Eventing.  Any image omitted or set to '' here will
       use a default image.  For usage details, see 
-      https://github.com/canonical/knative-operators/blob/main/charms/knative-eventing/README.md#setting-custom-images-for-knative-serving.
+      https://github.com/canonical/knative-operators/blob/main/charms/knative-eventing/README.md#setting-custom-images-for-knative-eventing.
     type: string
