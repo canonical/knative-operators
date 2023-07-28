@@ -78,7 +78,8 @@ class KnativeEventingCharm(CharmBase):
                 f"Caught error: {str(err)}"
             )
             raise ErrorWithStatus(
-                "Error parsing the `custom_images` config.  See logs for more details",
+                "Error parsing the `custom_images` config - fix `custom_images` to unblock.  "
+                "See logs for more details",
                 BlockedStatus,
             )
         return custom_images

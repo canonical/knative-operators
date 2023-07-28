@@ -24,7 +24,7 @@ def parse_image_config(image_config: str) -> Dict[str, str]:
 
 
 def remove_empty_images(images: Dict[str, str]):
-    """Removes any image with a value of an empty string."""
+    """Removes any image with a value of an empty string, returning a new dict of the images."""
     return {name: value for name, value in images.items() if value != ""}
 
 
