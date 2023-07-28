@@ -3,7 +3,7 @@ flake8
 # pin juju since we use controller 2.9. Juju (app) 3.0 is end of life and py juju as well
 juju<3.0
 lightkube
-pytest_asyncio
+pytest-asyncio
 pytest-operator
 PyYAML
 tenacity
