@@ -23,6 +23,7 @@ log = logging.getLogger(__name__)
 KSVC = create_namespaced_resource(
     group="serving.knative.dev", version="v1", kind="Service", plural="services"
 )
+KNATIVE_EVENTING_NAMESPACE = "knative-eventing"
 KNATIVE_SERVING_NAMESPACE = "knative-serving"
 KNATIVE_SERVING_SERVICE = "services.serving.knative.dev"
 KNATIVE_OPERATOR_METADATA = yaml.safe_load(
@@ -101,7 +102,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     await ops_test.model.deploy(
         knative_charms["knative-eventing"],
         application_name="knative-eventing",
-        config={"namespace": "knative-eventing"},
+        config={"namespace": KNATIVE_EVENTING_NAMESPACE},
         trust=True,
     )
 
@@ -208,6 +209,49 @@ async def test_cloud_events_player_example(
     assert post_req.status_code == 202
     get_req = requests.get(f"{url}/messages", allow_redirects=False, verify=False)
     assert get_req.status_code == 200
+
+
+@pytest_asyncio.fixture
+async def restore_eventing_custom_image_settings(ops_test: OpsTest):
+    """Saves the current custom_image setting for eventing, restoring it after test completes."""
+    custom_image_config = (await ops_test.model.applications["knative-eventing"].get_config())[
+        "custom_images"
+    ]["value"]
+
+    yield
+    await ops_test.model.applications["knative-eventing"].set_config(
+        {"custom_images": custom_image_config}
+    )
+
+    await ops_test.model.wait_for_idle(
+        ["knative-eventing"],
+        status="active",
+        raise_on_blocked=False,
+        timeout=60 * 1,
+    )
+
+
+async def test_eventing_custom_image(ops_test: OpsTest, restore_eventing_custom_image_settings):
+    """Changes config to use a custom image for eventing-controller, then asserts it worked."""
+    fake_image = "not-a-real-image"
+
+    # Act
+    await ops_test.model.applications["knative-eventing"].set_config(
+        {"custom_images": f"eventing-controller/eventing-controller: {fake_image}"}
+    )
+    await ops_test.model.wait_for_idle(
+        ["knative-eventing"],
+        status="active",
+        raise_on_blocked=False,
+        timeout=60 * 1,
+    )
+
+    # Assert that the activator image is trying to use the custom image.
+    client = lightkube.Client()
+    activator_deployment = client.get(
+        Deployment, "eventing-controller", namespace=KNATIVE_EVENTING_NAMESPACE
+    )
+    assert activator_deployment.spec.template.spec.containers[0].image == fake_image
 
 
 @pytest_asyncio.fixture
