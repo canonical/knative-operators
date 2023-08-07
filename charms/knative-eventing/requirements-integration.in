@@ -1,7 +1,7 @@
 aiohttp
 jinja2
-# pin juju since we use controller 2.9. Juju (app) 3.0 is end of life and py juju as well
-juju>=2.9.42.3,<3.0
+# Pinning to <3.0 due to compatibility with the 2.9 controller version and 3.0 not being maintained anymore
+juju<3.0
 pytest-operator
 requests
 -r requirements.txt
