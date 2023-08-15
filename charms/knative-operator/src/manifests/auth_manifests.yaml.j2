@@ -751,12 +751,38 @@ rules:
       - "patch"
       - "watch"
 
+  - apiGroups:
+    - "sources.knative.dev"
+  resources:
+    - "sinkbindings"
+    - "sinkbindings/status"
+    - "sinkbindings/finalizers"
+  verbs:
+    - "get"
+    - "list"
+    - "create"
+    - "update"
+    - "delete"
+    - "patch"
+    - "watch"
+  
   # For leader election
   - apiGroups:
       - "coordination.k8s.io"
     resources:
       - "leases"
     verbs: *everything
+
+  - apiGroups:
+    - ""
+    - "events.k8s.io"
+  resources:
+    - "events"
+  verbs:
+    - "get"
+    - "list"
+    - "create"
+    - "patch"
 
   # Necessary for conversion webhook. These are copied from the serving
   # TODO: Do we really need all these permissions?
@@ -825,8 +851,8 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-serving-operator-aggregated
   labels:
-    operator.knative.dev/release: "v1.8.1"
-    app.kubernetes.io/version: "1.8.1"
+    operator.knative.dev/release: "v1.10.2"
+    app.kubernetes.io/version: "1.10.2"
     app.kubernetes.io/part-of: knative-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -842,8 +868,8 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-serving-operator-aggregated-stable
   labels:
-    operator.knative.dev/release: "v1.8.1"
-    app.kubernetes.io/version: "1.8.1"
+    operator.knative.dev/release: "v1.10.2"
+    app.kubernetes.io/version: "1.10.2"
     app.kubernetes.io/part-of: knative-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -859,8 +885,8 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-eventing-operator-aggregated
   labels:
-    operator.knative.dev/release: "v1.8.1"
-    app.kubernetes.io/version: "1.8.1"
+    operator.knative.dev/release: "v1.10.1"
+    app.kubernetes.io/version: "1.10.1"
     app.kubernetes.io/part-of: knative-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -876,8 +902,8 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-eventing-operator-aggregated-stable
   labels:
-    operator.knative.dev/release: "v1.8.1"
-    app.kubernetes.io/version: "1.8.1"
+    operator.knative.dev/release: "v1.10.1"
+    app.kubernetes.io/version: "1.10.1"
     app.kubernetes.io/part-of: knative-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
