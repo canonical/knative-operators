@@ -752,19 +752,19 @@ rules:
       - "watch"
 
   - apiGroups:
-    - "sources.knative.dev"
-  resources:
-    - "sinkbindings"
-    - "sinkbindings/status"
-    - "sinkbindings/finalizers"
-  verbs:
-    - "get"
-    - "list"
-    - "create"
-    - "update"
-    - "delete"
-    - "patch"
-    - "watch"
+      - "sources.knative.dev"
+    resources:
+      - "sinkbindings"
+      - "sinkbindings/status"
+      - "sinkbindings/finalizers"
+    verbs:
+      - "get"
+      - "list"
+      - "create"
+      - "update"
+      - "delete"
+      - "patch"
+      - "watch"
   
   # For leader election
   - apiGroups:
@@ -774,15 +774,15 @@ rules:
     verbs: *everything
 
   - apiGroups:
-    - ""
-    - "events.k8s.io"
-  resources:
-    - "events"
-  verbs:
-    - "get"
-    - "list"
-    - "create"
-    - "patch"
+      - ""
+      - "events.k8s.io"
+    resources:
+      - "events"
+    verbs:
+      - "get"
+      - "list"
+      - "create"
+      - "patch"
 
   # Necessary for conversion webhook. These are copied from the serving
   # TODO: Do we really need all these permissions?
