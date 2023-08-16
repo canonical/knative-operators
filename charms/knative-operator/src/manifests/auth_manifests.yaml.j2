@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# Source: knative/operator/config/rbac/clusterrole_aggregated.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -79,6 +80,7 @@ aggregationRule:
 # Commenting out rules: [] due to https://github.com/gtsystem/lightkube/issues/32
 #rules: [] # Rules are automatically filled in by the controller manager.
 ---
+# Source: knative/operator/config/rbac/role.yaml
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -675,6 +677,7 @@ rules:
     verbs:
       - deletecollection
 ---
+# Source: knative/operator/config/rbac/role_binding.yaml
 # TODO: Consider restriction of non-aggregated role to knativeservings namespaces.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -717,7 +720,7 @@ subjects:
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+# Source: knative/operator/config/rbac/webhook_role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -816,7 +819,7 @@ rules:
     resources: ["customresourcedefinitions"]
     verbs: ["get", "list", "create", "update", "delete", "patch", "watch"]
 ---
-
+# Source: knative/operator/config/rbac/webhook_role_binding.yaml
 # Copyright 2022 The Knative Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -858,6 +861,7 @@ subjects:
   name: knative-operator-webhook
   namespace: {{ namespace }}
 ---
+# Source: knative/operator/config/rbac/clusterrole_aggregated_binding.yaml
 # Copyright 2020 The Knative Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -940,6 +944,7 @@ subjects:
     name: {{ name }}-workload
     namespace: {{ namespace }}
 ---
+# Source: knative/operator/config/rbac/webhook_service_account.yaml
 # Copyright 2020 The Knative Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
