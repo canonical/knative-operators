@@ -263,6 +263,58 @@ rules:
   - knative-serving-operator
   verbs:
   - delete
+# for contour TLS
+- apiGroups:
+  - projectcontour.io
+  resources:
+  - httpproxies
+  - tlscertificatedelegations
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - create
+  - delete
+  - deletecollection
+  - patch
+# for security-guard
+- apiGroups:
+  - guard.security.knative.dev
+  resources:
+  - guardians
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -751,38 +803,12 @@ rules:
       - "patch"
       - "watch"
 
-  - apiGroups:
-      - "sources.knative.dev"
-    resources:
-      - "sinkbindings"
-      - "sinkbindings/status"
-      - "sinkbindings/finalizers"
-    verbs:
-      - "get"
-      - "list"
-      - "create"
-      - "update"
-      - "delete"
-      - "patch"
-      - "watch"
-  
   # For leader election
   - apiGroups:
       - "coordination.k8s.io"
     resources:
       - "leases"
     verbs: *everything
-
-  - apiGroups:
-      - ""
-      - "events.k8s.io"
-    resources:
-      - "events"
-    verbs:
-      - "get"
-      - "list"
-      - "create"
-      - "patch"
 
   # Necessary for conversion webhook. These are copied from the serving
   # TODO: Do we really need all these permissions?
@@ -809,7 +835,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   namespace: default
-  name: knative-operator-webhook
+  name: operator-webhook
+  labels:
+    eventing.knative.dev/release: devel
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/part-of: knative-operator
 subjects:
   - kind: ServiceAccount
     name: knative-operator-webhook
@@ -851,8 +881,8 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-serving-operator-aggregated
   labels:
-    operator.knative.dev/release: "v1.10.2"
-    app.kubernetes.io/version: "1.10.2"
+    operator.knative.dev/release: "v1.10.3"
+    app.kubernetes.io/version: "1.10.3"
     app.kubernetes.io/part-of: knative-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -868,8 +898,8 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-serving-operator-aggregated-stable
   labels:
-    operator.knative.dev/release: "v1.10.2"
-    app.kubernetes.io/version: "1.10.2"
+    operator.knative.dev/release: "v1.10.3"
+    app.kubernetes.io/version: "1.10.3"
     app.kubernetes.io/part-of: knative-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -885,8 +915,8 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-eventing-operator-aggregated
   labels:
-    operator.knative.dev/release: "v1.10.1"
-    app.kubernetes.io/version: "1.10.1"
+    operator.knative.dev/release: "v1.10.3"
+    app.kubernetes.io/version: "1.10.3"
     app.kubernetes.io/part-of: knative-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -902,8 +932,8 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-eventing-operator-aggregated-stable
   labels:
-    operator.knative.dev/release: "v1.10.1"
-    app.kubernetes.io/version: "1.10.1"
+    operator.knative.dev/release: "v1.10.3"
+    app.kubernetes.io/version: "1.10.3"
     app.kubernetes.io/part-of: knative-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
