@@ -26,6 +26,7 @@ gcr.io/knative-releases/knative.dev/serving/cmd/webhook@sha256:bc13765ba4895c0fa
 )
 # dynamic list
 IMAGE_LIST=()
+IMAGE_LIST+=($(find . -type f -name metadata.yaml -exec yq '.resources | to_entries | .[] | .value | ."upstream-source"' {} \;))
 IMAGE_LIST+=($(grep image charms/knative-operator/src/manifests/observability/collector.yaml.j2 | awk '{print $2}' | sort --unique))
 printf "%s\n" "${STATIC_IMAGE_LIST[@]}"
 printf "%s\n" "${IMAGE_LIST[@]}"
