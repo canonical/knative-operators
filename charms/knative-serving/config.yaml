@@ -3,7 +3,7 @@
 
 options:
   version:
-    default: "1.8.0"
+    default: "1.10.2"
     description: Version of knative-serving component.
     type: string
   namespace:
@@ -21,4 +21,19 @@ options:
   istio.gateway.namespace:
     default: ""
     description: (TEMP) The namespace where istio is deployed. It is usually the model name where istio (pilot and gateway) are deployed. This configuration is required.
+    type: string
+  custom_images:
+    default: |
+      activator: ''
+      autoscaler: ''
+      controller: ''
+      webhook: ''
+      autoscaler-hpa: ''
+      net-istio-controller/controller: ''
+      net-istio-webhook/webhook: ''
+      queue-proxy: ''
+    description: >
+      YAML or JSON formatted input defining images to use in Knative Serving.  Any image omitted or set to '' here will
+      use a default image.  For usage details, see 
+      https://github.com/canonical/knative-operators/blob/main/charms/knative-serving/README.md#setting-custom-images-for-knative-serving.
     type: string
