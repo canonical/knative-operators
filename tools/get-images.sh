@@ -16,17 +16,23 @@ gcr.io/knative-releases/knative.dev/net-istio/cmd/controller@sha256:2b484d982ef1
 gcr.io/knative-releases/knative.dev/net-istio/cmd/webhook@sha256:59b6a46d3b55a03507c76a3afe8a4ee5f1a38f1130fd3d65c9fe57fff583fa8d
 gcr.io/knative-releases/knative.dev/pkg/apiextensions/storageversion/cmd/migrate@sha256:59431cf8337532edcd9a4bcd030591866cc867f13bee875d81757c960a53668d
 gcr.io/knative-releases/knative.dev/pkg/apiextensions/storageversion/cmd/migrate@sha256:d0095787bc1687e2d8180b36a66997733a52f8c49c3e7751f067813e3fb54b66
-gcr.io/knative-releases/knative.dev/serving/cmd/activator@sha256:c3bbf3a96920048869dcab8e133e00f59855670b8a0bbca3d72ced2f512eb5e1
-gcr.io/knative-releases/knative.dev/serving/cmd/autoscaler-hpa@sha256:7003443f0faabbaca12249aa16b73fa171bddf350abd826dd93b06f5080a146d
-gcr.io/knative-releases/knative.dev/serving/cmd/autoscaler@sha256:caae5e34b4cb311ed8551f2778cfca566a77a924a59b775bd516fa8b5e3c1d7f
-gcr.io/knative-releases/knative.dev/serving/cmd/controller@sha256:38f9557f4d61ec79cc2cdbe76da8df6c6ae5f978a50a2847c22cc61aa240da95
-gcr.io/knative-releases/knative.dev/serving/cmd/domain-mapping-webhook@sha256:a4ba0076df2efaca2eed561339e21b3a4ca9d90167befd31de882bff69639470
-gcr.io/knative-releases/knative.dev/serving/cmd/domain-mapping@sha256:763d648bf1edee2b4471b0e211dbc53ba2d28f92e4dae28ccd39af7185ef2c96
-gcr.io/knative-releases/knative.dev/serving/cmd/webhook@sha256:bc13765ba4895c0fa318a065392d05d0adc0e20415c739e0aacb3f56140bf9ae
 )
 # dynamic list
 IMAGE_LIST=()
 IMAGE_LIST+=($(find . -type f -name metadata.yaml -exec yq '.resources | to_entries | .[] | .value | ."upstream-source"' {} \;))
 IMAGE_LIST+=($(grep image charms/knative-operator/src/manifests/observability/collector.yaml.j2 | awk '{print $2}' | sort --unique))
+# obtaint knative serving version and corresponding knative release information
+KNATIVE_SERVING_VERSION=$(yq '.options.version.default' ./charms/knative-serving/config.yaml)
+KNATIVE_REPO_DOWNLOAD_URL=https://github.com/knative/serving/releases/download/
+wget -q "${KNATIVE_REPO_DOWNLOAD_URL}/knative-v${KNATIVE_SERVING_VERSION}/serving-core.yaml"
+SERVING_IMAGE_LIST=()
+SERVING_IMAGE_LIST+=($(yq 'select(di == 28) | .spec.image' ./serving-core.yaml))
+SERVING_IMAGE_LIST+=($(yq 'select(di == 31) | .data.queue-sidecar-image' ./serving-core.yaml))
+SERVING_IMAGE_LIST+=($(yq -N 'select(di > 31) | .spec.template.spec.containers | .[] | .image' ./serving-core.yaml))
+wget -q "${KNATIVE_REPO_DOWNLOAD_URL}/knative-v${KNATIVE_SERVING_VERSION}/serving-hpa.yaml"
+SERVING_IMAGE_LIST+=($(yq 'select(di == 0) | .spec.template.spec.containers | .[] | .image' ./serving-hpa.yaml))
+wget -q "${KNATIVE_REPO_DOWNLOAD_URL}/knative-v${KNATIVE_SERVING_VERSION}/serving-default-domain.yaml"
+SERVING_IMAGE_LIST+=($(yq 'select(di == 0) | .spec.template.spec.containers | .[] | .image' ./serving-default-domain.yaml))
+printf "%s\n" "${SERVING_IMAGE_LIST[@]}"
 printf "%s\n" "${STATIC_IMAGE_LIST[@]}"
 printf "%s\n" "${IMAGE_LIST[@]}"
