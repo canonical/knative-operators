@@ -30,9 +30,9 @@ jobs:
     strategy:
       matrix:
         charm:
-          - knative-eventing
-          - knative-operator
-          - knative-serving
+          - eventing
+          - operator
+          - serving
     uses: canonical/charmed-kubeflow-workflows/.github/workflows/_unit-tests.yaml@beta-craft
     secrets: inherit
     with:
