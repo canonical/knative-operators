@@ -130,6 +130,7 @@ class KnativeEventingCharm(CharmBase):
         context = {
             "app_name": self._app_name,
             "eventing_namespace": self.model.config["namespace"],
+            "eventing_version": self.model.config["version"],
             "custom_images": self._get_custom_images(),
         }
         if self._otel_collector_relation_data:
