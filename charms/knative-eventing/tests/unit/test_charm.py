@@ -109,6 +109,7 @@ def test_context_changes(harness):
     context = {
         "app_name": harness.charm.app.name,
         "eventing_namespace": harness.model.config["namespace"],
+        "eventing_version": harness.model.config["version"],
         CUSTOM_IMAGE_CONFIG_NAME: DEFAULT_IMAGES,
     }
 
