@@ -57,7 +57,7 @@ IMAGE_LIST=("${IMAGE_LIST[@]/$del_null}")
 
 # TO-DO not printing static list
 #printf "%s\n" "${STATIC_IMAGE_LIST[@]}" | sort -u
-printf "%s\n" "${EVENTING_IMAGE_LIST[@]}" | sort -u
-printf "%s\n" "${SERVING_IMAGE_LIST[@]}" | sort -u
-printf "%s\n" "${NET_ISTIO_IMAGE_LIST[@]}" | sort -u
-printf "%s\n" "${IMAGE_LIST[@]}" | sort -u
+printf "%s\n" "${EVENTING_IMAGE_LIST[@]}" | sed -r '/^\s*$/d' | sort -u
+printf "%s\n" "${SERVING_IMAGE_LIST[@]}" | sed -r '/^\s*$/d' | sort -u
+printf "%s\n" "${NET_ISTIO_IMAGE_LIST[@]}" | sed -r '/^\s*$/d' | sort -u
+printf "%s\n" "${IMAGE_LIST[@]}" | sed -r '/^\s*$/d' | sort -u
