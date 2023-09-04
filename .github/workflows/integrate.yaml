@@ -46,6 +46,9 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v3
 
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
