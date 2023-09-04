@@ -13,6 +13,8 @@ wget -q "${KNATIVE_EVENTING_REPO_DOWNLOAD_URL}/knative-v${KNATIVE_EVENTING_VERSI
 EVENTING_IMAGE_LIST+=($(yq -N '.spec.template.spec.containers | .[] | .image' ./eventing-core.yaml))
 wget -q "${KNATIVE_EVENTING_REPO_DOWNLOAD_URL}/knative-v${KNATIVE_EVENTING_VERSION}/eventing.yaml"
 EVENTING_IMAGE_LIST+=($(yq -N '.spec.template.spec.containers | .[] | .image' ./eventing.yaml))
+wget -q "${KNATIVE_EVENTING_REPO_DOWNLOAD_URL}/knative-v${KNATIVE_EVENTING_VERSION}/eventing-post-install.yaml"
+EVENTING_IMAGE_LIST+=($(yq -N '.spec.template.spec.containers | .[] | .image' ./eventing-post-install.yaml))
 # obtain knative serving version and corresponding knative release information
 KNATIVE_SERVING_VERSION=$(yq -N '.options.version.default' ./charms/knative-serving/config.yaml)
 KNATIVE_SERVING_REPO_DOWNLOAD_URL=https://github.com/knative/serving/releases/download/
