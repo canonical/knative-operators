@@ -1,14 +1,7 @@
 #!/bin/bash
 #
 # This script returns list of container images that are managed by this charm and/or its workload
-#
-# static list
-STATIC_IMAGE_LIST=(
-# manual addition based on https://github.com/canonical/knative-operators/issues/137
-# TO-DO: This images are present in deployment, but either cannot be found in YAMLs and/or their SHA do not match the deployed versions
-gcr.io/knative-releases/knative.dev/pkg/apiextensions/storageversion/cmd/migrate@sha256:59431cf8337532edcd9a4bcd030591866cc867f13bee875d81757c960a53668d
-)
-# dynamic list
+
 IMAGE_LIST=()
 IMAGE_LIST+=($(find . -type f -name metadata.yaml -exec yq '.resources | to_entries | .[] | .value | ."upstream-source"' {} \;))
 IMAGE_LIST+=($(grep image charms/knative-operator/src/manifests/observability/collector.yaml.j2 | awk '{print $2}' | sort --unique))
@@ -55,8 +48,6 @@ SERVING_IMAGE_LIST=("${SERVING_IMAGE_LIST[@]/$del_null}")
 NET_ISTIO_IMAGE_LIST=("${NET_ISTIO_IMAGE_LIST[@]/$del_null}")
 IMAGE_LIST=("${IMAGE_LIST[@]/$del_null}")
 
-# TO-DO not printing static list
-#printf "%s\n" "${STATIC_IMAGE_LIST[@]}" | sort -u
 printf "%s\n" "${EVENTING_IMAGE_LIST[@]}" | sed -r '/^\s*$/d' | sort -u
 printf "%s\n" "${SERVING_IMAGE_LIST[@]}" | sed -r '/^\s*$/d' | sort -u
 printf "%s\n" "${NET_ISTIO_IMAGE_LIST[@]}" | sed -r '/^\s*$/d' | sort -u
