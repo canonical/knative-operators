@@ -54,3 +54,7 @@ printf "%s\n" "${EVENTING_IMAGE_LIST[@]}" | sed -r '/^\s*$/d' | sort -u
 printf "%s\n" "${SERVING_IMAGE_LIST[@]}" | sed -r '/^\s*$/d' | sort -u
 printf "%s\n" "${NET_ISTIO_IMAGE_LIST[@]}" | sed -r '/^\s*$/d' | sort -u
 printf "%s\n" "${IMAGE_LIST[@]}" | sed -r '/^\s*$/d' | sort -u
+
+rm eventing-core.yaml eventing-post-install.yaml eventing.yaml net-istio.yaml \
+  serving-core.yaml serving-default-domain.yaml serving-hpa.yaml \
+  serving-post-install-jobs.yaml serving-storage-version-migration.yaml
