@@ -4,7 +4,7 @@
 #
 #    pip-compile requirements.in
 #
-anyio==3.7.1
+anyio==4.0.0
     # via httpcore
 attrs==23.1.0
     # via jsonschema
@@ -19,7 +19,7 @@ charset-normalizer==3.2.0
     # via requests
 deepdiff==6.2.1
     # via charmed-kubeflow-chisme
-exceptiongroup==1.1.2
+exceptiongroup==1.1.3
     # via anyio
 h11==0.14.0
     # via httpcore
@@ -40,11 +40,11 @@ jsonschema==4.17.3
     # via serialized-data-interface
 lightkube==0.14.0
     # via charmed-kubeflow-chisme
-lightkube-models==1.27.1.4
+lightkube-models==1.28.1.4
     # via lightkube
 markupsafe==2.1.3
     # via jinja2
-ops==2.5.0
+ops==2.6.0
     # via
     #   -r requirements.in
     #   charmed-kubeflow-chisme
@@ -73,11 +73,11 @@ sniffio==1.3.0
     #   anyio
     #   httpcore
     #   httpx
-tenacity==8.2.2
+tenacity==8.2.3
     # via charmed-kubeflow-chisme
 urllib3==2.0.4
     # via requests
-websocket-client==1.6.1
+websocket-client==1.6.2
     # via ops
 zipp==3.16.2
     # via importlib-resources
