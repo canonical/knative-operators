@@ -50,15 +50,15 @@ jobs:
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: microk8s
-          channel: 1.24/stable
-          juju-channel: 2.9/stable
+          channel: 1.25-strict/stable
+          juju-channel: 3.1/stable
           charmcraft-channel: latest/candidate
           microk8s-addons: "dns storage rbac metallb:10.64.140.43-10.64.140.49"
 
       - name: Run integration tests
         run: |
-          sg microk8s -c "juju add-model knative-test"
-          sg microk8s -c "tox -vve integration -- --model knative-test --destructive-mode"
+          sg snap_microk8s -c "juju add-model knative-test"
+          sg snap_microk8s -c "tox -vve integration -- --model knative-test --destructive-mode"
 
       - run: kubectl get all -A
         if: failure()
@@ -84,14 +84,14 @@ jobs:
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: microk8s
-          channel: 1.24/stable
-          juju-channel: 2.9/stable
+          channel: 1.25-strict/stable
+          juju-channel: 3.1/stable
           charmcraft-channel: latest/candidate
 
       - name: Run integration tests
         run: |
-          sg microk8s -c "juju add-model cos-test"
-          sg microk8s -c "tox -vve cos-integration -- --model cos-test --destructive-mode"
+          sg snap_microk8s -c "juju add-model cos-test"
+          sg snap_microk8s -c "tox -vve cos-integration -- --model cos-test --destructive-mode"
 
       - run: kubectl get pod/prometheus-k8s-0 -n knative-test -o=jsonpath='{.status}'
         if: failure()

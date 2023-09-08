@@ -1,7 +1,7 @@
 asyncio
 flake8
-# pin juju since we use controller 2.9. Juju (app) 3.0 is end of life and py juju as well
-juju<3.0
+# Pinning to <4.0 due to compatibility with the 3.1 controller version
+juju<4.0
 lightkube
 pytest-asyncio
 pytest-operator
