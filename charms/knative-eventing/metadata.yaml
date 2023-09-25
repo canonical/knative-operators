@@ -8,6 +8,7 @@ description: |
   This charm presents a simplified interface for deploying Knative Eventing in Juju,
   handling the creation of Kubernetes objects required to request a Knative Eventing
   application from the a Knative Operator.
+docs: https://discourse.charmhub.io/t/11955
 summary: |
   Knative Eventing deployment for Charmed Operators in Kubernetes
 requires:
