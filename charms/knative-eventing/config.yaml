@@ -2,7 +2,23 @@
 # See LICENSE file for licensing details.
 
 options:
+  version:
+    default: "1.8.0"
+    description: Version of knative-eventing component.
+    type: string
   namespace:
     default: ""
     description: The namespace to deploy Eventing to. This namespace cannot also contain another Knative Serving or Eventing instance. This configuration is required.
+    type: string
+  custom_images:
+    default: |
+      eventing-controller/eventing-controller: ''
+      eventing-webhook/eventing-webhook: ''
+      imc-controller/controller: ''
+      imc-dispatcher/dispatcher: ''
+      broker-controller/eventing-controller: ''
+    description: >
+      YAML or JSON formatted input defining images to use in Knative Eventing.  Any image omitted or set to '' here will
+      use a default image.  For usage details, see 
+      https://github.com/canonical/knative-operators/blob/main/charms/knative-eventing/README.md#setting-custom-images-for-knative-eventing.
     type: string

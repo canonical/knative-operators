@@ -4,6 +4,7 @@ metadata:
   name: {{ app_name }}
   namespace: {{ eventing_namespace }}
 spec:
+  version: {{ eventing_version }}
   config:
     _default:
       # This is not actually functional
@@ -12,4 +13,11 @@ spec:
     observability:
       metrics.backend-destination: opencensus
       metrics.opencensus-address: {{ otel_collector_svc_name }}.{{ otel_collector_svc_namespace }}:{{ otel_collector_port }}
+{% endif %}
+{% if custom_images %}
+  registry:
+    override:
+      {% for container, image in custom_images.items() %}
+      {{ container }}: {{ image }}
+      {% endfor %}
 {% endif %}

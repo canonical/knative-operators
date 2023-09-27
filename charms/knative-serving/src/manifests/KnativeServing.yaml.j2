@@ -27,3 +27,10 @@ spec:
       metrics.request-metrics-backend-destination: opencensus
       metrics.opencensus-address: {{ otel_collector_svc_name }}.{{ otel_collector_svc_namespace }}:{{ otel_collector_port }}
 {% endif %}
+{% if custom_images %}
+  registry:
+    override:
+      {% for container, image in custom_images.items() %}
+      {{ container }}: {{ image }}
+      {% endfor %}
+{% endif %}
