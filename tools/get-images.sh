@@ -3,7 +3,7 @@
 # This script returns list of container images that are managed by this charm and/or its workload
 IMAGE_LIST=()
 IMAGE_LIST+=($(find . -type f -name metadata.yaml -exec yq '.resources | to_entries | .[] | .value | ."upstream-source"' {} \;))
-IMAGE_LIST+=($(grep image charms/knative-operator/src/manifests/observability/collector.yaml.j2 | awk '{print $2}' | sort --unique))
+IMAGE_LIST+=($(yq -N '.options.otel-collector-image.default' ./charms/knative-operator/config.yaml))
 # obtain knative eventing version and corresponding knative release information
 KNATIVE_EVENTING_VERSION=$(yq -N '.options.version.default' ./charms/knative-eventing/config.yaml)
 KNATIVE_EVENTING_REPO_DOWNLOAD_URL=https://github.com/knative/eventing/releases/download/
