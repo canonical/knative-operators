@@ -1,0 +1,7 @@
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
+options:
+  otel-collector-image:
+    default: "otel/opentelemetry-collector:latest"
+    type: string
+    description: Image to use by the otel collector Deployment.
