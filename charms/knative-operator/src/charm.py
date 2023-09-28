@@ -135,6 +135,7 @@ class KnativeOperatorCharm(CharmBase):
             "namespace": self._namespace,
             "name": self._app_name,
             "requestLogTemplate": REQUEST_LOG_TEMPLATE,
+            "otel_collector_image": self.config["otel-collector-image"],
         }
         return context
 
