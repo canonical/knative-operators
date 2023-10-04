@@ -8,6 +8,7 @@ description: |
   and revision tracking. This charm presents a simplified interface for deploying
   Knative Serving in Juju, handling the creation of Kubernetes objects required to
   request a Knative Serving application from the a Knative Operator.
+docs: https://discourse.charmhub.io/t/11957
 summary: |
   Knative Serving deployment for Charmed Operators in Kubernetes
 provides:

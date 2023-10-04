@@ -5,6 +5,7 @@ summary: Kubernetes charm for knative-operator.
 description: |
   The knative-operator defines custom resources for the Knative components,
   serving and eventing.
+docs: https://discourse.charmhub.io/t/11956
 containers:
   knative-operator:
     resource: knative-operator-image
