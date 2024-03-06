@@ -296,7 +296,7 @@ async def test_serving_custom_image(ops_test: OpsTest, restore_serving_custom_im
     assert activator_deployment.spec.template.spec.containers[0].image == fake_image
 
 
-async def test_serving_custom_progress_deadline(ops_test: OpsTest):
+async def test_serving_config_progress_deadline(ops_test: OpsTest):
     """
     Changes `progress-deadline` config, then asserts the change took effect
     in the `config-deployment ConfigMap`
@@ -323,7 +323,7 @@ async def test_serving_custom_progress_deadline(ops_test: OpsTest):
     assert config_deployment_cm.data["progress-deadline"] == custom_deadline
 
 
-async def test_serving_custom_registries_skip_tag_resolution(ops_test: OpsTest):
+async def test_serving_config_registries_skip_tag_resolution(ops_test: OpsTest):
     """
     Changes `registries-skip-tag-resolution` config, then asserts the change took effect
     in the `config-deployment ConfigMap`
