@@ -14,7 +14,7 @@ from lightkube import ApiError, Client
 from lightkube.generic_resource import create_namespaced_resource
 from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
 from lightkube.resources.apps_v1 import Deployment
-from lightkube.resources.core_v1 import Service
+from lightkube.resources.core_v1 import ConfigMap, Service
 from pytest_operator.plugin import OpsTest
 from tenacity import Retrying, stop_after_delay, wait_fixed
 
@@ -41,6 +41,7 @@ KNATIVE_OPERATOR_RESOURCES = {
 }
 
 
+@pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
 async def test_build_deploy_knative_charms(ops_test: OpsTest):
     # Build knative charms
@@ -293,3 +294,57 @@ async def test_serving_custom_image(ops_test: OpsTest, restore_serving_custom_im
     client = lightkube.Client()
     activator_deployment = client.get(Deployment, "activator", namespace=KNATIVE_SERVING_NAMESPACE)
     assert activator_deployment.spec.template.spec.containers[0].image == fake_image
+
+
+async def test_serving_custom_progress_deadline(ops_test: OpsTest):
+    """
+    Changes `progress-deadline` config, then asserts the change took effect
+    in the `config-deployment ConfigMap`
+    """
+
+    custom_deadline = "800s"
+
+    # Act
+    await ops_test.model.applications["knative-serving"].set_config(
+        {"progress-deadline": custom_deadline}
+    )
+    await ops_test.model.wait_for_idle(
+        ["knative-serving"],
+        status="active",
+        raise_on_blocked=False,
+        timeout=60 * 1,
+    )
+
+    # Assert
+    client = lightkube.Client()
+    config_deployment_cm = client.get(
+        ConfigMap, "config-deployment", namespace=KNATIVE_SERVING_NAMESPACE
+    )
+    assert config_deployment_cm.data["progress-deadline"] == custom_deadline
+
+
+async def test_serving_custom_registries_skip_tag_resolution(ops_test: OpsTest):
+    """
+    Changes `registries-skip-tag-resolution` config, then asserts the change took effect
+    in the `config-deployment ConfigMap`
+    """
+
+    custom_registries = "dev.local"
+
+    # Act
+    await ops_test.model.applications["knative-serving"].set_config(
+        {"registries-skipping-tag-resolving": custom_registries}
+    )
+    await ops_test.model.wait_for_idle(
+        ["knative-serving"],
+        status="active",
+        raise_on_blocked=False,
+        timeout=60 * 1,
+    )
+
+    # Assert
+    client = lightkube.Client()
+    config_deployment_cm = client.get(
+        ConfigMap, "config-deployment", namespace=KNATIVE_SERVING_NAMESPACE
+    )
+    assert config_deployment_cm.data["registries-skipping-tag-resolving"] == custom_registries
