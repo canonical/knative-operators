@@ -172,6 +172,8 @@ def test_context_changes(harness):
         "domain": harness.model.config["domain.name"],
         "gateway_name": harness.model.config["istio.gateway.name"],
         "gateway_namespace": harness.model.config["istio.gateway.namespace"],
+        "progress_deadline": harness.model.config["progress-deadline"],
+        "registries_skip_tag_resolving": harness.model.config["registries-skipping-tag-resolving"],
         "serving_namespace": harness.model.config["namespace"],
         "serving_version": harness.model.config["version"],
         CUSTOM_IMAGE_CONFIG_NAME: DEFAULT_IMAGES,
