@@ -41,7 +41,6 @@ KNATIVE_OPERATOR_RESOURCES = {
 }
 
 
-@pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
 async def test_build_deploy_knative_charms(ops_test: OpsTest):
     # Build knative charms
@@ -348,3 +347,18 @@ async def test_serving_config_registries_skip_tag_resolution(ops_test: OpsTest):
         ConfigMap, "config-deployment", namespace=KNATIVE_SERVING_NAMESPACE
     )
     assert config_deployment_cm.data["registries-skipping-tag-resolving"] == custom_registries
+
+
+async def test_config_features_node_selector_affinity_and_tolerations_enabled(ops_test: OpsTest):
+    """
+    Assert the feature flags in the KnativeServing CR for nodeselector, affinity, and tolerations
+    are enabled in the `config-features` ConfigMap.
+    """
+
+    client = lightkube.Client()
+    config_features_cm = client.get(
+        ConfigMap, "config-features", namespace=KNATIVE_SERVING_NAMESPACE
+    )
+    assert config_features_cm.data["kubernetes.podspec-nodeselector"] == "enabled"
+    assert config_features_cm.data["kubernetes.podspec-affinity"] == "enabled"
+    assert config_features_cm.data["kubernetes.podspec-tolerations"] == "enabled"
