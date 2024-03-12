@@ -51,6 +51,10 @@ EXPECTED_AFFINITY = "Affinity(nodeAffinity=NodeAffinity(preferredDuringSchedulin
 EXPECTED_TOLERATION = "Toleration(effect='NoSchedule', key='myTaint1', operator='Equal', tolerationSeconds=None, value='true')"  # noqa E501
 EXPECTED_NODESELECTOR = {"myLabel1": "true"}
 
+CLOUDEVENTS_PLAYER_EXAMPLE_IMAGE = yaml.safe_load(
+    Path("./examples/cloudevents-player.yaml").read_text()
+)["spec"]["template"]["spec"]["containers"][0]["image"]
+
 
 @pytest.mark.abort_on_fail
 async def test_build_deploy_knative_charms(ops_test: OpsTest):
@@ -348,6 +352,19 @@ async def test_isvc_deployment_spec(ops_test: OpsTest, remove_sklearn_iris_examp
     )
 
     # Act
+
+    # Change the `progress-deadline` config
+    custom_deadline = "123s"
+    await ops_test.model.applications["knative-serving"].set_config(
+        {"progress-deadline": custom_deadline}
+    )
+    await ops_test.model.wait_for_idle(
+        ["knative-serving"],
+        status="active",
+        raise_on_blocked=False,
+        timeout=60 * 1,
+    )
+
     # Create ISVC
 
     manifest = lightkube.codecs.load_all_yaml(
@@ -379,10 +396,8 @@ async def test_isvc_deployment_spec(ops_test: OpsTest, remove_sklearn_iris_examp
     assert isvc_deployment.spec.template.spec.nodeSelector == EXPECTED_NODESELECTOR
 
     # ProgressDeadline
-    knative_serving_config = await ops_test.model.applications["knative-serving"].get_config()
-    progress_deadline_config = knative_serving_config["progress-deadline"]["value"]
     assert (
-        str(isvc_deployment.spec.progressDeadlineSeconds) + "s" == progress_deadline_config
+        str(isvc_deployment.spec.progressDeadlineSeconds) + "s" == custom_deadline
     )  # Concatenates the `s` for seconds to match the config
 
 
@@ -429,6 +444,5 @@ async def test_ksvc_skip_tag_resolution(ops_test: OpsTest, remove_cloudevents_pl
     # Assert tag is not resolved
 
     assert (
-        ksvc_deployment.spec.template.spec.containers[0].image
-        == "ruromero/cloudevents-player:latest"
+        ksvc_deployment.spec.template.spec.containers[0].image == CLOUDEVENTS_PLAYER_EXAMPLE_IMAGE
     )
