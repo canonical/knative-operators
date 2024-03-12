@@ -1,0 +1,26 @@
+apiVersion: "serving.kserve.io/v1beta1"
+kind: "InferenceService"
+metadata:
+  name: "sklearn-iris"
+spec:
+  predictor:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: disktype
+              operator: In
+              values:
+              - ssd
+    nodeSelector:
+      myLabel1: "true"
+    tolerations:
+      - key: "myTaint1"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+    model:
+      modelFormat:
+        name: sklearn
+      storageUri: "gs://kfserving-examples/models/sklearn/1.0/model"

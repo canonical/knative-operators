@@ -14,7 +14,7 @@ from lightkube import ApiError, Client
 from lightkube.generic_resource import create_namespaced_resource
 from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
 from lightkube.resources.apps_v1 import Deployment
-from lightkube.resources.core_v1 import ConfigMap, Service
+from lightkube.resources.core_v1 import Service
 from pytest_operator.plugin import OpsTest
 from tenacity import Retrying, stop_after_delay, wait_fixed
 
@@ -22,6 +22,13 @@ log = logging.getLogger(__name__)
 
 KSVC = create_namespaced_resource(
     group="serving.knative.dev", version="v1", kind="Service", plural="services"
+)
+ISVC = create_namespaced_resource(
+    group="serving.kserve.io",
+    version="v1beta1",
+    kind="InferenceService",
+    plural="inferenceservices",
+    verbs=None,
 )
 KNATIVE_EVENTING_NAMESPACE = "knative-eventing"
 KNATIVE_SERVING_NAMESPACE = "knative-serving"
@@ -39,6 +46,10 @@ KNATIVE_OPERATOR_RESOURCES = {
     "knative-operator-image": KNATIVE_OPERATOR_IMAGE,
     "knative-operator-webhook-image": KNATIVE_OPERATOR_WEBHOOK_IMAGE,
 }
+
+EXPECTED_AFFINITY = "Affinity(nodeAffinity=NodeAffinity(preferredDuringSchedulingIgnoredDuringExecution=None, requiredDuringSchedulingIgnoredDuringExecution=NodeSelector(nodeSelectorTerms=[NodeSelectorTerm(matchExpressions=[NodeSelectorRequirement(key='disktype', operator='In', values=['ssd'])], matchFields=None)])), podAffinity=None, podAntiAffinity=None)"  # noqa E501
+EXPECTED_TOLERATION = "Toleration(effect='NoSchedule', key='myTaint1', operator='Equal', tolerationSeconds=None, value='true')"  # noqa E501
+EXPECTED_NODESELECTOR = {"myLabel1": "true"}
 
 
 @pytest.mark.abort_on_fail
@@ -148,6 +159,21 @@ def remove_cloudevents_player_example(ops_test: OpsTest):
         # If the ksvc doesn't exist, we can ignore the error
         if e.code == 404:
             log.info("Tried to delete cloudevents-player knative service, but it didn't exist")
+        else:
+            raise e
+
+
+@pytest.fixture()
+def remove_sklearn_iris_example(ops_test: OpsTest):
+    """Fixture that attempts to remove the sklearn-iris example after a test has run"""
+    yield
+    lightkube_client = Client()
+    try:
+        lightkube_client.delete(ISVC, "sklearn-iris", namespace=ops_test.model_name)
+    except ApiError as e:
+        # If the isvc doesn't exist, we can ignore the error
+        if e.code == 404:
+            log.info("Tried to delete sklearn-iris inference service, but it didn't exist")
         else:
             raise e
 
@@ -295,18 +321,84 @@ async def test_serving_custom_image(ops_test: OpsTest, restore_serving_custom_im
     assert activator_deployment.spec.template.spec.containers[0].image == fake_image
 
 
-async def test_serving_config_progress_deadline(ops_test: OpsTest):
+async def test_isvc_deployment_spec(ops_test: OpsTest, remove_sklearn_iris_example):
     """
-    Changes `progress-deadline` config, then asserts the change took effect
-    in the `config-deployment ConfigMap`
+    Asserts that the spec of the deployment created by an ISVC has the correct attributes for:
+    * affinity
+    * tolerations
+    * nodeSelector
+    * progressDeadlineSeconds
     """
+    # Deploy kserve-controller and add relations
 
-    custom_deadline = "800s"
+    await ops_test.model.deploy(
+        "kserve-controller",
+        channel="latest/edge",
+        trust=True,
+    )
+
+    await ops_test.model.add_relation("istio-pilot", "kserve-controller")
+    await ops_test.model.add_relation("knative-serving", "kserve-controller")
+
+    await ops_test.model.wait_for_idle(
+        ["kserve-controller"],
+        raise_on_blocked=False,
+        status="active",
+        timeout=90 * 10,
+    )
 
     # Act
-    await ops_test.model.applications["knative-serving"].set_config(
-        {"progress-deadline": custom_deadline}
+    # Create ISVC
+
+    manifest = lightkube.codecs.load_all_yaml(
+        Path("./examples/sklearn-node-constraints.yaml").read_text()
     )
+    lightkube_client = Client()
+
+    for obj in manifest:
+        lightkube_client.create(obj, namespace=ops_test.model_name)
+
+    # Get ISVC Deployment
+
+    for attempt in RETRY_FOR_THREE_MINUTES:
+        with attempt:
+            deployment_list = lightkube_client.list(
+                res=Deployment,
+                namespace=ops_test.model_name,
+                labels={"serving.kserve.io/inferenceservice": "sklearn-iris"},
+            )
+            isvc_deployment = next(deployment_list)
+
+    # Assert
+
+    # Affinity
+    assert str(isvc_deployment.spec.template.spec.affinity) == EXPECTED_AFFINITY
+    # Toleration
+    assert str(isvc_deployment.spec.template.spec.tolerations[0]) == EXPECTED_TOLERATION
+    # NodeSelector
+    assert isvc_deployment.spec.template.spec.nodeSelector == EXPECTED_NODESELECTOR
+
+    # ProgressDeadline
+    knative_serving_config = await ops_test.model.applications["knative-serving"].get_config()
+    progress_deadline_config = knative_serving_config["progress-deadline"]["value"]
+    assert (
+        str(isvc_deployment.spec.progressDeadlineSeconds) + "s" == progress_deadline_config
+    )  # Concatenates the `s` for seconds to match the config
+
+
+async def test_ksvc_skip_tag_resolution(ops_test: OpsTest, remove_cloudevents_player_example):
+    """
+    Tests that the `registries-skipping-tag-resolving` config from `knative-serving` charm
+    works as expected.
+    """
+    # Act
+
+    # Configure KnativeServing to skip tag resolution for the registry where the cloudevents-player
+    # image is pulled
+    await ops_test.model.applications["knative-serving"].set_config(
+        {"registries-skipping-tag-resolving": "index.docker.io"}
+    )
+
     await ops_test.model.wait_for_idle(
         ["knative-serving"],
         status="active",
@@ -314,51 +406,29 @@ async def test_serving_config_progress_deadline(ops_test: OpsTest):
         timeout=60 * 1,
     )
 
-    # Assert
-    client = lightkube.Client()
-    config_deployment_cm = client.get(
-        ConfigMap, "config-deployment", namespace=KNATIVE_SERVING_NAMESPACE
-    )
-    assert config_deployment_cm.data["progress-deadline"] == custom_deadline
-
-
-async def test_serving_config_registries_skip_tag_resolution(ops_test: OpsTest):
-    """
-    Changes `registries-skip-tag-resolution` config, then asserts the change took effect
-    in the `config-deployment ConfigMap`
-    """
-
-    custom_registries = "dev.local"
-
-    # Act
-    await ops_test.model.applications["knative-serving"].set_config(
-        {"registries-skipping-tag-resolving": custom_registries}
-    )
-    await ops_test.model.wait_for_idle(
-        ["knative-serving"],
-        status="active",
-        raise_on_blocked=False,
-        timeout=60 * 1,
+    manifest = lightkube.codecs.load_all_yaml(
+        Path("./examples/cloudevents-player.yaml").read_text()
     )
 
-    # Assert
-    client = lightkube.Client()
-    config_deployment_cm = client.get(
-        ConfigMap, "config-deployment", namespace=KNATIVE_SERVING_NAMESPACE
+    lightkube_client = Client()
+
+    for obj in manifest:
+        lightkube_client.create(obj, namespace=ops_test.model_name)
+
+    # Get KSVC Deployment
+
+    for attempt in RETRY_FOR_THREE_MINUTES:
+        with attempt:
+            deployment_list = lightkube_client.list(
+                res=Deployment,
+                namespace=ops_test.model_name,
+                labels={"serving.knative.dev/service": "cloudevents-player"},
+            )
+            ksvc_deployment = next(deployment_list)
+
+    # Assert tag is not resolved
+
+    assert (
+        ksvc_deployment.spec.template.spec.containers[0].image
+        == "ruromero/cloudevents-player:latest"
     )
-    assert config_deployment_cm.data["registries-skipping-tag-resolving"] == custom_registries
-
-
-async def test_config_features_node_selector_affinity_and_tolerations_enabled(ops_test: OpsTest):
-    """
-    Assert the feature flags in the KnativeServing CR for nodeselector, affinity, and tolerations
-    are enabled in the `config-features` ConfigMap.
-    """
-
-    client = lightkube.Client()
-    config_features_cm = client.get(
-        ConfigMap, "config-features", namespace=KNATIVE_SERVING_NAMESPACE
-    )
-    assert config_features_cm.data["kubernetes.podspec-nodeselector"] == "enabled"
-    assert config_features_cm.data["kubernetes.podspec-affinity"] == "enabled"
-    assert config_features_cm.data["kubernetes.podspec-tolerations"] == "enabled"
