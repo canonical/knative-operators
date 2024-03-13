@@ -1,0 +1,30 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: helloworld
+spec:
+  template:
+    spec:
+      containers:
+      - image: gcr.io/knative-samples/helloworld-go
+        ports:
+          - containerPort: 8080
+        env:
+          - name: TARGET
+            value: "World"
+      nodeSelector:
+        myLabel1: "true"
+      tolerations:
+        - key: "myTaint1"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: disktype
+                operator: In
+                values:
+                - ssd

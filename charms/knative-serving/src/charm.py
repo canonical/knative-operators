@@ -169,6 +169,10 @@ class KnativeServingCharm(CharmBase):
             "serving_namespace": self.model.config["namespace"],
             "serving_version": self.model.config["version"],
             "custom_images": self._get_custom_images(),
+            "progress_deadline": self.model.config["progress-deadline"],
+            "registries_skip_tag_resolving": self.model.config[
+                "registries-skipping-tag-resolving"
+            ],
         }
         if self._otel_collector_relation_data:
             context.update(self._otel_collector_relation_data)

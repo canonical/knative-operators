@@ -37,3 +37,11 @@ options:
       use a default image.  For usage details, see 
       https://github.com/canonical/knative-operators/blob/main/charms/knative-serving/README.md#setting-custom-images-for-knative-serving.
     type: string
+  progress-deadline:
+    default: "600s"
+    description:  the duration to wait for the deployment to be ready before considering it failed.
+    type: string
+  registries-skipping-tag-resolving:
+    default: "nvcr.io"
+    description: Comma-seperated list of repositories for which tag to digest resolving should be skipped.
+    type: string

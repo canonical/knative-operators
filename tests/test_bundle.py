@@ -40,6 +40,14 @@ KNATIVE_OPERATOR_RESOURCES = {
     "knative-operator-webhook-image": KNATIVE_OPERATOR_WEBHOOK_IMAGE,
 }
 
+EXPECTED_AFFINITY = "Affinity(nodeAffinity=NodeAffinity(preferredDuringSchedulingIgnoredDuringExecution=None, requiredDuringSchedulingIgnoredDuringExecution=NodeSelector(nodeSelectorTerms=[NodeSelectorTerm(matchExpressions=[NodeSelectorRequirement(key='disktype', operator='In', values=['ssd'])], matchFields=None)])), podAffinity=None, podAntiAffinity=None)"  # noqa E501
+EXPECTED_TOLERATION = "Toleration(effect='NoSchedule', key='myTaint1', operator='Equal', tolerationSeconds=None, value='true')"  # noqa E501
+EXPECTED_NODESELECTOR = {"myLabel1": "true"}
+
+HELLOWORLD_EXAMPLE_IMAGE = yaml.safe_load(
+    Path("./examples/helloworld-node-constraints.yaml").read_text()
+)["spec"]["template"]["spec"]["containers"][0]["image"]
+
 
 @pytest.mark.abort_on_fail
 async def test_build_deploy_knative_charms(ops_test: OpsTest):
@@ -148,6 +156,21 @@ def remove_cloudevents_player_example(ops_test: OpsTest):
         # If the ksvc doesn't exist, we can ignore the error
         if e.code == 404:
             log.info("Tried to delete cloudevents-player knative service, but it didn't exist")
+        else:
+            raise e
+
+
+@pytest.fixture()
+def remove_helloworld_example(ops_test: OpsTest):
+    """Fixture that attempts to remove the helloworld example after a test has run"""
+    yield
+    lightkube_client = Client()
+    try:
+        lightkube_client.delete(KSVC, "helloworld", namespace=ops_test.model_name)
+    except ApiError as e:
+        # If the ksvc doesn't exist, we can ignore the error
+        if e.code == 404:
+            log.info("Tried to delete helloworld knative service, but it didn't exist")
         else:
             raise e
 
@@ -293,3 +316,71 @@ async def test_serving_custom_image(ops_test: OpsTest, restore_serving_custom_im
     client = lightkube.Client()
     activator_deployment = client.get(Deployment, "activator", namespace=KNATIVE_SERVING_NAMESPACE)
     assert activator_deployment.spec.template.spec.containers[0].image == fake_image
+
+
+async def test_ksvc_deployment_configs(ops_test: OpsTest, remove_helloworld_example):
+    """
+    Tests that the following configurations for KnativeServing work as expected:
+    * progress-deadline
+    * registries-skipping-tag-resolving
+    * kubernetes.podspec-[affinity, nodeselector, tolerations] are enabled
+    """
+
+    # Act
+
+    # Change the `progress-deadline` config
+    custom_deadline = "123s"
+    await ops_test.model.applications["knative-serving"].set_config(
+        {"progress-deadline": custom_deadline}
+    )
+
+    # Configure KnativeServing to skip tag resolution for the registry where the helloworld
+    # image is pulled
+    await ops_test.model.applications["knative-serving"].set_config(
+        {"registries-skipping-tag-resolving": "gcr.io"}
+    )
+
+    await ops_test.model.wait_for_idle(
+        ["knative-serving"],
+        status="active",
+        raise_on_blocked=False,
+        timeout=60 * 1,
+    )
+
+    # Create KSVC
+
+    manifest = lightkube.codecs.load_all_yaml(
+        Path("./examples/helloworld-node-constraints.yaml").read_text()
+    )
+    lightkube_client = Client()
+
+    for obj in manifest:
+        lightkube_client.create(obj, namespace=ops_test.model_name)
+
+    # Get KSVC Deployment
+
+    for attempt in RETRY_FOR_THREE_MINUTES:
+        with attempt:
+            deployment_list = lightkube_client.list(
+                res=Deployment,
+                namespace=ops_test.model_name,
+                labels={"serving.knative.dev/service": "helloworld"},
+            )
+            ksvc_deployment = next(deployment_list)
+
+    # Assert
+
+    # Affinity
+    assert str(ksvc_deployment.spec.template.spec.affinity) == EXPECTED_AFFINITY
+    # Toleration
+    assert str(ksvc_deployment.spec.template.spec.tolerations[0]) == EXPECTED_TOLERATION
+    # NodeSelector
+    assert ksvc_deployment.spec.template.spec.nodeSelector == EXPECTED_NODESELECTOR
+
+    # ProgressDeadline
+    assert (
+        str(ksvc_deployment.spec.progressDeadlineSeconds) + "s" == custom_deadline
+    )  # Concatenates the `s` for seconds to match the config
+
+    # Assert tag is not resolved
+    assert ksvc_deployment.spec.template.spec.containers[0].image == HELLOWORLD_EXAMPLE_IMAGE
