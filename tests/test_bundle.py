@@ -40,12 +40,11 @@ KNATIVE_OPERATOR_RESOURCES = {
     "knative-operator-webhook-image": KNATIVE_OPERATOR_WEBHOOK_IMAGE,
 }
 
+ISTIO_CHANNEL = "1.17/stable"
 ISTIO_PILOT = "istio-pilot"
-ISTIO_PILOT_CHANNEL = "1.17/stable"
 ISTIO_PILOT_TRUST = True
 ISTIO_GATEWAY = "istio-gateway"
 ISTIO_GATEWAY_APP_NAME = "istio-ingressgateway"
-ISTIO_GATEWAY_CHANNEL = "1.17/stable"
 ISTIO_GATEWAY_TRUST = True
 
 
@@ -60,7 +59,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     # Deploy istio as dependency
     await ops_test.model.deploy(
         ISTIO_PILOT,
-        channel=ISTIO_PILOT_CHANNEL,
+        channel=ISTIO_CHANNEL,
         config={"default-gateway": "knative-gateway"},
         trust=ISTIO_PILOT_TRUST,
     )
@@ -68,7 +67,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     await ops_test.model.deploy(
         ISTIO_GATEWAY,
         application_name=ISTIO_GATEWAY_APP_NAME,
-        channel=ISTIO_GATEWAY_CHANNEL,
+        channel=ISTIO_CHANNEL,
         config={"kind": "ingress"},
         trust=ISTIO_GATEWAY_TRUST,
     )
