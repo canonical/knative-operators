@@ -73,13 +73,16 @@ PROMETHEUS_TRUST = True
 PROMETHEUS_SCRAPE = "prometheus-scrape-config-k8s"
 PROMETHEUS_SCRAPE_CHANNEL = "1.0/stable"
 
+
 async def test_prometheus_grafana_integration(ops_test: OpsTest):
     """Deploy prometheus and required relations, then test the metrics."""
     scrape_config = {"scrape_interval": "30s"}
 
     # Deploy and relate prometheus
     await ops_test.model.deploy(PROMETHEUS, channel=PROMETHEUS_CHANNEL, trust=PROMETHEUS_TRUST)
-    await ops_test.model.deploy(PROMETHEUS_SCRAPE, channel=PROMETHEUS_SCRAPE_CHANNEL, config=scrape_config)
+    await ops_test.model.deploy(
+        PROMETHEUS_SCRAPE, channel=PROMETHEUS_SCRAPE_CHANNEL, config=scrape_config
+    )
 
     await ops_test.model.add_relation(APP_NAME, PROMETHEUS_SCRAPE)
     await ops_test.model.add_relation(
