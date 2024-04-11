@@ -17,7 +17,7 @@ from lightkube.resources.core_v1 import Service
 from pytest_operator.plugin import OpsTest
 from tenacity import Retrying, stop_after_delay, wait_fixed
 
-from tests.integration import constants
+from tests import constants
 
 log = logging.getLogger(__name__)
 
