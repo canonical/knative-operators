@@ -73,15 +73,9 @@ async def test_prometheus_grafana_integration(ops_test: OpsTest):
     scrape_config = {"scrape_interval": "30s"}
 
     # Deploy and relate prometheus
+    await ops_test.model.deploy(constants.PROMETHEUS, channel=constants.PROMETHEUS_CHANNEL, trust=constants.PROMETHEUS_TRUST)
     await ops_test.model.deploy(
-        constants.PROMETHEUS,
-        channel=constants.PROMETHEUS_CHANNEL,
-        trust=constants.PROMETHEUS_TRUST,
-    )
-    await ops_test.model.deploy(
-        constants.PROMETHEUS_SCRAPE,
-        channel=constants.PROMETHEUS_SCRAPE_CHANNEL,
-        config=scrape_config,
+        constants.PROMETHEUS_SCRAPE, channel=constants.PROMETHEUS_SCRAPE_CHANNEL, config=scrape_config
     )
 
     await ops_test.model.add_relation(constants.APP_NAME, constants.PROMETHEUS_SCRAPE)
@@ -92,16 +86,13 @@ async def test_prometheus_grafana_integration(ops_test: OpsTest):
         f"{constants.APP_NAME}:otel-collector", "knative-serving:otel-collector"
     )
     await ops_test.model.add_relation(
-        f"{constants.PROMETHEUS}:metrics-endpoint",
-        f"{constants.PROMETHEUS_SCRAPE}:metrics-endpoint",
+        f"{constants.PROMETHEUS}:metrics-endpoint", f"{constants.PROMETHEUS_SCRAPE}:metrics-endpoint"
     )
 
     await ops_test.model.wait_for_idle(status="active", timeout=90 * 10)
 
     status = await ops_test.model.get_status()
-    prometheus_unit_ip = status["applications"][constants.PROMETHEUS]["units"][
-        f"{constants.PROMETHEUS}/0"
-    ]["address"]
+    prometheus_unit_ip = status["applications"][constants.PROMETHEUS]["units"][f"{constants.PROMETHEUS}/0"]["address"]
     log.info(f"Prometheus available at http://{prometheus_unit_ip}:9090")
 
     for attempt in retry_for_5_attempts:
