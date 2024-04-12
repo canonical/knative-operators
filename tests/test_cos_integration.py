@@ -11,8 +11,6 @@ import tenacity
 from pytest_operator.plugin import OpsTest
 from test_bundle import KNATIVE_OPERATOR_RESOURCES
 
-from tests import constants
-
 log = logging.getLogger(__name__)
 
 
@@ -68,31 +66,39 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
 
 # knative-operator is the charm that actually talks to prometheus
 # to configure the OpenTelemetry collector to be scraped
+APP_NAME = "knative-operator"
+PROMETHEUS = "prometheus-k8s"
+PROMETHEUS_CHANNEL = "1.0/stable"
+PROMETHEUS_TRUST = True
+PROMETHEUS_SCRAPE = "prometheus-scrape-config-k8s"
+PROMETHEUS_SCRAPE_CHANNEL = "1.0/stable"
+
+
 async def test_prometheus_grafana_integration(ops_test: OpsTest):
     """Deploy prometheus and required relations, then test the metrics."""
     scrape_config = {"scrape_interval": "30s"}
 
     # Deploy and relate prometheus
-    await ops_test.model.deploy(constants.PROMETHEUS, channel=constants.PROMETHEUS_CHANNEL, trust=constants.PROMETHEUS_TRUST)
+    await ops_test.model.deploy(PROMETHEUS, channel=PROMETHEUS_CHANNEL, trust=PROMETHEUS_TRUST)
     await ops_test.model.deploy(
-        constants.PROMETHEUS_SCRAPE, channel=constants.PROMETHEUS_SCRAPE_CHANNEL, config=scrape_config
+        PROMETHEUS_SCRAPE, channel=PROMETHEUS_SCRAPE_CHANNEL, config=scrape_config
     )
 
-    await ops_test.model.add_relation(constants.APP_NAME, constants.PROMETHEUS_SCRAPE)
+    await ops_test.model.add_relation(APP_NAME, PROMETHEUS_SCRAPE)
     await ops_test.model.add_relation(
-        f"{constants.APP_NAME}:otel-collector", "knative-eventing:otel-collector"
+        f"{APP_NAME}:otel-collector", "knative-eventing:otel-collector"
     )
     await ops_test.model.add_relation(
-        f"{constants.APP_NAME}:otel-collector", "knative-serving:otel-collector"
+        f"{APP_NAME}:otel-collector", "knative-serving:otel-collector"
     )
     await ops_test.model.add_relation(
-        f"{constants.PROMETHEUS}:metrics-endpoint", f"{constants.PROMETHEUS_SCRAPE}:metrics-endpoint"
+        f"{PROMETHEUS}:metrics-endpoint", f"{PROMETHEUS_SCRAPE}:metrics-endpoint"
     )
 
     await ops_test.model.wait_for_idle(status="active", timeout=90 * 10)
 
     status = await ops_test.model.get_status()
-    prometheus_unit_ip = status["applications"][constants.PROMETHEUS]["units"][f"{constants.PROMETHEUS}/0"]["address"]
+    prometheus_unit_ip = status["applications"][PROMETHEUS]["units"][f"{PROMETHEUS}/0"]["address"]
     log.info(f"Prometheus available at http://{prometheus_unit_ip}:9090")
 
     for attempt in retry_for_5_attempts:
@@ -102,7 +108,7 @@ async def test_prometheus_grafana_integration(ops_test: OpsTest):
         with attempt:
             r = requests.get(
                 f"http://{prometheus_unit_ip}:9090/api/v1/query?"
-                f'query=up{{juju_application="{constants.APP_NAME}"}}'
+                f'query=up{{juju_application="{APP_NAME}"}}'
             )
             response = json.loads(r.content.decode("utf-8"))
             response_status = response["status"]
@@ -110,7 +116,7 @@ async def test_prometheus_grafana_integration(ops_test: OpsTest):
             assert response_status == "success"
 
             response_metric = response["data"]["result"][0]["metric"]
-            assert response_metric["juju_application"] == constants.APP_NAME
+            assert response_metric["juju_application"] == APP_NAME
             assert response_metric["juju_model"] == ops_test.model_name
 
 

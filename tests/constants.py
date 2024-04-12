@@ -28,11 +28,3 @@ ISTIO_PILOT_TRUST = True
 ISTIO_GATEWAY = "istio-gateway"
 ISTIO_GATEWAY_APP_NAME = "istio-ingressgateway"
 ISTIO_GATEWAY_TRUST = True
-
-# cos_integration.py constants
-APP_NAME = "knative-operator"
-PROMETHEUS = "prometheus-k8s"
-PROMETHEUS_CHANNEL = "1.0/stable"
-PROMETHEUS_TRUST = True
-PROMETHEUS_SCRAPE = "prometheus-scrape-config-k8s"
-PROMETHEUS_SCRAPE_CHANNEL = "1.0/stable"
