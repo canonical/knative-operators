@@ -9,6 +9,7 @@ import lightkube.codecs
 import pytest
 import pytest_asyncio
 import requests
+import yaml
 from lightkube import ApiError, Client
 from lightkube.generic_resource import create_namespaced_resource
 from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
@@ -17,13 +18,34 @@ from lightkube.resources.core_v1 import Service
 from pytest_operator.plugin import OpsTest
 from tenacity import Retrying, stop_after_delay, wait_fixed
 
-from tests.integration import constants
-
 log = logging.getLogger(__name__)
 
 KSVC = create_namespaced_resource(
     group="serving.knative.dev", version="v1", kind="Service", plural="services"
 )
+KNATIVE_EVENTING_NAMESPACE = "knative-eventing"
+KNATIVE_SERVING_NAMESPACE = "knative-serving"
+KNATIVE_SERVING_SERVICE = "services.serving.knative.dev"
+KNATIVE_OPERATOR_METADATA = yaml.safe_load(
+    Path("./charms/knative-operator/metadata.yaml").read_text()
+)
+KNATIVE_OPERATOR_IMAGE = KNATIVE_OPERATOR_METADATA["resources"]["knative-operator-image"][
+    "upstream-source"
+]
+KNATIVE_OPERATOR_WEBHOOK_IMAGE = KNATIVE_OPERATOR_METADATA["resources"][
+    "knative-operator-webhook-image"
+]["upstream-source"]
+KNATIVE_OPERATOR_RESOURCES = {
+    "knative-operator-image": KNATIVE_OPERATOR_IMAGE,
+    "knative-operator-webhook-image": KNATIVE_OPERATOR_WEBHOOK_IMAGE,
+}
+
+ISTIO_CHANNEL = "1.17/stable"
+ISTIO_PILOT = "istio-pilot"
+ISTIO_PILOT_TRUST = True
+ISTIO_GATEWAY = "istio-gateway"
+ISTIO_GATEWAY_APP_NAME = "istio-ingressgateway"
+ISTIO_GATEWAY_TRUST = True
 
 
 @pytest.mark.abort_on_fail
@@ -36,24 +58,24 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
 
     # Deploy istio as dependency
     await ops_test.model.deploy(
-        constants.ISTIO_PILOT,
-        channel=constants.ISTIO_CHANNEL,
+        ISTIO_PILOT,
+        channel=ISTIO_CHANNEL,
         config={"default-gateway": "knative-gateway"},
-        trust=constants.ISTIO_PILOT_TRUST,
+        trust=ISTIO_PILOT_TRUST,
     )
 
     await ops_test.model.deploy(
-        constants.ISTIO_GATEWAY,
-        application_name=constants.ISTIO_GATEWAY_APP_NAME,
-        channel=constants.ISTIO_CHANNEL,
+        ISTIO_GATEWAY,
+        application_name=ISTIO_GATEWAY_APP_NAME,
+        channel=ISTIO_CHANNEL,
         config={"kind": "ingress"},
-        trust=constants.ISTIO_GATEWAY_TRUST,
+        trust=ISTIO_GATEWAY_TRUST,
     )
 
-    await ops_test.model.add_relation(constants.ISTIO_PILOT, constants.ISTIO_GATEWAY_APP_NAME)
+    await ops_test.model.add_relation(ISTIO_PILOT, ISTIO_GATEWAY_APP_NAME)
 
     await ops_test.model.wait_for_idle(
-        [constants.ISTIO_PILOT, constants.ISTIO_GATEWAY_APP_NAME],
+        [ISTIO_PILOT, ISTIO_GATEWAY_APP_NAME],
         raise_on_blocked=False,
         status="active",
         timeout=90 * 10,
@@ -64,7 +86,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
         knative_charms["knative-operator"],
         application_name="knative-operator",
         trust=True,
-        resources=constants.KNATIVE_OPERATOR_RESOURCES,
+        resources=KNATIVE_OPERATOR_RESOURCES,
     )
 
     await ops_test.model.wait_for_idle(
@@ -78,7 +100,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
         knative_charms["knative-serving"],
         application_name="knative-serving",
         config={
-            "namespace": constants.KNATIVE_SERVING_NAMESPACE,
+            "namespace": KNATIVE_SERVING_NAMESPACE,
             "istio.gateway.namespace": ops_test.model_name,
         },
         trust=True,
@@ -87,7 +109,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     await ops_test.model.deploy(
         knative_charms["knative-eventing"],
         application_name="knative-eventing",
-        config={"namespace": constants.KNATIVE_EVENTING_NAMESPACE},
+        config={"namespace": KNATIVE_EVENTING_NAMESPACE},
         trust=True,
     )
 
@@ -119,7 +141,7 @@ def wait_for_ksvc():
     for attempt in RETRY_FOR_THREE_MINUTES:
         with attempt:
             log.info("Checking for ksvc CRD")
-            lightkube_client.get(CustomResourceDefinition, constants.KNATIVE_SERVING_SERVICE)
+            lightkube_client.get(CustomResourceDefinition, KNATIVE_SERVING_SERVICE)
 
 
 @pytest.fixture()
@@ -234,7 +256,7 @@ async def test_eventing_custom_image(ops_test: OpsTest, restore_eventing_custom_
     # Assert that the activator image is trying to use the custom image.
     client = lightkube.Client()
     activator_deployment = client.get(
-        Deployment, "eventing-controller", namespace=constants.KNATIVE_EVENTING_NAMESPACE
+        Deployment, "eventing-controller", namespace=KNATIVE_EVENTING_NAMESPACE
     )
     assert activator_deployment.spec.template.spec.containers[0].image == fake_image
 
@@ -276,7 +298,5 @@ async def test_serving_custom_image(ops_test: OpsTest, restore_serving_custom_im
 
     # Assert that the activator image is trying to use the custom image.
     client = lightkube.Client()
-    activator_deployment = client.get(
-        Deployment, "activator", namespace=constants.KNATIVE_SERVING_NAMESPACE
-    )
+    activator_deployment = client.get(Deployment, "activator", namespace=KNATIVE_SERVING_NAMESPACE)
     assert activator_deployment.spec.template.spec.containers[0].image == fake_image
