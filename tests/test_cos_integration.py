@@ -67,19 +67,24 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
 # knative-operator is the charm that actually talks to prometheus
 # to configure the OpenTelemetry collector to be scraped
 APP_NAME = "knative-operator"
+PROMETHEUS = "prometheus-k8s"
+PROMETHEUS_CHANNEL = "1.0/stable"
+PROMETHEUS_TRUST = True
+PROMETHEUS_SCRAPE = "prometheus-scrape-config-k8s"
+PROMETHEUS_SCRAPE_CHANNEL = "1.0/stable"
 
 
 async def test_prometheus_grafana_integration(ops_test: OpsTest):
     """Deploy prometheus and required relations, then test the metrics."""
-    prometheus = "prometheus-k8s"
-    prometheus_scrape = "prometheus-scrape-config-k8s"
     scrape_config = {"scrape_interval": "30s"}
 
     # Deploy and relate prometheus
-    await ops_test.model.deploy(prometheus, channel="latest/stable", trust=True)
-    await ops_test.model.deploy(prometheus_scrape, channel="latest/stable", config=scrape_config)
+    await ops_test.model.deploy(PROMETHEUS, channel=PROMETHEUS_CHANNEL, trust=PROMETHEUS_TRUST)
+    await ops_test.model.deploy(
+        PROMETHEUS_SCRAPE, channel=PROMETHEUS_SCRAPE_CHANNEL, config=scrape_config
+    )
 
-    await ops_test.model.add_relation(APP_NAME, prometheus_scrape)
+    await ops_test.model.add_relation(APP_NAME, PROMETHEUS_SCRAPE)
     await ops_test.model.add_relation(
         f"{APP_NAME}:otel-collector", "knative-eventing:otel-collector"
     )
@@ -87,13 +92,13 @@ async def test_prometheus_grafana_integration(ops_test: OpsTest):
         f"{APP_NAME}:otel-collector", "knative-serving:otel-collector"
     )
     await ops_test.model.add_relation(
-        f"{prometheus}:metrics-endpoint", f"{prometheus_scrape}:metrics-endpoint"
+        f"{PROMETHEUS}:metrics-endpoint", f"{PROMETHEUS_SCRAPE}:metrics-endpoint"
     )
 
     await ops_test.model.wait_for_idle(status="active", timeout=90 * 10)
 
     status = await ops_test.model.get_status()
-    prometheus_unit_ip = status["applications"][prometheus]["units"][f"{prometheus}/0"]["address"]
+    prometheus_unit_ip = status["applications"][PROMETHEUS]["units"][f"{PROMETHEUS}/0"]["address"]
     log.info(f"Prometheus available at http://{prometheus_unit_ip}:9090")
 
     for attempt in retry_for_5_attempts:

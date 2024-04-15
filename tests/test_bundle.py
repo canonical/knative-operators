@@ -40,6 +40,13 @@ KNATIVE_OPERATOR_RESOURCES = {
     "knative-operator-webhook-image": KNATIVE_OPERATOR_WEBHOOK_IMAGE,
 }
 
+ISTIO_CHANNEL = "1.17/stable"
+ISTIO_PILOT = "istio-pilot"
+ISTIO_PILOT_TRUST = True
+ISTIO_GATEWAY = "istio-gateway"
+ISTIO_GATEWAY_APP_NAME = "istio-ingressgateway"
+ISTIO_GATEWAY_TRUST = True
+
 
 @pytest.mark.abort_on_fail
 async def test_build_deploy_knative_charms(ops_test: OpsTest):
@@ -51,24 +58,24 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
 
     # Deploy istio as dependency
     await ops_test.model.deploy(
-        "istio-pilot",
-        channel="latest/edge",
+        ISTIO_PILOT,
+        channel=ISTIO_CHANNEL,
         config={"default-gateway": "knative-gateway"},
-        trust=True,
+        trust=ISTIO_PILOT_TRUST,
     )
 
     await ops_test.model.deploy(
-        "istio-gateway",
-        application_name="istio-ingressgateway",
-        channel="latest/edge",
+        ISTIO_GATEWAY,
+        application_name=ISTIO_GATEWAY_APP_NAME,
+        channel=ISTIO_CHANNEL,
         config={"kind": "ingress"},
-        trust=True,
+        trust=ISTIO_GATEWAY_TRUST,
     )
 
-    await ops_test.model.add_relation("istio-pilot", "istio-ingressgateway")
+    await ops_test.model.add_relation(ISTIO_PILOT, ISTIO_GATEWAY_APP_NAME)
 
     await ops_test.model.wait_for_idle(
-        ["istio-pilot", "istio-ingressgateway"],
+        [ISTIO_PILOT, ISTIO_GATEWAY_APP_NAME],
         raise_on_blocked=False,
         status="active",
         timeout=90 * 10,
