@@ -3,3 +3,5 @@ jinja2
 ops
 lightkube
 tenacity
+# from prometheus_k8s.v0.prometheus_scrape.py
+cosl
