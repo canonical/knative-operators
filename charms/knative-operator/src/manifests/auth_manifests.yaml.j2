@@ -673,31 +673,6 @@ rules:
       - deployments
     verbs:
       - deletecollection
-  # Eventing TLS
-  - apiGroups:
-      - "cert-manager.io"
-    resources:
-      - certificates
-      - issuers
-      - clusterissuers
-    verbs:
-      - create
-      - delete
-      - update
-      - list
-      - get
-      - watch
-  - apiGroups:
-      - "trust.cert-manager.io"
-    resources:
-      - bundles
-    verbs:
-      - create
-      - delete
-      - update
-      - list
-      - get
-      - watch
 ---
 # Source: knative/operator/config/rbac/role_binding.yaml
 # TODO: Consider restriction of non-aggregated role to knativeservings namespaces.
