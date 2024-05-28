@@ -267,6 +267,7 @@ async def test_eventing_custom_image(ops_test: OpsTest, restore_eventing_custom_
         status="active",
         raise_on_blocked=False,
         timeout=60 * 1,
+        idle_period=20,
     )
 
     # Assert that the activator image is trying to use the custom image.

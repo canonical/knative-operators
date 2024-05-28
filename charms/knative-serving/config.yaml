@@ -3,7 +3,7 @@
 
 options:
   version:
-    default: "1.10.2"
+    default: "1.12.3"
     description: Version of knative-serving component.
     type: string
   namespace:
