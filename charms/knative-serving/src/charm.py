@@ -172,6 +172,9 @@ class KnativeServingCharm(CharmBase):
         }
         if self._otel_collector_relation_data:
             context.update(self._otel_collector_relation_data)
+        if self.model.config["queue_sidecar_image"]:
+            context.update({"queue_sidecar_image": self.model.config["queue_sidecar_image"]})
+
         return context
 
     @property
