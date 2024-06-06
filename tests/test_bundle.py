@@ -20,6 +20,7 @@ from tenacity import Retrying, stop_after_delay, wait_fixed
 
 log = logging.getLogger(__name__)
 
+
 KSVC = create_namespaced_resource(
     group="serving.knative.dev", version="v1", kind="Service", plural="services"
 )
@@ -47,7 +48,12 @@ ISTIO_GATEWAY = "istio-gateway"
 ISTIO_GATEWAY_APP_NAME = "istio-ingressgateway"
 ISTIO_GATEWAY_TRUST = True
 
+CLOUDEVENTS_MANIFEST = lightkube.codecs.load_all_yaml(
+    Path("./examples/cloudevents-player.yaml").read_text()
+)
 
+
+@pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
 async def test_build_deploy_knative_charms(ops_test: OpsTest):
     # Build knative charms
@@ -188,12 +194,9 @@ def wait_for_ready(resource, name, namespace):
 async def test_cloud_events_player_example(
     ops_test: OpsTest, wait_for_ksvc, remove_cloudevents_player_example
 ):
-    manifest = lightkube.codecs.load_all_yaml(
-        Path("./examples/cloudevents-player.yaml").read_text()
-    )
     lightkube_client = Client()
 
-    for obj in manifest:
+    for obj in CLOUDEVENTS_MANIFEST:
         lightkube_client.create(obj, namespace=ops_test.model_name)
 
     wait_for_ready(resource=KSVC, name="cloudevents-player", namespace=ops_test.model_name)
@@ -300,3 +303,64 @@ async def test_serving_custom_image(ops_test: OpsTest, restore_serving_custom_im
     client = lightkube.Client()
     activator_deployment = client.get(Deployment, "activator", namespace=KNATIVE_SERVING_NAMESPACE)
     assert activator_deployment.spec.template.spec.containers[0].image == fake_image
+
+
+@pytest_asyncio.fixture
+async def restore_queue_sidecar_image_setting(ops_test: OpsTest):
+    """
+    Saves the current queue_sidecar_image setting for serving.
+    Restores it after test completes.
+    """
+    queue_sidecar_image_config = (
+        await ops_test.model.applications["knative-serving"].get_config()
+    )["queue_sidecar_image"]["value"]
+
+    yield
+    await ops_test.model.applications["knative-serving"].set_config(
+        {"queue_sidecar_image": queue_sidecar_image_config}
+    )
+
+    await ops_test.model.wait_for_idle(
+        ["knative-serving"],
+        status="active",
+        raise_on_blocked=False,
+        timeout=60 * 1,
+    )
+
+
+async def test_queue_sidecar_image_config(
+    ops_test: OpsTest, restore_queue_sidecar_image_setting, remove_cloudevents_player_example
+):
+    """
+    Changes `queue_sidecar_image` config and checks that the Knative Service is trying to use it
+    as the image for `queue-proxy` container
+    """
+    fake_image = "not-a-real-image"
+
+    # Act
+    await ops_test.model.applications["knative-serving"].set_config(
+        {"queue_sidecar_image": fake_image}
+    )
+
+    await ops_test.model.wait_for_idle(
+        ["knative-serving"],
+        status="active",
+        raise_on_blocked=False,
+        timeout=60 * 1,
+    )
+
+    # Create a Knative Service
+    client = Client()
+
+    for obj in CLOUDEVENTS_MANIFEST:
+        client.create(obj, namespace=ops_test.model_name)
+
+    # Wait for the Deployment to get created
+    for attempt in RETRY_FOR_THREE_MINUTES:
+        with attempt:
+            cloudevents_deployment = client.get(
+                Deployment, "cloudevents-player-00001-deployment", namespace=ops_test.model_name
+            )
+
+    # Assert that the Knative Service is trying to use the custom image.
+    assert cloudevents_deployment.spec.template.spec.containers[1].image == fake_image
