@@ -32,6 +32,9 @@ options:
       net-istio-controller/controller: ''
       net-istio-webhook/webhook: ''
       queue-proxy: ''
+      domain-mapping: ''
+      domainmapping-webhook: ''
+      migrate: ''
     description: >
       YAML or JSON formatted input defining images to use in Knative Serving.  Any image omitted or set to '' here will
       use a default image.  For usage details, see 
