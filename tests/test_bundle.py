@@ -53,7 +53,6 @@ CLOUDEVENTS_MANIFEST = lightkube.codecs.load_all_yaml(
 )
 
 
-@pytest.mark.skip_if_deployed
 @pytest.mark.abort_on_fail
 async def test_build_deploy_knative_charms(ops_test: OpsTest):
     # Build knative charms
