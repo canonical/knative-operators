@@ -10,6 +10,9 @@ spec:
     deployment:
       progress-deadline: {{ progress_deadline}}
       registries-skipping-tag-resolving: {{ registries_skip_tag_resolving }}
+    {% if queue_sidecar_image %}
+      queue-sidecar-image: {{ queue_sidecar_image }}
+    {% endif %}
     features:
       kubernetes.podspec-affinity: "enabled"
       kubernetes.podspec-nodeselector: "enabled"
