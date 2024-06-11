@@ -7,6 +7,10 @@ metadata:
 spec:
   version: {{ serving_version }}
   config:
+  {% if queue_sidecar_image %}
+    deployment:
+      queue-sidecar-image: {{ queue_sidecar_image }}
+  {% endif %}
     # This is analogous to the config-istio configmap
     istio:
       # TODO

@@ -40,3 +40,8 @@ options:
       use a default image.  For usage details, see 
       https://github.com/canonical/knative-operators/blob/main/charms/knative-serving/README.md#setting-custom-images-for-knative-serving.
     type: string
+  queue_sidecar_image:
+    default: ''
+    description: >
+      Image to use for the `queue-proxy` sidecar container in a Knative Service workload Pod.
+    type: string
