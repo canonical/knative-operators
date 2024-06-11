@@ -232,6 +232,39 @@ def test_custom_images_config_context_with_incorrect_config(harness):
         assert isinstance(err.status, BlockedStatus)
 
 
+@pytest.mark.parametrize(
+    "image_config, context_raised",
+    [
+        (
+            "",
+            pytest.raises(KeyError),
+        ),
+        (
+            "image1",
+            does_not_raise(),
+        ),
+    ],
+)
+def test_queue_sidecar_image_config_context(image_config, context_raised, harness):
+    """
+    Asserts the correct values for queue_sidecar_image in the context based on the config input.
+
+    There are 2 cases:
+        1. If the `queue_sidecar_image` config is empty:
+        the context dict does not have an entry for it.
+
+        2. If the `queue_sidecar_image` config is set:
+        the context dict has an entry for it with the correct image.
+    """
+    harness.update_config({"queue_sidecar_image": image_config})
+    harness.begin()
+
+    actual_context = harness.charm._context
+
+    with context_raised:
+        assert actual_context["queue_sidecar_image"] == image_config
+
+
 @patch("charm.KRH")
 @patch("charm.delete_many")
 def test_on_remove_success(

@@ -45,3 +45,8 @@ options:
     default: "nvcr.io"
     description: Comma-seperated list of repositories for which tag to digest resolving should be skipped.
     type: string
+  queue_sidecar_image:
+    default: ''
+    description: >
+      Image to use for the `queue-proxy` sidecar container in a Knative Service workload Pod.
+    type: string
