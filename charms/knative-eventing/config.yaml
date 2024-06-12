@@ -16,7 +16,10 @@ options:
       eventing-webhook/eventing-webhook: ''
       imc-controller/controller: ''
       imc-dispatcher/dispatcher: ''
-      broker-controller/eventing-controller: ''
+      mt-broker-controller/mt-broker-controller: ''
+      mt-broker-filter/filter: ''
+      mt-broker-ingress/ingress: ''
+      pingsource-mt-adapter/dispatcher: ''
     description: >
       YAML or JSON formatted input defining images to use in Knative Eventing.  Any image omitted or set to '' here will
       use a default image.  For usage details, see 
