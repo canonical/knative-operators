@@ -16,6 +16,10 @@ provides:
     interface: otel-collector
   metrics-endpoint:
     interface: prometheus_scrape
+requires:
+  logging:
+    interface: loki_push_api
+    optional: true
 resources:
   knative-operator-image:
     type: oci-image

@@ -98,6 +98,12 @@ def mocked_metrics_endpoint_provider(mocker):
     yield mocker.patch("charm.MetricsEndpointProvider")
 
 
+def test_log_forwarding(harness, mocked_resource_handler, mocked_metrics_endpoint_provider):
+    with patch("charm.LogForwarder") as mock_logging:
+        harness.begin()
+        mock_logging.assert_called_once_with(charm=harness.charm)
+
+
 def test_events(harness, mocked_resource_handler, mocked_metrics_endpoint_provider, mocker):
     harness.begin()
     main = mocker.patch("charm.KnativeOperatorCharm._main")

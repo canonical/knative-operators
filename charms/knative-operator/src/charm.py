@@ -12,6 +12,7 @@ from pathlib import Path
 from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from lightkube import ApiError, Client
 from lightkube.resources.core_v1 import ConfigMap, Secret, Service
@@ -78,6 +79,7 @@ class KnativeOperatorCharm(CharmBase):
             self.on["otel-collector"].relation_created, self._on_otel_collector_relation_created
         )
         self.framework.observe(self.on.remove, self._on_remove)
+        self._logging = LogForwarder(charm=self)
 
     # FIXME: refactor resource handler to use setter, global var
     # and assign a specific name related to its functionality
