@@ -51,7 +51,7 @@ jobs:
         with:
           provider: microk8s
           channel: 1.26-strict/stable
-          juju-channel: 3.5/stable
+          juju-channel: 3.4/stable
           charmcraft-channel: latest/candidate
           microk8s-addons: "dns storage rbac metallb:10.64.140.43-10.64.140.49"
 
@@ -85,7 +85,7 @@ jobs:
         with:
           provider: microk8s
           channel: 1.26-strict/stable
-          juju-channel: 3.5/stable
+          juju-channel: 3.4/stable
           charmcraft-channel: latest/candidate
 
       - name: Run integration tests
