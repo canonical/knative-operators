@@ -53,16 +53,12 @@ options:
     description: >
       Image to use for the `queue-proxy` sidecar container in a Knative Service workload Pod.
     type: string
-  http-proxy:
+  controller-http-proxy:
     default: ""
     description: the value of HTTP_PROXY environment variable in the serving controller.
-    type: string
-  https-proxy:
+  controller-https-proxy:
     default: ""
     description: the value of HTTPS_PROXY environment variable in the serving controller.
-    type: string
-  no-proxy:
+  controller-no-proxy:
     default: ""
     description: the value of NO_PROXY environment variable in the serving controller.
-    type: string
-  
