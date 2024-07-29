@@ -448,3 +448,52 @@ async def test_queue_sidecar_image_config(
 
     # Assert that the Knative Service is trying to use the custom image.
     assert cloudevents_deployment.spec.template.spec.containers[1].image == fake_image
+
+
+async def test_serving_proxy_config(ops_test: OpsTest):
+    """
+    Changes `http-proxy`, `https-proxy` and `no-proxy` configs and checks that the Knative Serving
+    controller container is using the values from configs as environment variables.
+    """
+
+    # Act
+    test_http_proxy = "my_http_proxy"
+    test_https_proxy = "my_https_proxy"
+    test_no_proxy = "no_proxy"
+
+    await ops_test.model.applications["knative-serving"].set_config(
+        {"http-proxy": test_http_proxy, "https-proxy": test_https_proxy, "no-proxy": test_no_proxy}
+    )
+
+    await ops_test.model.wait_for_idle(
+        ["knative-serving"],
+        status="active",
+        raise_on_blocked=False,
+        timeout=60 * 1,
+    )
+
+    client = Client()
+
+    # Get Knative Serving controller Deployment
+    controller_deployment = client.get(
+        Deployment, "controller", namespace=KNATIVE_SERVING_NAMESPACE
+    )
+
+    # Get Knative Serving controller environment variables
+    serving_controller_env_vars = controller_deployment.spec.template.spec.containers[0].env
+
+    http_proxy_env = https_proxy_env = no_proxy_env = None
+
+    # Get proxy environment variables from all Knative Serving controller env vars
+    for env_var in serving_controller_env_vars:
+        if env_var.name == "HTTP_PROXY":
+            http_proxy_env = env_var.value
+        elif env_var.name == "HTTPS_PROXY":
+            https_proxy_env = env_var.value
+        elif env_var.name == "NO_PROXY":
+            no_proxy_env = env_var.value
+
+    # Assert Deployment spec contains correct proxy environment variables
+    assert http_proxy_env == test_http_proxy
+    assert https_proxy_env == test_https_proxy
+    assert no_proxy_env == test_no_proxy
