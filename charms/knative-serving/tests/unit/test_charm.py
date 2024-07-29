@@ -164,6 +164,9 @@ def test_context_changes(harness):
             "namespace": "knative-serving",
             "istio.gateway.name": "knative-gateway",
             "istio.gateway.namespace": "istio-namespace",
+            "http-proxy": "my_http_proxy",
+            "https-proxy": "my_https_proxy",
+            "no-proxy": "my_no_proxy",
         }
     )
     harness.begin()
@@ -176,6 +179,9 @@ def test_context_changes(harness):
         "registries_skip_tag_resolving": harness.model.config["registries-skipping-tag-resolving"],
         "serving_namespace": harness.model.config["namespace"],
         "serving_version": harness.model.config["version"],
+        "http_proxy": harness.model.config["http-proxy"],
+        "https_proxy": harness.model.config["https-proxy"],
+        "no_proxy": harness.model.config["no-proxy"],
         CUSTOM_IMAGE_CONFIG_NAME: DEFAULT_IMAGES,
     }
 
