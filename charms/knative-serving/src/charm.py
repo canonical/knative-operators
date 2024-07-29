@@ -173,9 +173,9 @@ class KnativeServingCharm(CharmBase):
             "registries_skip_tag_resolving": self.model.config[
                 "registries-skipping-tag-resolving"
             ],
-            "http_proxy": self.model.config["controller-http-proxy"],
-            "https_proxy": self.model.config["controller-https-proxy"],
-            "no_proxy": self.model.config["controller-no-proxy"],
+            "http_proxy": self.model.config["http-proxy"],
+            "https_proxy": self.model.config["https-proxy"],
+            "no_proxy": self.model.config["no-proxy"],
         }
         if self._otel_collector_relation_data:
             context.update(self._otel_collector_relation_data)
