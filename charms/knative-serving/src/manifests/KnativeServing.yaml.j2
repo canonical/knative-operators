@@ -50,16 +50,16 @@ spec:
     env:
     - container: controller
       envVars:
-  {% if http_proxy %}
-    - name: HTTP_PROXY
-      value: {{ http_proxy }}
-  {% endif %}
-  {% if https_proxy %}
-    - name: HTTPS_PROXY
-      value: {{ https_proxy }}
-  {% endif %}
-  {% if no_proxy %}
-    - name: NO_PROXY
-      value: {{ no_proxy }}
-  {% endif %}
+    {% if http_proxy %}
+      - name: HTTP_PROXY
+        value: {{ http_proxy }}
+    {% endif %}
+    {% if https_proxy %}
+      - name: HTTPS_PROXY
+        value: {{ https_proxy }}
+    {% endif %}
+    {% if no_proxy %}
+      - name: NO_PROXY
+        value: {{ no_proxy }}
+    {% endif %}
 {% endif %}
