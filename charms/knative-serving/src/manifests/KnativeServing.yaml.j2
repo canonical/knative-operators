@@ -44,16 +44,22 @@ spec:
       {{ container }}: {{ image }}
       {% endfor %}
 {% endif %}
-{% if http_proxy and https_proxy and no_proxy %}
+{% if http_proxy or https_proxy or no_proxy %}
   workloads:
   - name: controller
     env:
     - container: controller
       envVars:
-      - name: HTTP_PROXY
-        value: {{ http_proxy }}
-      - name: HTTPS_PROXY
-        value: {{ https_proxy }}
-      - name: NO_PROXY
-        value: {{ no_proxy }}
+  {% if http_proxy %}
+    - name: HTTP_PROXY
+      value: {{ http_proxy }}
+  {% endif %}
+  {% if https_proxy %}
+    - name: HTTPS_PROXY
+      value: {{ https_proxy }}
+  {% endif %}
+  {% if no_proxy %}
+    - name: NO_PROXY
+      value: {{ no_proxy }}
+  {% endif %}
 {% endif %}
