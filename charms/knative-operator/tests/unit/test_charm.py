@@ -4,7 +4,7 @@
 
 import datetime
 from contextlib import nullcontext as does_not_raise
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from lightkube.core.exceptions import ApiError
@@ -99,9 +99,28 @@ def mocked_metrics_endpoint_provider(mocker):
 
 
 def test_log_forwarding(harness, mocked_resource_handler, mocked_metrics_endpoint_provider):
+    """Test LogForwarder initialization."""
     with patch("charm.LogForwarder") as mock_logging:
         harness.begin()
         mock_logging.assert_called_once_with(charm=harness.charm)
+
+
+@pytest.mark.parametrize("otel_ip", [None, "1.2.3.4"])
+def test_metrics(
+    harness, mocked_resource_handler, mocked_metrics_endpoint_provider, mocker, otel_ip
+):
+    """Test MetricsEndpointProvider initialization."""
+    exp_targets = ["*:9090"]
+    if otel_ip:
+        exp_targets.append(f"{otel_ip}:8889")
+
+    with patch("charm.KnativeOperatorCharm._otel_exporter_ip", otel_ip):
+        harness.begin()
+        mocked_metrics_endpoint_provider.assert_called_once_with(
+            harness.charm,
+            jobs=[{"static_configs": [{"targets": exp_targets}]}],
+            refresh_event=[ANY],
+        )
 
 
 def test_events(harness, mocked_resource_handler, mocked_metrics_endpoint_provider, mocker):

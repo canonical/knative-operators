@@ -3,23 +3,32 @@
 
 import json
 import logging
-import time
+from typing import Any, Dict
 
 import pytest
-import requests
-import tenacity
+import yaml
+from charmed_kubeflow_chisme.testing import (
+    assert_logging,
+    assert_metrics_endpoint,
+    deploy_and_assert_grafana_agent,
+)
 from pytest_operator.plugin import OpsTest
 from test_bundle import KNATIVE_OPERATOR_RESOURCES
 
 log = logging.getLogger(__name__)
 
+# knative-operator is the charm that actually talks to prometheus
+# to configure the OpenTelemetry collector to be scraped
+APP_NAME = "knative-operator"
+
 
 @pytest.mark.abort_on_fail
+@pytest.mark.skip_if_deployed
 async def test_build_deploy_knative_charms(ops_test: OpsTest):
     # Build knative charms
     charms_path = "./charms/knative"
     knative_charms = await ops_test.build_charms(
-        f"{charms_path}-operator", f"{charms_path}-serving", f"{charms_path}-eventing"
+        f"{charms_path}-operator",  # f"{charms_path}-serving", f"{charms_path}-eventing"
     )
 
     # Deploy knative charms
@@ -38,86 +47,57 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
     await ops_test.model.deploy(
-        knative_charms["knative-serving"],
-        application_name="knative-serving",
-        config={"namespace": "knative-serving", "istio.gateway.namespace": ops_test.model_name},
+        # knative_charms["knative-serving"],
+        # application_name="knative-serving",
+        "knative-serving",
+        channel="latest/edge",
+        config={
+            "namespace": f"{ops_test.model_name}-serving",
+            "istio.gateway.namespace": ops_test.model_name,
+        },
         trust=True,
     )
 
     await ops_test.model.deploy(
-        knative_charms["knative-eventing"],
-        application_name="knative-eventing",
-        config={"namespace": "knative-eventing"},
+        # knative_charms["knative-eventing"],
+        # application_name="knative-eventing",
+        "knative-eventing",
+        channel="latest/edge",
+        config={"namespace": f"{ops_test.model_name}-eventing"},
         trust=True,
     )
 
-    await ops_test.model.wait_for_idle(
-        ["knative-serving", "knative-eventing"],
-        status="active",
-        raise_on_blocked=False,
-        timeout=120 * 10,
-    )
-
-    # Sleep here to avoid a race condition between the rest of the tests and knative
-    # eventing/serving coming up.  This race condition is because of:
+    # Wait here to avoid a race condition between the rest of the tests and knative
+    # eventing/serving coming up. This race condition is because of:
     # https://github.com/canonical/knative-operators/issues/50
-    time.sleep(120)
-
-
-# knative-operator is the charm that actually talks to prometheus
-# to configure the OpenTelemetry collector to be scraped
-APP_NAME = "knative-operator"
-
-
-async def test_prometheus_grafana_integration(ops_test: OpsTest):
-    """Deploy prometheus and required relations, then test the metrics."""
-    prometheus = "prometheus-k8s"
-    prometheus_scrape = "prometheus-scrape-config-k8s"
-    scrape_config = {"scrape_interval": "30s"}
-
-    # Deploy and relate prometheus
-    await ops_test.model.deploy(prometheus, channel="latest/stable", trust=True)
-    await ops_test.model.deploy(prometheus_scrape, channel="latest/stable", config=scrape_config)
-
-    await ops_test.model.add_relation(APP_NAME, prometheus_scrape)
-    await ops_test.model.add_relation(
-        f"{APP_NAME}:otel-collector", "knative-eventing:otel-collector"
-    )
-    await ops_test.model.add_relation(
-        f"{APP_NAME}:otel-collector", "knative-serving:otel-collector"
-    )
-    await ops_test.model.add_relation(
-        f"{prometheus}:metrics-endpoint", f"{prometheus_scrape}:metrics-endpoint"
+    await ops_test.model.wait_for_idle(
+        status="active", raise_on_blocked=False, timeout=60 * 10, idle_period=60
     )
 
-    await ops_test.model.wait_for_idle(status="active", timeout=90 * 10)
-
-    status = await ops_test.model.get_status()
-    prometheus_unit_ip = status["applications"][prometheus]["units"][f"{prometheus}/0"]["address"]
-    log.info(f"Prometheus available at http://{prometheus_unit_ip}:9090")
-
-    for attempt in retry_for_5_attempts:
-        log.info(
-            f"Testing prometheus deployment (attempt " f"{attempt.retry_state.attempt_number})"
-        )
-        with attempt:
-            r = requests.get(
-                f"http://{prometheus_unit_ip}:9090/api/v1/query?"
-                f'query=up{{juju_application="{APP_NAME}"}}'
-            )
-            response = json.loads(r.content.decode("utf-8"))
-            response_status = response["status"]
-            log.info(f"Response status is {response_status}")
-            assert response_status == "success"
-
-            response_metric = response["data"]["result"][0]["metric"]
-            assert response_metric["juju_application"] == APP_NAME
-            assert response_metric["juju_model"] == ops_test.model_name
+    # Deploying grafana-agent-k8s and add all relations
+    await deploy_and_assert_grafana_agent(
+        ops_test.model, APP_NAME, metrics=True, logging=True, dashboard=False
+    )
 
 
-# Helper to retry calling a function over 30 seconds or 5 attempts
-retry_for_5_attempts = tenacity.Retrying(
-    stop=(tenacity.stop_after_attempt(5) | tenacity.stop_after_delay(30)),
-    wait=tenacity.wait_exponential(multiplier=1, min=1, max=10),
-    reraise=True,
-)
+async def test_logging(ops_test):
+    """Test logging is defined in relation data bag."""
+    app = ops_test.model.applications[APP_NAME]
+    await assert_logging(app)
+
+
+async def test_metrics_enpoint(ops_test):
+    """Test metrics_endpoints are defined in relation data bag and their accessibility.
+
+    This function gets all the metrics_endpoints from the relation data bag, checks if
+    they are available in current defined targets in Grafana agent.
+    """
+    app = ops_test.model.applications[APP_NAME]
+    await assert_metrics_endpoint(app, metrics_port=9090, metrics_path="/metrics")
+
+    # Add otel-coolector relation, which will deploy the OpenTelemetry collector
+    await ops_test.model.integrate(f"{APP_NAME}:otel-collector", "knative-eventing:otel-collector")
+    await ops_test.model.integrate(f"{APP_NAME}:otel-collector", "knative-serving:otel-collector")
+    await ops_test.model.wait_for_idle(raise_on_blocked=False, timeout=60 * 5, idle_period=60)
+
+    await assert_metrics_endpoint(app, metrics_port=8889, metrics_path="/metrics")

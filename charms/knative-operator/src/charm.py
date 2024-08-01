@@ -50,12 +50,16 @@ class KnativeOperatorCharm(CharmBase):
         self._observability_resource_handler = None
 
         # Instantiate MetricsEndpointProvider for Prometheus scraping
+        targets = ["*:9090"]
         if self._otel_exporter_ip:
-            self._scraping = MetricsEndpointProvider(
-                self,
-                relation_name="metrics-endpoint",
-                jobs=[{"static_configs": [{"targets": [f"{self._otel_exporter_ip}:8889"]}]}],
-            )
+            targets.append(f"{self._otel_exporter_ip}:8889")
+
+        self._scraping = MetricsEndpointProvider(
+            self,
+            jobs=[{"static_configs": [{"targets": targets}]}],
+            # Note (rgildein): When otel collector relation is created we need to refresh.
+            refresh_event=[self.on["otel-collector"].relation_created],
+        )
 
         self._containers = {
             KNATIVE_OPERATOR: self.unit.get_container(KNATIVE_OPERATOR),
