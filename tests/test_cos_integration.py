@@ -1,12 +1,8 @@
-# Copyright 2023 Canonical Ltd.
+# Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
-
-import json
 import logging
-from typing import Any, Dict
 
 import pytest
-import yaml
 from charmed_kubeflow_chisme.testing import (
     assert_logging,
     assert_metrics_endpoint,
