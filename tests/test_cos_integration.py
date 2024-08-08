@@ -28,7 +28,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     # Build knative charms
     charms_path = "./charms/knative"
     knative_charms = await ops_test.build_charms(
-        f"{charms_path}-operator",  # f"{charms_path}-serving", f"{charms_path}-eventing"
+        f"{charms_path}-operator", f"{charms_path}-serving", f"{charms_path}-eventing"
     )
 
     # Deploy knative charms
@@ -47,10 +47,8 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
     await ops_test.model.deploy(
-        # knative_charms["knative-serving"],
-        # application_name="knative-serving",
-        "knative-serving",
-        channel="latest/edge",
+        knative_charms["knative-serving"],
+        application_name="knative-serving",
         config={
             "namespace": f"{ops_test.model_name}-serving",
             "istio.gateway.namespace": ops_test.model_name,
@@ -59,17 +57,15 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
     await ops_test.model.deploy(
-        # knative_charms["knative-eventing"],
-        # application_name="knative-eventing",
-        "knative-eventing",
-        channel="latest/edge",
+        knative_charms["knative-eventing"],
+        application_name="knative-eventing",
         config={"namespace": f"{ops_test.model_name}-eventing"},
         trust=True,
     )
 
-    # Wait here to avoid a race condition between the rest of the tests and knative
-    # eventing/serving coming up. This race condition is because of:
-    # https://github.com/canonical/knative-operators/issues/50
+    # Wait here (by using idle_period=60) to avoid a race condition between the rest
+    # of the tests and knative eventing/serving coming up. This race condition is
+    # because of: https://github.com/canonical/knative-operators/issues/50
     await ops_test.model.wait_for_idle(
         status="active", raise_on_blocked=False, timeout=60 * 10, idle_period=60
     )
