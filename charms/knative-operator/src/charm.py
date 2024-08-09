@@ -13,8 +13,10 @@ from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from lightkube import ApiError, Client
+from lightkube.models.core_v1 import ServicePort
 from lightkube.resources.core_v1 import ConfigMap, Secret, Service
 from ops.charm import CharmBase
 from ops.main import main
@@ -36,6 +38,8 @@ KNATIVE_OPERATOR_COMMAND = "/ko-app/operator"
 KNATIVE_OPERATOR_WEBHOOK = "knative-operator-webhook"
 KNATIVE_OPERATOR_WEBHOOK_COMMAND = "/ko-app/webhook"
 
+METRICS_PORT = "9090"
+
 
 class KnativeOperatorCharm(CharmBase):
     """A Juju Charm for knative-operator."""
@@ -49,12 +53,16 @@ class KnativeOperatorCharm(CharmBase):
         self._resource_handler = None
         self._observability_resource_handler = None
 
+        metrics_port = ServicePort(int(METRICS_PORT), name=f"{self._app_name}-metrics")
+        self.service_patcher = KubernetesServicePatch(
+            self, [metrics_port], service_name=f"{self._app_name}"
+        )
         # Instantiate MetricsEndpointProvider for Prometheus scraping
-        targets = ["*:9090"]
+        targets = [f"*:{METRICS_PORT}"]
         if self._otel_exporter_ip:
             targets.append(f"{self._otel_exporter_ip}:8889")
 
-        self._scraping = MetricsEndpointProvider(
+        self.prometheus_provider = MetricsEndpointProvider(
             self,
             jobs=[{"static_configs": [{"targets": targets}]}],
             # Note (rgildein): When otel collector relation is created we need to refresh.

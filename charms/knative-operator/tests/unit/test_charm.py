@@ -62,7 +62,9 @@ def harness():
     """Returns a harnessed charm with leader == True."""
     harness = Harness(KnativeOperatorCharm)
     harness.set_leader(True)
-    return harness
+
+    with patch("charm.KubernetesServicePatch"):
+        yield harness
 
 
 @pytest.fixture()
@@ -114,12 +116,17 @@ def test_metrics(
     if otel_ip:
         exp_targets.append(f"{otel_ip}:8889")
 
-    with patch("charm.KnativeOperatorCharm._otel_exporter_ip", otel_ip):
+    with patch("charm.KnativeOperatorCharm._otel_exporter_ip", otel_ip), patch(
+        "charm.KubernetesServicePatch"
+    ) as mocked_service_patcher, patch("charm.ServicePort") as mock_service_port:
         harness.begin()
         mocked_metrics_endpoint_provider.assert_called_once_with(
             harness.charm,
             jobs=[{"static_configs": [{"targets": exp_targets}]}],
             refresh_event=[ANY],
+        )
+        mocked_service_patcher.assert_called_once_with(
+            harness.charm, [mock_service_port.return_value], service_name="knative-operator"
         )
 
 
