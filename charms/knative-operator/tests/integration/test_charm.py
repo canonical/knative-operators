@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 import yaml
 from charmed_kubeflow_chisme.testing import (
-    GRAFANA_AGENT_APP,
     assert_logging,
+    assert_metrics_endpoint,
     deploy_and_assert_grafana_agent,
 )
 from pytest_operator.plugin import OpsTest
@@ -21,6 +21,7 @@ log = logging.getLogger(__name__)
 
 
 @pytest.mark.abort_on_fail
+@pytest.mark.skip_if_deployed
 async def test_build_and_deploy_with_relations(ops_test: OpsTest):
     built_charm_path = await ops_test.build_charm(CHARM_ROOT)
     log.info(f"Built charm {built_charm_path}")
@@ -45,11 +46,22 @@ async def test_build_and_deploy_with_relations(ops_test: OpsTest):
 
     # Deploying grafana-agent-k8s and add all relations
     await deploy_and_assert_grafana_agent(
-        ops_test.model, APP_NAME, metrics=False, logging=True, dashboard=False
+        ops_test.model, APP_NAME, metrics=True, logging=True, dashboard=False
     )
 
 
 async def test_logging(ops_test):
     """Test logging is defined in relation data bag."""
-    app = ops_test.model.applications[GRAFANA_AGENT_APP]
+    app = ops_test.model.applications[APP_NAME]
     await assert_logging(app)
+
+
+async def test_metrics_enpoint(ops_test):
+    """Test metrics_endpoints are defined in relation data bag and their accessibility.
+
+    This function gets all the metrics_endpoints from the relation data bag, checks if
+    they are available in current defined targets in Grafana agent.
+    """
+    app = ops_test.model.applications[APP_NAME]
+    # Note(rgildein): Without otel-collector relation we will not see otel as terget.
+    await assert_metrics_endpoint(app, metrics_port=9090, metrics_path="/metrics")
