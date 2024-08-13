@@ -64,6 +64,116 @@ where:
 
 * namespace: The namespace knative-eventing resources will be deployed into (it cannot be deployed into the same namespace as knative-operator or knative-serving
 
+## Usage with the Gateway APIs
+
+Kubernetes, Istio, and other service meshes are working toward a combined [Gateway API](https://gateway-api.sigs.k8s.io/) for Kubernetes Ingress, Load Balancing, and Service Mesh.  This would replace Istio's Gateway, VirtualService, and other resources.  There are currently two ways to use these APIs with Knative, both described below. 
+
+### Using the new Gateway API directly
+
+Knative's ingress/routing is configured by [net extensions](https://github.com/knative-extensions?q=net&type=all&language=&sort=).  We can replace the default [net-istio](https://github.com/knative-extensions/net-istio) with [net-gateway-api](https://github.com/knative-extensions/net-gateway-api) and Knative will natively generate/use the Gateway API resources.  In this example, we use the `istio-k8s` and `istio-ingress-k8s` charms, which support the new Gateway API, to deploy Istio:
+
+Deploy istio:
+```bash
+juju add-model istio-system
+juju deploy istio-k8s -m istio-system --channel edge --trust
+juju deploy istio-ingress-k8s -m istio-system --channel edge --trust
+```
+
+Deploy Knative:
+```bash
+juju add-model knative-user
+juju deploy ./charms/knative-operator/knative-operator_ubuntu-20.04-amd64.charm \
+  --model knative-user \
+  --trust \
+  --resource knative-operator-image=gcr.io/knative-releases/knative.dev/operator/cmd/operator@sha256:18e7a0c612efdce11d9d396fa9a1469fa206bdb2a817b5426a595ed57a5c3daf \
+  --resource knative-operator-webhook-image=gcr.io/knative-releases/knative.dev/operator/cmd/webhook@sha256:dc2b23c9f66869a8617a51f2f0af0f56d9dc6a85b71cff587161eb9711aef26a
+juju deploy ./charms/knative-serving/knative-serving_ubuntu-20.04-amd64.charm \
+  --model knative-user \
+  --trust \
+  --config namespace=knative-serving-1 \
+  --config istio.gateway.namespace=istio-system \
+  --config domain.name=10.64.140.43.nip.io \  # <-- may be different if you have a different load balancer configuration
+  --config istio.gateway.name=istio-ingress-k8s \
+  --config version=1.15.0 \
+  --config ingress-class=gateway-api.ingress.networking.knative.dev  # <-- enables the gateway api
+```
+
+Deploy a Knative Service via the [kn CLI](https://knative.dev/docs/client/install-kn/) and use it:
+```bash
+kn service create hello \
+--image ghcr.io/knative/helloworld-go:latest \
+--port 8080 \
+--env TARGET=World
+
+curl http://hello.default.10.64.140.43.nip.io
+# Hello World!
+```
+
+### Using an Istio Gateway alongside the new Gateway API
+
+Istio's implementation of the [Istio Gateway](https://istio.io/latest/docs/reference/config/networking/gateway/) and [Gateway API Gateway](https://gateway-api.sigs.k8s.io/concepts/api-overview/#gateway) both rely on the controlling the same deployment proxy.  Because of this, we can bind an [Istio Gateway](https://istio.io/latest/docs/reference/config/networking/gateway/) to the Kubernetes `deployment` that is created for Istio's [Gateway API Gateway](https://gateway-api.sigs.k8s.io/concepts/api-overview/#gateway), effectively allowing control over the `Gateway` through both `VirtualServices` and `HTTPRoutes`.
+
+Deploy Istio:
+```bash
+juju add-model istio-system
+juju deploy istio-k8s -m istio-system --channel edge --trust
+juju deploy istio-ingress-k8s -m istio-system --channel edge --trust
+```
+
+Deploy an Istio (old api) Gateway:
+```bash
+cat << EOF | kubectl apply -f -
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: old-gateway-api
+  namespace: istio-system
+spec:
+  selector:
+    # TODO: There might be a better selector to use here
+    gateway.networking.k8s.io/gateway-name: istio-ingress-k8s
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+      # wildcard so we can use it for knative, which adds to the front of the domain
+    - "*.10.64.140.43.nip.io"
+EOF
+```
+
+Deploy Knative:
+```bash
+juju add-model knative-user
+juju deploy ./charms/knative-operator/knative-operator_ubuntu-20.04-amd64.charm \
+  --model knative-user \
+  --trust \
+  --resource knative-operator-image=gcr.io/knative-releases/knative.dev/operator/cmd/operator@sha256:18e7a0c612efdce11d9d396fa9a1469fa206bdb2a817b5426a595ed57a5c3daf \
+  --resource knative-operator-webhook-image=gcr.io/knative-releases/knative.dev/operator/cmd/webhook@sha256:dc2b23c9f66869a8617a51f2f0af0f56d9dc6a85b71cff587161eb9711aef26a
+juju deploy ./charms/knative-serving/knative-serving_ubuntu-20.04-amd64.charm \
+  --model knative-user \
+  --trust \
+  --config namespace=knative-serving-1 \
+  --config istio.gateway.namespace=istio-system \
+  --config domain.name=10.64.140.43.nip.io \
+  --config istio.gateway.name=old-gateway-api \  # <-- use the old gateway
+  --config version=1.15.0
+```
+
+Deploy a Knative Service via the [kn CLI](https://knative.dev/docs/client/install-kn/) and use it:
+```bash
+kn service create hello \
+--image ghcr.io/knative/helloworld-go:latest \
+--port 8080 \
+--env TARGET=World
+
+curl http://hello.default.10.64.140.43.nip.io
+# Hello World!
+
+
+
+
 ## Collecting metrics
 
 Metrics are collected by an OpenTelemetry collector managed by the `knative-operator`, which is then scraped by `prometheus-k8s`. Please follow these instructions to enable metrics collection for `knative-eventing` and `knative-serving`.
