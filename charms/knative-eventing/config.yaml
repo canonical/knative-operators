@@ -3,7 +3,7 @@
 
 options:
   version:
-    default: "1.12.4"
+    default: "1.15.2"
     description: Version of knative-eventing component.
     type: string
   namespace:

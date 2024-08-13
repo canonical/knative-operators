@@ -24,8 +24,8 @@ resources:
   knative-operator-image:
     type: oci-image
     description: OCI image for knative-operator
-    upstream-source: gcr.io/knative-releases/knative.dev/operator/cmd/operator:v1.12.4
+    upstream-source: gcr.io/knative-releases/knative.dev/operator/cmd/operator@sha256:18e7a0c612efdce11d9d396fa9a1469fa206bdb2a817b5426a595ed57a5c3daf
   knative-operator-webhook-image:
     type: oci-image
     description: OCI image for knative-operator's operator-webhook component
-    upstream-source: gcr.io/knative-releases/knative.dev/operator/cmd/webhook:v1.12.4
+    upstream-source: gcr.io/knative-releases/knative.dev/operator/cmd/webhook@sha256:dc2b23c9f66869a8617a51f2f0af0f56d9dc6a85b71cff587161eb9711aef26a

@@ -159,6 +159,7 @@ class KnativeOperatorCharm(CharmBase):
                         "METRICS_DOMAIN": "knative.dev/operator",
                         "CONFIG_LOGGING_NAME": "config-logging",
                         "CONFIG_OBSERVABILITY_NAME": "config-observability",
+                        "KUBERNETES_MIN_VERSION": "",
                     },
                 }
             },
