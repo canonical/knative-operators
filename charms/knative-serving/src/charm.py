@@ -181,6 +181,8 @@ class KnativeServingCharm(CharmBase):
             context.update(self._otel_collector_relation_data)
         if self.model.config["queue_sidecar_image"]:
             context.update({"queue_sidecar_image": self.model.config["queue_sidecar_image"]})
+        if self.model.config["ingress-class"]:
+            context.update({"ingress_class": self.model.config["ingress-class"]})
 
         return context
 

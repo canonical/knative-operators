@@ -18,6 +18,7 @@ spec:
       kubernetes.podspec-nodeselector: "enabled"
       kubernetes.podspec-tolerations: "enabled"
     # This is analogous to the config-istio configmap
+    {% if not ingress_class %}
     istio:
       # TODO
       # To define the external gateway:
@@ -28,9 +29,35 @@ spec:
       # Where local-gateway-namespace is the same as the knative-namespace and istio-namespace is where istio is deployed, in this particular
       # case we know the gateway namespace and the istio namespace will be the same
       local-gateway.{{ serving_namespace }}.knative-local-gateway: "knative-local-gateway.{{ gateway_namespace }}.svc.cluster.local"
+    {% endif %}
     # This is analogous to the config-domain configmap
+    # TODO: defining this gateway config did nothing.  Maybe the operator doesn't support it?
+    {% if ingress_class == 'gateway-api.ingress.networking.knative.dev' %}
+    gateway:
+      # TODO: Make this dynamic
+      external-gateways: |
+        - class: istio
+          gateway: istio-system/istio-ingress-k8s
+          # OPTIONAL - omitting it means it'll take a LB's first address
+          # service: (cant remember if this was namespace/svc or a url)
+          supported-features:
+          - HTTPRouteRequestTimeout
+      local-gateways: |
+        - class: istio
+          gateway: istio-system/istio-ingress-k8s
+          # OPTIONAL - might not be optional for local gateway though
+          # service: (cant remember if this was namespace/svc or a url)
+          supported-features:
+          - HTTPRouteRequestTimeout
+    {% endif %}
     domain:
       {{ domain }}: ""
+    {% if ingress_class %}
+    network:
+      # Setting this tells net-istio to not reconcile things, I think?  If I set this, I don't see any VirtualServices
+      # created for knative services
+      ingress-class: gateway-api.ingress.networking.knative.dev
+    {% endif %}
 {% if otel_collector_svc_name %}
     observability:
       metrics.backend-destination: opencensus

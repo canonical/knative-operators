@@ -65,3 +65,10 @@ options:
     default: ""
     description: The value of NO_PROXY environment variable in the serving controller.
     type: string
+  ingress-class:
+    default: ""
+    description: |
+      The ingress class used by Knative Serving.  This should be set at deploy time - changing ingress=class during runtime has undefined behaviour within Knative Serving.
+      If left unset, Knative Serving's default value will be used.  Other valid options include:
+      - "gateway-api.ingress.networking.knative.dev": to use the Kubernetes Gateway API
+    type: string
