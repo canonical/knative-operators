@@ -4,9 +4,11 @@ import logging
 
 import pytest
 from charmed_kubeflow_chisme.testing import (
+    assert_alert_rules,
     assert_logging,
     assert_metrics_endpoint,
     deploy_and_assert_grafana_agent,
+    get_alert_rules,
 )
 from pytest_operator.plugin import OpsTest
 from test_bundle import KNATIVE_OPERATOR_RESOURCES
@@ -93,3 +95,11 @@ async def test_metrics_enpoint(ops_test):
     await ops_test.model.wait_for_idle(raise_on_blocked=False, timeout=60 * 5, idle_period=60)
 
     await assert_metrics_endpoint(app, metrics_port=8889, metrics_path="/metrics")
+
+
+async def test_alert_rules(ops_test):
+    """Test check charm alert rules and rules defined in relation data bag."""
+    app = ops_test.model.applications[APP_NAME]
+    alert_rules = get_alert_rules()
+    log.info("found alert_rules: %s", alert_rules)
+    await assert_alert_rules(app, alert_rules)
