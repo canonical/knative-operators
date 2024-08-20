@@ -169,6 +169,9 @@ class KnativeServingCharm(CharmBase):
             "serving_namespace": self.model.config["namespace"],
             "serving_version": self.model.config["version"],
             "custom_images": self._get_custom_images(),
+            "http_proxy": self.model.config["http-proxy"],
+            "https_proxy": self.model.config["https-proxy"],
+            "no_proxy": self.model.config["no-proxy"],
         }
         if self._otel_collector_relation_data:
             context.update(self._otel_collector_relation_data)
