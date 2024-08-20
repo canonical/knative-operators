@@ -7,9 +7,11 @@ from pathlib import Path
 import pytest
 import yaml
 from charmed_kubeflow_chisme.testing import (
+    assert_alert_rules,
     assert_logging,
     assert_metrics_endpoint,
     deploy_and_assert_grafana_agent,
+    get_alert_rules,
 )
 from pytest_operator.plugin import OpsTest
 
@@ -65,3 +67,11 @@ async def test_metrics_enpoint(ops_test):
     app = ops_test.model.applications[APP_NAME]
     # Note(rgildein): Without otel-collector relation we will not see otel as terget.
     await assert_metrics_endpoint(app, metrics_port=9090, metrics_path="/metrics")
+
+
+async def test_alert_rules(ops_test):
+    """Test check charm alert rules and rules defined in relation data bag."""
+    app = ops_test.model.applications[APP_NAME]
+    alert_rules = get_alert_rules()
+    log.info("found alert_rules: %s", alert_rules)
+    await assert_alert_rules(app, alert_rules)
