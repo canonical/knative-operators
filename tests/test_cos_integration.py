@@ -1,6 +1,7 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 import logging
+from pathlib import Path
 
 import pytest
 from charmed_kubeflow_chisme.testing import (
@@ -18,6 +19,7 @@ log = logging.getLogger(__name__)
 # knative-operator is the charm that actually talks to prometheus
 # to configure the OpenTelemetry collector to be scraped
 APP_NAME = "knative-operator"
+ALERT_RULES_PATH = Path(f"./charms/{APP_NAME}/src/prometheus_alert_rules")
 
 
 @pytest.mark.abort_on_fail
@@ -100,6 +102,6 @@ async def test_metrics_enpoint(ops_test):
 async def test_alert_rules(ops_test):
     """Test check charm alert rules and rules defined in relation data bag."""
     app = ops_test.model.applications[APP_NAME]
-    alert_rules = get_alert_rules()
+    alert_rules = get_alert_rules(ALERT_RULES_PATH)
     log.info("found alert_rules: %s", alert_rules)
     await assert_alert_rules(app, alert_rules)
