@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # This script returns list of container images that are managed by this charm and/or its workload
+set -xe
 
 IMAGE_LIST=()
 IMAGE_LIST+=($(find . -type f -name metadata.yaml -exec yq '.resources | to_entries | .[] | .value | ."upstream-source"' {} \;))
@@ -38,6 +39,13 @@ NET_ISTIO_VERSION="${KNATIVE_SERVING_VERSION}"
 if [ $KNATIVE_SERVING_VERSION == "1.10.2" ]; then
   NET_ISTIO_VERSION="1.11.0"
 fi
+
+# For Serving 1.12.4 (CKF 1.9) we have to use 1.12.3 for net-istio
+# https://github.com/kubeflow/manifests/pull/2709
+if [ $KNATIVE_SERVING_VERSION == "1.12.4" ]; then
+  NET_ISTIO_VERSION="1.12.3"
+fi
+
 NET_ISTIO_REPO_DOWNLOAD_URL=https://github.com/knative-extensions/net-istio/releases/download/
 NET_ISTIO_IMAGE_LIST=()
 wget -q "${NET_ISTIO_REPO_DOWNLOAD_URL}knative-v${NET_ISTIO_VERSION}/net-istio.yaml"
