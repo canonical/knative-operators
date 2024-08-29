@@ -32,20 +32,10 @@ wget -q "${KNATIVE_SERVING_REPO_DOWNLOAD_URL}/knative-v${KNATIVE_SERVING_VERSION
 SERVING_IMAGE_LIST+=($(yq -N '.spec.template.spec.containers | .[] | .image' ./serving-storage-version-migration.yaml))
 wget -q "${KNATIVE_SERVING_REPO_DOWNLOAD_URL}/knative-v${KNATIVE_SERVING_VERSION}/serving-post-install-jobs.yaml"
 SERVING_IMAGE_LIST+=($(yq -N '.spec.template.spec.containers | .[] | .image' ./serving-post-install-jobs.yaml))
-# obtain net istio images based on hardcoded version
-NET_ISTIO_VERSION="${KNATIVE_SERVING_VERSION}"
-# NOTE: for KNative Serving version 1.10.2 Net Istio version must be set to 1.11.0
-#       this need to be reviewed if KNative Serving version is changed
-if [ $KNATIVE_SERVING_VERSION == "1.10.2" ]; then
-  NET_ISTIO_VERSION="1.11.0"
-fi
 
 # For Serving 1.12.4 (CKF 1.9) we have to use 1.12.3 for net-istio
 # https://github.com/kubeflow/manifests/pull/2709
-if [ $KNATIVE_SERVING_VERSION == "1.12.4" ]; then
-  NET_ISTIO_VERSION="1.12.3"
-fi
-
+NET_ISTIO_VERSION="1.12.3"
 NET_ISTIO_REPO_DOWNLOAD_URL=https://github.com/knative-extensions/net-istio/releases/download/
 NET_ISTIO_IMAGE_LIST=()
 wget -q "${NET_ISTIO_REPO_DOWNLOAD_URL}knative-v${NET_ISTIO_VERSION}/net-istio.yaml"
