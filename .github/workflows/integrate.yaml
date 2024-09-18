@@ -49,6 +49,7 @@ jobs:
       charm-path: ./charms/knative-${{ matrix.charm }}
       model: kubeflow
       channel: latest/edge
+      apply: False
 
   integration-charm-deployment:
     name: Integration Test
