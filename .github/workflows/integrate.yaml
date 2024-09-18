@@ -40,7 +40,7 @@ jobs:
 
   terraform-checks:
     name: Terraform
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/terraform-checks.yaml@orfeas-k-terraform-checks-optional-apply
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/terraform-checks.yaml@main
     strategy:
       fail-fast: false
       matrix:
@@ -49,7 +49,7 @@ jobs:
       charm-path: ./charms/knative-${{ matrix.charm }}
       model: kubeflow
       channel: latest/edge
-      apply: False
+      apply: false
 
   integration-charm-deployment:
     name: Integration Test
