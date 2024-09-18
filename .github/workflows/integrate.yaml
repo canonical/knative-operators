@@ -40,7 +40,7 @@ jobs:
 
   terraform-checks:
     name: Terraform
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/terraform-checks.yaml@main
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/terraform-checks.yaml@orfeas-k-terraform-checks-optional-apply
     strategy:
       fail-fast: false
       matrix:
