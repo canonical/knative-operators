@@ -5,7 +5,7 @@ output "app_name" {
 output "provides" {
   value = {
     ingress_gateway = "ingress-gateway",
-    local_gateway = "local-gateway"
+    local_gateway   = "local-gateway"
   }
 }
 
