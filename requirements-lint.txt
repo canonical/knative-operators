@@ -32,7 +32,7 @@ pathspec==0.12.1
     # via black
 pep8-naming==0.14.1
     # via -r requirements-lint.in
-platformdirs==4.2.2
+platformdirs==4.3.6
     # via black
 pycodestyle==2.11.1
     # via flake8
