@@ -47,8 +47,6 @@ jobs:
         charm: [operator, serving, eventing]
     with:
       charm-path: ./charms/knative-${{ matrix.charm }}
-      model: kubeflow
-      channel: latest/edge
       apply: false
 
   integration-charm-deployment:
