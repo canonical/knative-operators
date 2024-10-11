@@ -2,6 +2,6 @@
 # See LICENSE file for licensing details.
 options:
   otel-collector-image:
-    default: "otel/opentelemetry-collector:latest"
+    default: "otel/opentelemetry-collector:0.110.0"
     type: string
     description: Image to use by the otel collector Deployment.
