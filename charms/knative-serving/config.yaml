@@ -30,7 +30,7 @@ options:
       webhook: ''
       autoscaler-hpa: ''
       net-istio-controller/controller: ''
-      net-istio-webhook/webhook: 'charmedkubeflow/net-istio-webhook:1.12.3-9e441a2'
+      net-istio-webhook/webhook: ''
       queue-proxy: ''
       domain-mapping: ''
       domainmapping-webhook: ''
