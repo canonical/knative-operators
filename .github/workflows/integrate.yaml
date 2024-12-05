@@ -75,7 +75,7 @@ jobs:
       - name: Run integration tests
         run: |
           sg snap_microk8s -c "juju add-model knative-test"
-          sg snap_microk8s -c "tox -vve integration -- --model knative-test --destructive-mode"
+          sg snap_microk8s -c "tox -vve integration -- --model knative-test"
 
       - run: kubectl get all -A
         if: failure()
@@ -108,7 +108,7 @@ jobs:
       - name: Run integration tests
         run: |
           sg snap_microk8s -c "juju add-model cos-test"
-          sg snap_microk8s -c "tox -vve cos-integration -- --model cos-test --destructive-mode"
+          sg snap_microk8s -c "tox -vve cos-integration -- --model cos-test"
 
       - run: kubectl get pod/prometheus-k8s-0 -n knative-test -o=jsonpath='{.status}'
         if: failure()
