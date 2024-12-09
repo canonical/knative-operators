@@ -19,6 +19,5 @@ lightkube
 ops
 pytest
 pytest-mock
-pytest-lazy-fixture
 tenacity
 -r requirements.in
