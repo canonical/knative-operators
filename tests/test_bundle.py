@@ -482,26 +482,28 @@ async def test_serving_proxy_config(ops_test: OpsTest):
 
     client = Client()
 
-    # Get Knative Serving controller Deployment
-    controller_deployment = client.get(
-        Deployment, "controller", namespace=KNATIVE_SERVING_NAMESPACE
-    )
+    for attempt in RETRY_FOR_THREE_MINUTES:
+        with attempt:
+            # Get Knative Serving controller Deployment
+            controller_deployment = client.get(
+                Deployment, "controller", namespace=KNATIVE_SERVING_NAMESPACE
+            )
 
-    # Get Knative Serving controller environment variables
-    serving_controller_env_vars = controller_deployment.spec.template.spec.containers[0].env
+            # Get Knative Serving controller environment variables
+            serving_controller_env_vars = controller_deployment.spec.template.spec.containers[0].env
 
-    http_proxy_env = https_proxy_env = no_proxy_env = None
+            http_proxy_env = https_proxy_env = no_proxy_env = None
 
-    # Get proxy environment variables from all Knative Serving controller env vars
-    for env_var in serving_controller_env_vars:
-        if env_var.name == "HTTP_PROXY":
-            http_proxy_env = env_var.value
-        elif env_var.name == "HTTPS_PROXY":
-            https_proxy_env = env_var.value
-        elif env_var.name == "NO_PROXY":
-            no_proxy_env = env_var.value
+            # Get proxy environment variables from all Knative Serving controller env vars
+            for env_var in serving_controller_env_vars:
+                if env_var.name == "HTTP_PROXY":
+                    http_proxy_env = env_var.value
+                elif env_var.name == "HTTPS_PROXY":
+                    https_proxy_env = env_var.value
+                elif env_var.name == "NO_PROXY":
+                    no_proxy_env = env_var.value
 
-    # Assert Deployment spec contains correct proxy environment variables
-    assert http_proxy_env == test_http_proxy
-    assert https_proxy_env == test_https_proxy
-    assert no_proxy_env == test_no_proxy
+            # Assert Deployment spec contains correct proxy environment variables
+            assert http_proxy_env == test_http_proxy
+            assert https_proxy_env == test_https_proxy
+            assert no_proxy_env == test_no_proxy
