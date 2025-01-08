@@ -274,10 +274,13 @@ async def test_eventing_custom_image(ops_test: OpsTest, restore_eventing_custom_
 
     # Assert that the activator image is trying to use the custom image.
     client = lightkube.Client()
-    activator_deployment = client.get(
-        Deployment, "eventing-controller", namespace=KNATIVE_EVENTING_NAMESPACE
-    )
-    assert activator_deployment.spec.template.spec.containers[0].image == fake_image
+
+    for attempt in RETRY_FOR_THREE_MINUTES:
+        with attempt:
+            activator_deployment = client.get(
+                Deployment, "eventing-controller", namespace=KNATIVE_EVENTING_NAMESPACE
+            )
+            assert activator_deployment.spec.template.spec.containers[0].image == fake_image
 
 
 @pytest_asyncio.fixture
@@ -317,8 +320,13 @@ async def test_serving_custom_image(ops_test: OpsTest, restore_serving_custom_im
 
     # Assert that the activator image is trying to use the custom image.
     client = lightkube.Client()
-    activator_deployment = client.get(Deployment, "activator", namespace=KNATIVE_SERVING_NAMESPACE)
-    assert activator_deployment.spec.template.spec.containers[0].image == fake_image
+
+    for attempt in RETRY_FOR_THREE_MINUTES:
+        with attempt:
+            activator_deployment = client.get(
+                Deployment, "activator", namespace=KNATIVE_SERVING_NAMESPACE
+            )
+            assert activator_deployment.spec.template.spec.containers[0].image == fake_image
 
 
 async def test_ksvc_deployment_configs(ops_test: OpsTest, remove_helloworld_example):
