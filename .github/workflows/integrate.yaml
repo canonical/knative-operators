@@ -76,6 +76,11 @@ jobs:
         run: |
           sg snap_microk8s -c "juju add-model knative-test"
           sg snap_microk8s -c "tox -vve integration -- --model knative-test"
+      
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 300
+        if: failure()
 
       - run: kubectl get all -A
         if: failure()
