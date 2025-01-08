@@ -490,7 +490,9 @@ async def test_serving_proxy_config(ops_test: OpsTest):
             )
 
             # Get Knative Serving controller environment variables
-            serving_controller_env_vars = controller_deployment.spec.template.spec.containers[0].env
+            serving_controller_env_vars = controller_deployment.spec.template.spec.containers[
+                0
+            ].env
 
             http_proxy_env = https_proxy_env = no_proxy_env = None
 
