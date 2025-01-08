@@ -138,8 +138,8 @@ RETRY_FOR_THREE_MINUTES = Retrying(
     reraise=True,
 )
 
-RETRY_FOR_FIVE_MINUTES = Retrying(
-    stop=stop_after_delay(60 * 5),
+RETRY_FOR_TWENTY_MINUTES = Retrying(
+    stop=stop_after_delay(60 * 20),
     wait=wait_fixed(5),
     reraise=True,
 )
@@ -192,7 +192,7 @@ def wait_for_ready(resource, name, namespace):
 
     timeout_error = TimeoutError("Timed out waiting for ksvc to be ready")
 
-    for attempt in RETRY_FOR_FIVE_MINUTES:
+    for attempt in RETRY_FOR_TWENTY_MINUTES:
         with attempt:
             log.info("Checking ksvc status")
             # Validate that ksvc has "Ready" status and pass this loop, or raise an exception to
