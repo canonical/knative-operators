@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 CUSTOM_IMAGE_CONFIG_NAME = "custom_images"
 DEFAULT_IMAGES = {
     "net-istio-webhook/webhook": "charmedkubeflow/net-istio-webhook:1.12.3-b455143",
-    "net-istio-controller/controller": "charmedkubeflow/net-istio-controller:1.12.3-dc35fc7",
+    "net-istio-controller/controller": "charmedkubeflow/net-istio-controller:1.12.3-2d7219d",
 }
 
 
