@@ -102,6 +102,14 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
+      # Ideally we'd use self-hosted runners, but this effort is still not stable
+      # This action will remove unused software (dotnet, haskell, android libs, codeql,
+      # and docker images) from the GH runner.
+      # This leaves ~45GB free as of 2024-04-10, but this amount has varied as GH changed their
+      # runners
+      - name: Maximise GH runner space
+        uses: jlumbroso/free-disk-space@v1.3.1
+
       - name: Check out repo
         uses: actions/checkout@v3
 
