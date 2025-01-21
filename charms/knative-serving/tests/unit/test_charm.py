@@ -8,7 +8,7 @@ import yaml
 from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.lightkube.mocking import FakeApiError
 from lightkube import ApiError
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
 from charm import CUSTOM_IMAGE_CONFIG_NAME, DEFAULT_IMAGES
 
@@ -42,28 +42,41 @@ class _FakeApiError(ApiError):
 def test_events(harness, mocked_lightkube_client):
     # Test install and config_changed event handlers are called
     harness.begin()
-    harness.charm._on_install = MagicMock()
-    harness.charm._on_config_changed = MagicMock()
+    harness.charm._main = MagicMock()
     harness.charm._on_otel_collector_relation_changed = MagicMock()
 
-    harness.charm.on.install.emit()
-    harness.charm._on_install.assert_called_once()
-
     harness.charm.on.config_changed.emit()
-    harness.charm._on_config_changed.assert_called_once()
+    harness.charm._main.assert_called_once()
 
     rel_id = harness.add_relation("otel-collector", "app")
     harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
     harness.charm._on_otel_collector_relation_changed.assert_called_once()
 
 
-def test_on_install_active(harness, mocked_lightkube_client):
-    harness.begin()
+@patch("charm.Client")
+def test_active(lk_client, harness, mocked_lightkube_client):
+    harness.begin_with_initial_hooks()
     harness.update_config({"namespace": "test"})
+    rel_id = harness.add_relation("otel-collector", "app")
+    harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
     harness.charm.resource_handler.apply = MagicMock()
     harness.charm.resource_handler.apply.return_value = None
-    harness.charm.on.install.emit()
     assert harness.model.unit.status == ActiveStatus()
+
+
+@patch("charm.Client")
+def test_missing_knative_serving_crd(lk_client, harness, mocker, mocked_lightkube_client):
+    harness.begin()
+
+    # Set the side effect of Client to a FakeApiError
+    lk_client.return_value.get.side_effect = _FakeApiError(code=404)
+
+    # Set the relation to otel-collector
+    rel_id = harness.add_relation("otel-collector", "app")
+    harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
+
+    harness.update_config({"namespace": "test"})
+    assert isinstance(harness.model.unit.status, WaitingStatus)
 
 
 @pytest.mark.parametrize(
@@ -120,6 +133,7 @@ def test_gateway_relation_data(
     harness.begin()
 
     # Update config values with test values
+    harness.charm._main = MagicMock()
     harness.update_config(charm_config)
 
     # Add one relation, send data, and assert the data is correct

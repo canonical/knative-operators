@@ -16,10 +16,12 @@ from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from charms.istio_pilot.v0.istio_gateway_info import GatewayProvider
+from lightkube import Client
 from lightkube.core.exceptions import ApiError
+from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
 from image_management import parse_image_config, remove_empty_images, update_images
 from lightkube_custom_resources.operator import KnativeServing_v1beta1  # noqa F401
@@ -45,8 +47,7 @@ class KnativeServingCharm(CharmBase):
         self._ingress_gateway_provider = GatewayProvider(self, relation_name="ingress-gateway")
         self._local_gateway_provider = GatewayProvider(self, relation_name="local-gateway")
 
-        self.framework.observe(self.on.install, self._on_install)
-        self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(self.on.config_changed, self._main)
         self.framework.observe(
             self.on["ingress-gateway"].relation_changed, self._on_ingress_gateway_relation_changed
         )
@@ -95,16 +96,27 @@ class KnativeServingCharm(CharmBase):
             )
         return custom_images
 
-    def _on_install(self, _):
+    def _main(self, event):
         if not self.model.config["namespace"]:
             self.model.unit.status = BlockedStatus("Config item `namespace` must be set")
             return
-        self._apply_and_set_status()
 
-    def _on_config_changed(self, _):
         self._send_ingress_gateway_data()
         self._send_local_gateway_data()
-        self._apply_and_set_status()
+
+        # Check the KnativeServing CRD is present; otherwise defer
+        lightkube_client = Client()
+        try:
+            lightkube_client.get(CustomResourceDefinition, "knativeservings.operator.knative.dev")
+            self._apply_and_set_status()
+        except ApiError as e:
+            if e.status.code == 404:
+                self.model.unit.status = WaitingStatus(
+                    "Waiting for knative-operator CRDs to be present."
+                )
+                event.defer()
+            else:
+                raise e
 
     def _on_ingress_gateway_relation_changed(self, _) -> None:
         self._send_ingress_gateway_data()
