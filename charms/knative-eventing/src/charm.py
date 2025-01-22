@@ -12,7 +12,7 @@ import traceback
 from pathlib import Path
 
 import yaml
-from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
+from charmed_kubeflow_chisme.exceptions import ErrorWithStatus, GenericCharmRuntimeError
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from lightkube import Client
@@ -101,7 +101,9 @@ class KnativeEventingCharm(CharmBase):
                 )
                 event.defer()
             else:
-                raise e
+                raise GenericCharmRuntimeError(
+                    f"Lightkube get CRD failed with error code: {e.status.code}"
+                ) from e
 
     def _on_otel_collector_relation_changed(self, _):
         """Event handler for on['otel-collector'].relation_changed."""

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
-from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
+from charmed_kubeflow_chisme.exceptions import ErrorWithStatus, GenericCharmRuntimeError
 from charmed_kubeflow_chisme.lightkube.mocking import FakeApiError
 from lightkube import ApiError
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
@@ -77,6 +77,21 @@ def test_missing_knative_serving_crd(lk_client, harness, mocker, mocked_lightkub
 
     harness.update_config({"namespace": "test"})
     assert isinstance(harness.model.unit.status, WaitingStatus)
+
+
+@patch("charm.Client")
+def test_error_getting_knative_serving_crd(lk_client, harness, mocker, mocked_lightkube_client):
+    harness.begin()
+
+    # Set the side effect of Client to a FakeApiError
+    lk_client.return_value.get.side_effect = _FakeApiError(code=403)
+
+    # Set the relation to otel-collector
+    rel_id = harness.add_relation("otel-collector", "app")
+    harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
+
+    with pytest.raises(GenericCharmRuntimeError):
+        harness.update_config({"namespace": "test"})
 
 
 @pytest.mark.parametrize(
