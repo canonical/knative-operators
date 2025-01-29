@@ -92,7 +92,7 @@ class KnativeEventingCharm(CharmBase):
         # Check the KnativeServing CRD is present; otherwise defer
         lightkube_client = Client()
         try:
-            lightkube_client.get(CustomResourceDefinition, "knativeservings.operator.knative.dev")
+            lightkube_client.get(CustomResourceDefinition, "knativeeventings.operator.knative.dev")
             self._apply_and_set_status()
         except ApiError as e:
             if e.status.code == 404:
