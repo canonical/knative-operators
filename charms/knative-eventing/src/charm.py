@@ -12,13 +12,15 @@ import traceback
 from pathlib import Path
 
 import yaml
-from charmed_kubeflow_chisme.exceptions import ErrorWithStatus
+from charmed_kubeflow_chisme.exceptions import ErrorWithStatus, GenericCharmRuntimeError
 from charmed_kubeflow_chisme.kubernetes import KubernetesResourceHandler as KRH  # noqa N813
 from charmed_kubeflow_chisme.lightkube.batch import delete_many
+from lightkube import Client
 from lightkube.core.exceptions import ApiError
+from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
 from ops.charm import CharmBase
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
+from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
 from image_management import parse_image_config, remove_empty_images, update_images
 from lightkube_custom_resources.operator import KnativeEventing_v1beta1  # noqa F401
@@ -40,8 +42,7 @@ class KnativeEventingCharm(CharmBase):
         self._namespace = self.model.name
         self._resource_handler = None
 
-        self.framework.observe(self.on.install, self._on_install)
-        self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(self.on.config_changed, self._main)
         self.framework.observe(
             self.on["otel-collector"].relation_changed, self._on_otel_collector_relation_changed
         )
@@ -84,14 +85,25 @@ class KnativeEventingCharm(CharmBase):
             )
         return custom_images
 
-    def _on_install(self, _):
+    def _main(self, event):
         if not self.model.config["namespace"]:
             self.model.unit.status = BlockedStatus("Config item `namespace` must be set")
             return
-        self._apply_and_set_status()
-
-    def _on_config_changed(self, _):
-        self._apply_and_set_status()
+        # Check the KnativeServing CRD is present; otherwise defer
+        lightkube_client = Client()
+        try:
+            lightkube_client.get(CustomResourceDefinition, "knativeeventings.operator.knative.dev")
+            self._apply_and_set_status()
+        except ApiError as e:
+            if e.status.code == 404:
+                self.model.unit.status = WaitingStatus(
+                    "Waiting for knative-operator CRDs to be present."
+                )
+                event.defer()
+            else:
+                raise GenericCharmRuntimeError(
+                    f"Lightkube get CRD failed with error code: {e.status.code}"
+                ) from e
 
     def _on_otel_collector_relation_changed(self, _):
         """Event handler for on['otel-collector'].relation_changed."""
