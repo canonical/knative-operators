@@ -27,8 +27,14 @@ KSVC = create_namespaced_resource(
 KNATIVE_EVENTING_NAMESPACE = "knative-eventing"
 KNATIVE_SERVING_NAMESPACE = "knative-serving"
 KNATIVE_SERVING_SERVICE = "services.serving.knative.dev"
+KNATIVE_EVENTING_METADATA = yaml.safe_load(
+    Path("./charms/knative-eventing/metadata.yaml").read_text()
+)
 KNATIVE_OPERATOR_METADATA = yaml.safe_load(
     Path("./charms/knative-operator/metadata.yaml").read_text()
+)
+KNATIVE_SERVING_METADATA = yaml.safe_load(
+    Path("./charms/knative-serving/metadata.yaml").read_text()
 )
 KNATIVE_OPERATOR_IMAGE = KNATIVE_OPERATOR_METADATA["resources"]["knative-operator-image"][
     "upstream-source"
@@ -55,12 +61,18 @@ CLOUDEVENTS_MANIFEST = lightkube.codecs.load_all_yaml(
 
 
 @pytest.mark.abort_on_fail
-async def test_build_deploy_knative_charms(ops_test: OpsTest):
-    # Build knative charms
-    charms_path = "./charms/knative"
-    knative_charms = await ops_test.build_charms(
-        f"{charms_path}-operator", f"{charms_path}-serving", f"{charms_path}-eventing"
-    )
+async def test_build_deploy_knative_charms(ops_test: OpsTest, request):
+    ke_app_name = KNATIVE_EVENTING_METADATA["name"]
+    ko_app_name = KNATIVE_OPERATOR_METADATA["name"]
+    ks_app_name = KNATIVE_SERVING_METADATA["name"]
+    if charms_path := request.config.getoption("--charms-path"):
+        knative_eventing = f"{charms_path}/{ke_app_name}/{ke_app_name}_ubuntu@20.04-amd64.charm"
+        knative_operator = f"{charms_path}/{ko_app_name}/{ko_app_name}_ubuntu@20.04-amd64.charm"
+        knative_serving = f"{charms_path}/{ks_app_name}/{ks_app_name}_ubuntu@20.04-amd64.charm"
+    else:
+        knative_eventing = await ops_test.build_charm("charms/knative-eventing")
+        knative_operator = await ops_test.build_charm("charms/knative-operator")
+        knative_serving = await ops_test.build_charm("charms/knative-serving")
 
     # Deploy istio as dependency
     await ops_test.model.deploy(
@@ -89,21 +101,21 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
 
     # Deploy knative charms
     await ops_test.model.deploy(
-        knative_charms["knative-operator"],
+        knative_operator,
         application_name="knative-operator",
         trust=True,
         resources=KNATIVE_OPERATOR_RESOURCES,
     )
 
     await ops_test.model.wait_for_idle(
-        ["knative-operator"],
+        [ko_app_name],
         status="active",
         raise_on_blocked=False,
         timeout=90 * 10,
     )
 
     await ops_test.model.deploy(
-        knative_charms["knative-serving"],
+        knative_serving,
         application_name="knative-serving",
         config={
             "namespace": KNATIVE_SERVING_NAMESPACE,
@@ -113,14 +125,14 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
     await ops_test.model.deploy(
-        knative_charms["knative-eventing"],
+        knative_eventing,
         application_name="knative-eventing",
         config={"namespace": KNATIVE_EVENTING_NAMESPACE},
         trust=True,
     )
 
     await ops_test.model.wait_for_idle(
-        ["knative-serving", "knative-eventing"],
+        [ks_app_name, ke_app_name],
         status="active",
         raise_on_blocked=False,
         timeout=90 * 10,

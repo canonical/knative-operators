@@ -24,9 +24,14 @@ log = logging.getLogger(__name__)
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_build_and_deploy_with_relations(ops_test: OpsTest):
-    built_charm_path = await ops_test.build_charm(CHARM_ROOT)
-    log.info(f"Built charm {built_charm_path}")
+async def test_build_and_deploy_with_relations(ops_test: OpsTest, request):
+    # Build and deploy charm from local source folder or use
+    # a charm artefact passed using --charm-path
+    entity_url = (
+        await ops_test.build_charm(".")
+        if not (entity_url := request.config.getoption("--charm-path"))
+        else entity_url
+    )
 
     image_path = METADATA["resources"]["knative-operator-image"]["upstream-source"]
     webhook_image_path = METADATA["resources"]["knative-operator-webhook-image"]["upstream-source"]
@@ -36,7 +41,7 @@ async def test_build_and_deploy_with_relations(ops_test: OpsTest):
     }
 
     await ops_test.model.deploy(
-        entity_url=built_charm_path, application_name=APP_NAME, resources=resources, trust=True
+        entity_url=entity_url, application_name=APP_NAME, resources=resources, trust=True
     )
 
     await ops_test.model.wait_for_idle(
