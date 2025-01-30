@@ -140,7 +140,7 @@ jobs:
       - name: Run integration tests
         run: |
           sg snap_microk8s -c "juju add-model knative-test"
-          sg snap_microk8s -c "tox -vve integration -- --model knative-test --charms-path=${{ github.workspace }}/charms/"
+          sg snap_microk8s -c "tox -vve integration -- --model knative-test --charms-path=${{ github.workspace }}/charms"
 
       - run: kubectl get all -A
         if: failure()
@@ -190,10 +190,10 @@ jobs:
           sg snap_microk8s -c "juju add-model cos-test"
           sg snap_microk8s -c "tox -vve cos-integration -- --model cos-test --charms-path=${{ github.workspace }}/charms/"
 
-      - run: kubectl get pod/prometheus-k8s-0 -n knative-test -o=jsonpath='{.status}'
+      - run: kubectl get pod/prometheus-k8s-0 -n cos-test -o=jsonpath='{.status}'
         if: failure()
 
-      - run: kubectl get pod/knative-operator-0 -nknative-test -o=jsonpath='{.status}'
+      - run: kubectl get pod/knative-operator-0 -n cos-test -o=jsonpath='{.status}'
         if: failure()
 
       - run: kubectl get all -A
