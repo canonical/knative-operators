@@ -108,6 +108,8 @@ jobs:
 
   integration-charm-deployment:
     name: Integration Test
+    needs:
+      - build
     runs-on: ubuntu-20.04
     steps:
       # Ideally we'd use self-hosted runners, but this effort is still not stable
@@ -156,8 +158,9 @@ jobs:
 
   integration-observability:
     name: Observability Integration Test
+    needs:
+      - build
     runs-on: ubuntu-20.04
-
     steps:
       # Ideally we'd use self-hosted runners, but this effort is still not stable
       # This action will remove unused software (dotnet, haskell, android libs, codeql,
