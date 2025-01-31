@@ -56,7 +56,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest, request):
     )
 
     await ops_test.model.wait_for_idle(
-        ko_app_name,
+        [ko_app_name],
         status="active",
         raise_on_blocked=False,
         timeout=120 * 10,
