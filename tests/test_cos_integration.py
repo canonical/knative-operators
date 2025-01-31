@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 import pytest
+import yaml
 from charmed_kubeflow_chisme.testing import (
     assert_alert_rules,
     assert_logging,
@@ -20,34 +21,49 @@ log = logging.getLogger(__name__)
 # to configure the OpenTelemetry collector to be scraped
 APP_NAME = "knative-operator"
 ALERT_RULES_PATH = Path(f"./charms/{APP_NAME}/src/prometheus_alert_rules")
+KNATIVE_EVENTING_METADATA = yaml.safe_load(
+    Path("./charms/knative-eventing/metadata.yaml").read_text()
+)
+KNATIVE_OPERATOR_METADATA = yaml.safe_load(
+    Path("./charms/knative-operator/metadata.yaml").read_text()
+)
+KNATIVE_SERVING_METADATA = yaml.safe_load(
+    Path("./charms/knative-serving/metadata.yaml").read_text()
+)
 
 
 @pytest.mark.abort_on_fail
 @pytest.mark.skip_if_deployed
-async def test_build_deploy_knative_charms(ops_test: OpsTest):
-    # Build knative charms
-    charms_path = "./charms/knative"
-    knative_charms = await ops_test.build_charms(
-        f"{charms_path}-operator", f"{charms_path}-serving", f"{charms_path}-eventing"
-    )
+async def test_build_deploy_knative_charms(ops_test: OpsTest, request):
+    ke_app_name = KNATIVE_EVENTING_METADATA["name"]
+    ko_app_name = KNATIVE_OPERATOR_METADATA["name"]
+    ks_app_name = KNATIVE_SERVING_METADATA["name"]
+    if charms_path := request.config.getoption("--charms-path"):
+        knative_eventing = f"{charms_path}/{ke_app_name}/{ke_app_name}_ubuntu@20.04-amd64.charm"
+        knative_operator = f"{charms_path}/{ko_app_name}/{ko_app_name}_ubuntu@20.04-amd64.charm"
+        knative_serving = f"{charms_path}/{ks_app_name}/{ks_app_name}_ubuntu@20.04-amd64.charm"
+    else:
+        knative_eventing = await ops_test.build_charm("charms/knative-eventing")
+        knative_operator = await ops_test.build_charm("charms/knative-operator")
+        knative_serving = await ops_test.build_charm("charms/knative-serving")
 
     # Deploy knative charms
     await ops_test.model.deploy(
-        knative_charms["knative-operator"],
+        knative_operator,
         application_name="knative-operator",
         trust=True,
         resources=KNATIVE_OPERATOR_RESOURCES,
     )
 
     await ops_test.model.wait_for_idle(
-        ["knative-operator"],
+        [ko_app_name],
         status="active",
         raise_on_blocked=False,
         timeout=120 * 10,
     )
 
     await ops_test.model.deploy(
-        knative_charms["knative-serving"],
+        knative_serving,
         application_name="knative-serving",
         config={
             "namespace": f"{ops_test.model_name}-serving",
@@ -57,7 +73,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest):
     )
 
     await ops_test.model.deploy(
-        knative_charms["knative-eventing"],
+        knative_eventing,
         application_name="knative-eventing",
         config={"namespace": f"{ops_test.model_name}-eventing"},
         trust=True,
