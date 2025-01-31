@@ -59,7 +59,7 @@ jobs:
       matrix:
         charm: [operator, serving, eventing]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: pip install tox
       - run: tox -e ${{ matrix.charm }}-lint
 
@@ -71,7 +71,7 @@ jobs:
       matrix:
         charm: [operator, serving, eventing]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: pip install tox
       - run: tox -e ${{ matrix.charm }}-unit
 
@@ -121,7 +121,7 @@ jobs:
         uses: jlumbroso/free-disk-space@v1.3.1
 
       - name: Check out repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
@@ -171,7 +171,7 @@ jobs:
         uses: jlumbroso/free-disk-space@v1.3.1
 
       - name: Check out repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
