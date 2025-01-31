@@ -153,7 +153,7 @@ jobs:
         if: failure()
 
       - uses: canonical/kubeflow-ci/actions/dump-charm-debug-artifacts@main
-        if: always()
+        if: failure()
 
   integration-observability:
     name: Observability Integration Test
@@ -205,7 +205,7 @@ jobs:
         if: failure()
 
       - uses: canonical/kubeflow-ci/actions/dump-charm-debug-artifacts@main
-        if: always()
+        if: failure()
 
   release:
     strategy:
