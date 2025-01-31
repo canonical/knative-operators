@@ -105,7 +105,6 @@ jobs:
     with:
       path-to-charm-directory: ${{ matrix.charm }}
 
-
   integration-charm-deployment:
     name: Integration Test
     needs:
