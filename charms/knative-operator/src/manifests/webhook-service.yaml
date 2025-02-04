@@ -18,6 +18,9 @@ kind: Service
 metadata:
   labels:
     role: knative-operator-webhook
+    app.kubernetes.io/component: operator-webhook
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/name: knative-operator
   name: knative-operator-webhook
   namespace: {{ namespace }}
 spec:
