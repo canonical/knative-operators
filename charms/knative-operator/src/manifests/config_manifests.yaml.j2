@@ -1,4 +1,3 @@
-# Source: knative/operator/config/manager/config-logging-configmap.yaml
 # Copyright 2019 The Knative Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +17,9 @@ kind: ConfigMap
 metadata:
   name: config-logging
   namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/name: knative-operator
 data:
   _example: |
     ################################
@@ -79,6 +81,9 @@ kind: ConfigMap
 metadata:
   name: config-observability
   namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/version: devel
+    app.kubernetes.io/name: knative-operator
 data:
   _example: |
     ################################
@@ -107,35 +112,6 @@ data:
     # access to Kibana after setting up kubectl proxy.
     logging.revision-url-template: |
       http://localhost:8001/api/v1/namespaces/knative-monitoring/services/kibana-logging/proxy/app/kibana#/discover?_a=(query:(match:(kubernetes.labels.serving-knative-dev%2FrevisionUID:(query:'${REVISION_UID}',type:phrase))))
-
-    # If non-empty, this enables queue proxy writing request logs to stdout.
-    # The value determines the shape of the request logs and it must be a valid go text/template.
-    # It is important to keep this as a single line. Multiple lines are parsed as separate entities
-    # by most collection agents and will split the request logs into multiple records.
-    #
-    # The following fields and functions are available to the template:
-    #
-    # Request: An http.Request (see https://golang.org/pkg/net/http/#Request)
-    # representing an HTTP request received by the server.
-    #
-    # Response:
-    # struct {
-    #   Code    int       // HTTP status code (see https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml)
-    #   Size    int       // An int representing the size of the response.
-    #   Latency float64   // A float64 representing the latency of the response in seconds.
-    # }
-    #
-    # Revision:
-    # struct {
-    #   Name          string  // Knative revision name
-    #   Namespace     string  // Knative revision namespace
-    #   Service       string  // Knative service name
-    #   Configuration string  // Knative configuration name
-    #   PodName       string  // Name of the pod hosting the revision
-    #   PodIP         string  // IP of the pod hosting the revision
-    # }
-    #
-    logging.request-log-template: <<Example removed because it messes with charmed kubeflow's templating.  See upstream's yaml for example of this setting>>
 
     # metrics.backend-destination field specifies the system metrics destination.
     # It supports either prometheus (the default) or stackdriver.
