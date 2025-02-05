@@ -902,7 +902,7 @@ roleRef:
   kind: ClusterRole
   name: knative-serving-operator-aggregated
 subjects:
-- kind: ServiceAccount
+  - kind: ServiceAccount
     name: {{ name }}-workload
     namespace: {{ namespace }}
 ---
