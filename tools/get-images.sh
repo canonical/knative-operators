@@ -33,9 +33,9 @@ SERVING_IMAGE_LIST+=($(yq -N '.spec.template.spec.containers | .[] | .image' ./s
 wget -q "${KNATIVE_SERVING_REPO_DOWNLOAD_URL}/knative-v${KNATIVE_SERVING_VERSION}/serving-post-install-jobs.yaml"
 SERVING_IMAGE_LIST+=($(yq -N '.spec.template.spec.containers | .[] | .image' ./serving-post-install-jobs.yaml))
 
-# For Serving 1.12.4 (CKF 1.9) we have to use 1.12.3 for net-istio
-# https://github.com/kubeflow/manifests/pull/2709
-NET_ISTIO_VERSION="1.12.3"
+# For Serving 1.16.0 (CKF 1.10) we have to use 1.16.0 for net-istio
+# https://github.com/kubeflow/manifests/blob/v1.10.0-rc.0/common/knative/README.md?plain=1#L8
+NET_ISTIO_VERSION="1.16.0"
 NET_ISTIO_REPO_DOWNLOAD_URL=https://github.com/knative-extensions/net-istio/releases/download/
 NET_ISTIO_IMAGE_LIST=()
 wget -q "${NET_ISTIO_REPO_DOWNLOAD_URL}knative-v${NET_ISTIO_VERSION}/net-istio.yaml"
