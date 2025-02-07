@@ -19,8 +19,7 @@ metadata:
   name: config-logging
   namespace: {{ namespace }}
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 data:
   _example: |
     ################################
@@ -83,8 +82,7 @@ metadata:
   name: config-observability
   namespace: {{ namespace }}
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 data:
   _example: |
     ################################

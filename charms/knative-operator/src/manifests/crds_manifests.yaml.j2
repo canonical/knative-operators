@@ -18,8 +18,7 @@ kind: CustomResourceDefinition
 metadata:
   name: knativeservings.operator.knative.dev
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 spec:
   group: operator.knative.dev
   versions:
@@ -2534,8 +2533,7 @@ kind: CustomResourceDefinition
 metadata:
   name: knativeeventings.operator.knative.dev
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 spec:
   group: operator.knative.dev
   versions:

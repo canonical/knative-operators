@@ -18,8 +18,7 @@ kind: ClusterRole
 metadata:
   name: knative-serving-operator-aggregated
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 aggregationRule:
   clusterRoleSelectors:
 # This (along with escalate below) allows the Operator to pick up any
@@ -35,8 +34,7 @@ kind: ClusterRole
 metadata:
   name: knative-serving-operator-aggregated-stable
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 aggregationRule:
   clusterRoleSelectors:
     # This (along with escalate below) allows the Operator to pick up any
@@ -52,8 +50,7 @@ kind: ClusterRole
 metadata:
   name: knative-eventing-operator-aggregated
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 aggregationRule:
   clusterRoleSelectors:
     # This (along with escalate below) allows the Operator to pick up any
@@ -69,8 +66,7 @@ kind: ClusterRole
 metadata:
   name: knative-eventing-operator-aggregated-stable
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 aggregationRule:
   clusterRoleSelectors:
     # This (along with escalate below) allows the Operator to pick up any
@@ -87,8 +83,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: knative-serving-operator
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 rules:
 - apiGroups:
   - operator.knative.dev
@@ -329,8 +324,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: knative-eventing-operator
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 rules:
   - apiGroups:
       - operator.knative.dev
@@ -722,8 +716,7 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-serving-operator
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -739,8 +732,7 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-eventing-operator
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -757,8 +749,7 @@ metadata:
   namespace: {{ namespace }}
   name: knative-operator-webhook
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }
 rules:
   # For manipulating certs into secrets.
   - apiGroups:
@@ -778,8 +769,7 @@ kind: ClusterRole
 metadata:
   name: knative-operator-webhook
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 rules:
   # For watching logging configuration and getting certs.
   - apiGroups:
@@ -862,8 +852,7 @@ metadata:
   namespace: {{ namespace }}
   name: knative-operator-webhook
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 subjects:
   - kind: ServiceAccount
     name: knative-operator-webhook
@@ -878,8 +867,7 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-operator-webhook
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -895,8 +883,7 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-serving-operator-aggregated
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -911,8 +898,7 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-serving-operator-aggregated-stable
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -927,8 +913,7 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-eventing-operator-aggregated
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -943,8 +928,7 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-eventing-operator-aggregated-stable
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -961,5 +945,4 @@ metadata:
   name: knative-operator-webhook
   namespace: {{ namespace }}
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
