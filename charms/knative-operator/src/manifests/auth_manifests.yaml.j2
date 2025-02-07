@@ -17,6 +17,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: knative-serving-operator-aggregated
+  labels:
+    app.kubernetes.io/name: {{ name }}
 aggregationRule:
   clusterRoleSelectors:
 # This (along with escalate below) allows the Operator to pick up any
@@ -32,8 +34,7 @@ kind: ClusterRole
 metadata:
   name: knative-serving-operator-aggregated-stable
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 aggregationRule:
   clusterRoleSelectors:
     # This (along with escalate below) allows the Operator to pick up any
@@ -49,8 +50,7 @@ kind: ClusterRole
 metadata:
   name: knative-eventing-operator-aggregated
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 aggregationRule:
   clusterRoleSelectors:
     # This (along with escalate below) allows the Operator to pick up any
@@ -66,8 +66,7 @@ kind: ClusterRole
 metadata:
   name: knative-eventing-operator-aggregated-stable
   labels:
-    app.kubernetes.io/version: devel
-    app.kubernetes.io/name: knative-operator
+    app.kubernetes.io/name: {{ name }}
 aggregationRule:
   clusterRoleSelectors:
     # This (along with escalate below) allows the Operator to pick up any
@@ -83,6 +82,8 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: knative-serving-operator
+  labels:
+    app.kubernetes.io/name: {{ name }}
 rules:
 - apiGroups:
   - operator.knative.dev
@@ -263,6 +264,7 @@ rules:
   - knative-serving-operator
   verbs:
   - delete
+
 # for contour TLS
 - apiGroups:
   - projectcontour.io
@@ -278,6 +280,7 @@ rules:
   - delete
   - deletecollection
   - patch
+
 # for security-guard
 - apiGroups:
   - guard.security.knative.dev
@@ -320,6 +323,8 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: knative-eventing-operator
+  labels:
+    app.kubernetes.io/name: {{ name }}
 rules:
   - apiGroups:
       - operator.knative.dev
@@ -502,6 +507,7 @@ rules:
       - exchanges/status
     verbs:
       - get
+
   # for Kafka eventing source
   - apiGroups:
       - keda.sh
@@ -552,6 +558,8 @@ rules:
       - watch
       - update
       - patch
+      - create
+      - delete
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
@@ -674,6 +682,32 @@ rules:
       - deployments
     verbs:
       - deletecollection
+
+  # Eventing TLS
+  - apiGroups:
+      - "cert-manager.io"
+    resources:
+      - certificates
+      - issuers
+      - clusterissuers
+    verbs:
+      - create
+      - delete
+      - update
+      - list
+      - get
+      - watch
+  - apiGroups:
+      - "trust.cert-manager.io"
+    resources:
+      - bundles
+    verbs:
+      - create
+      - delete
+      - update
+      - list
+      - get
+      - watch
 ---
 # Source: knative/operator/config/rbac/role_binding.yaml
 # TODO: Consider restriction of non-aggregated role to knativeservings namespaces.
@@ -681,6 +715,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: knative-serving-operator
+  labels:
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -695,6 +731,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: knative-eventing-operator
+  labels:
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -704,26 +742,14 @@ subjects:
   name: {{ name }}-workload
   namespace: {{ namespace }}
 ---
-
-# Copyright 2022 The Knative Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 # Source: knative/operator/config/rbac/webhook_role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  namespace: default
+  namespace: {{ namespace }}
   name: knative-operator-webhook
+  labels:
+    app.kubernetes.io/name: {{ name }}
 rules:
   # For manipulating certs into secrets.
   - apiGroups:
@@ -742,6 +768,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: knative-operator-webhook
+  labels:
+    app.kubernetes.io/name: {{ name }}
 rules:
   # For watching logging configuration and getting certs.
   - apiGroups:
@@ -818,25 +846,13 @@ rules:
     verbs: ["get", "list", "create", "update", "delete", "patch", "watch"]
 ---
 # Source: knative/operator/config/rbac/webhook_role_binding.yaml
-# Copyright 2022 The Knative Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  namespace: default
+  namespace: {{ namespace }}
   name: knative-operator-webhook
+  labels:
+    app.kubernetes.io/name: {{ name }}
 subjects:
   - kind: ServiceAccount
     name: knative-operator-webhook
@@ -850,6 +866,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: knative-operator-webhook
+  labels:
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -860,28 +878,12 @@ subjects:
   namespace: {{ namespace }}
 ---
 # Source: knative/operator/config/rbac/clusterrole_aggregated_binding.yaml
-# Copyright 2020 The Knative Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: knative-serving-operator-aggregated
   labels:
-    operator.knative.dev/release: "v1.12.4"
-    app.kubernetes.io/version: "1.12.4"
-    app.kubernetes.io/part-of: knative-operator
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -896,9 +898,7 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-serving-operator-aggregated-stable
   labels:
-    operator.knative.dev/release: "v1.12.4"
-    app.kubernetes.io/version: "1.12.4"
-    app.kubernetes.io/part-of: knative-operator
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -913,9 +913,7 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-eventing-operator-aggregated
   labels:
-    operator.knative.dev/release: "v1.12.4"
-    app.kubernetes.io/version: "1.12.4"
-    app.kubernetes.io/part-of: knative-operator
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -930,9 +928,7 @@ kind: ClusterRoleBinding
 metadata:
   name: knative-eventing-operator-aggregated-stable
   labels:
-    operator.knative.dev/release: "v1.12.4"
-    app.kubernetes.io/version: "1.12.4"
-    app.kubernetes.io/part-of: knative-operator
+    app.kubernetes.io/name: {{ name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -943,22 +939,10 @@ subjects:
     namespace: {{ namespace }}
 ---
 # Source: knative/operator/config/rbac/webhook_service_account.yaml
-# Copyright 2020 The Knative Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: knative-operator-webhook
   namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/name: {{ name }}
