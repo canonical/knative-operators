@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 CUSTOM_IMAGE_CONFIG_NAME = "custom_images"
-DEFAULT_IMAGES = {"net-istio-webhook/webhook": "charmedkubeflow/net-istio-webhook:1.12.3-b455143"}
+DEFAULT_IMAGES = {"net-istio-webhook/webhook": "charmedkubeflow/net-istio-webhook:1.16.0-4214206"}
 
 
 class KnativeServingCharm(CharmBase):
