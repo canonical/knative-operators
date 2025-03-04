@@ -164,7 +164,7 @@ def test_context_changes(harness):
     [
         (
             yaml.dump({"name1": "image1", "name2": "image2"}),
-            DEFAULT_IMAGES | ({"name1": "image1", "name2": "image2"}),
+            {**DEFAULT_IMAGES, **{"name1": "image1", "name2": "image2"}},
         ),
         (
             yaml.dump({}),
