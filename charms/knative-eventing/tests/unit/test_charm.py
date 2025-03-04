@@ -1,7 +1,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
-from contextlib import nullcontext as does_not_raise
 import json
+from contextlib import nullcontext as does_not_raise
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -15,6 +15,7 @@ from charm import CUSTOM_IMAGE_CONFIG_NAME, DEFAULT_IMAGES_FILE
 
 with open(DEFAULT_IMAGES_FILE, "r") as json_file:
     DEFAULT_IMAGES = json.load(json_file)
+
 
 class _FakeResponse:
     """Used to fake an httpx response during testing only."""
