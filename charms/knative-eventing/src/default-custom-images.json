@@ -1,0 +1,10 @@
+{
+    "eventing-controller/eventing-controller": "gcr.io/knative-releases/knative.dev/eventing/cmd/controller@sha256:746cc7da48cd76c29ac34ba6baa52b73e4026b94f3b9bccc7a0bb1b5413fdd93",
+    "eventing-webhook/eventing-webhook": "gcr.io/knative-releases/knative.dev/eventing/cmd/webhook@sha256:93917289de53bffb491d45a41912515848d48235aa3573c7292c40761bfe759f",
+    "imc-controller/controller": "gcr.io/knative-releases/knative.dev/eventing/cmd/in_memory/channel_controller@sha256:d9ff15ea628bc8b7401885102e3473ebd07528dd191bedfd87194f52222a4755",
+    "imc-dispatcher/dispatcher": "gcr.io/knative-releases/knative.dev/eventing/cmd/in_memory/channel_dispatcher@sha256:4706abb813c29dedca3a70b207c7d85ea2188b73969585c101125044770a0912",
+    "mt-broker-controller/mt-broker-controller": "gcr.io/knative-releases/knative.dev/eventing/cmd/mtchannel_broker@sha256:96242221d1c2a834e84e8ab93b5a249dd35d62c126222d9e9f291435940275d1",
+    "mt-broker-filter/filter": "gcr.io/knative-releases/knative.dev/eventing/cmd/broker/filter@sha256:15c5f6b2c24e28814cc31f24dc8b38491aea3abddf0d17989276ce78ff26dffe",
+    "mt-broker-ingress/ingress": "gcr.io/knative-releases/knative.dev/eventing/cmd/broker/ingress@sha256:710ae4b2626da0482f88dd454edb97a722c6c45914c3475ce1cf7f849e0ee97f",
+    "pingsource-mt-adapter/dispatcher": "gcr.io/knative-releases/knative.dev/eventing/cmd/mtping@sha256:bdacd9697a393bcb445ad32bea0e1cf0492d013316cd486f9162a0084005b49a"
+}

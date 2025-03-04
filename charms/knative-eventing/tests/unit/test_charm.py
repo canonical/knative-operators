@@ -1,6 +1,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 from contextlib import nullcontext as does_not_raise
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,8 +11,10 @@ from charmed_kubeflow_chisme.lightkube.mocking import FakeApiError
 from lightkube import ApiError
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
-from charm import CUSTOM_IMAGE_CONFIG_NAME, DEFAULT_IMAGES
+from charm import CUSTOM_IMAGE_CONFIG_NAME, DEFAULT_IMAGES_FILE
 
+with open(DEFAULT_IMAGES_FILE, "r") as json_file:
+    DEFAULT_IMAGES = json.load(json_file)
 
 class _FakeResponse:
     """Used to fake an httpx response during testing only."""
@@ -160,11 +163,11 @@ def test_context_changes(harness):
     [
         (
             yaml.dump({"name1": "image1", "name2": "image2"}),
-            {"name1": "image1", "name2": "image2"},
+            DEFAULT_IMAGES | ({"name1": "image1", "name2": "image2"}),
         ),
         (
             yaml.dump({}),
-            {},
+            DEFAULT_IMAGES,
         ),
     ],
 )
