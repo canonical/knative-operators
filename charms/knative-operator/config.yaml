@@ -2,6 +2,6 @@
 # See LICENSE file for licensing details.
 options:
   otel-collector-image:
-    default: "otel/opentelemetry-collector:0.117.0"
+    default: "ubuntu/opentelemetry-collector:0.120.0-24.04_stable"
     type: string
     description: Image to use by the otel collector Deployment.
