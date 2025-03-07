@@ -45,6 +45,8 @@ spec:
       containers:
       - name: collector
         args:
+        - --args  # This line and the one below are needed only for the rock,
+        - otelcol # they are required to pass the argument to the pebble service.
         - --config=/conf/collector.yaml
         image: {{ otel_collector_image }}
         resources:
