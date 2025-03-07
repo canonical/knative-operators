@@ -7,6 +7,7 @@
 """A Juju charm for Knative Eventing."""
 
 import glob
+import json
 import logging
 import traceback
 from pathlib import Path
@@ -29,7 +30,9 @@ logger = logging.getLogger(__name__)
 
 
 CUSTOM_IMAGE_CONFIG_NAME = "custom_images"
-DEFAULT_IMAGES = {}
+DEFAULT_IMAGES_FILE = "src/default-custom-images.json"
+with open(DEFAULT_IMAGES_FILE, "r") as json_file:
+    DEFAULT_IMAGES = json.load(json_file)
 
 
 class KnativeEventingCharm(CharmBase):
