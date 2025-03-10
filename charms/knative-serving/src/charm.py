@@ -7,6 +7,7 @@
 """A Juju charm for Knative Serving."""
 
 import glob
+import json
 import logging
 import traceback
 from pathlib import Path
@@ -30,11 +31,9 @@ logger = logging.getLogger(__name__)
 
 
 CUSTOM_IMAGE_CONFIG_NAME = "custom_images"
-DEFAULT_IMAGES = {
-    "net-istio-webhook/webhook": "charmedkubeflow/net-istio-webhook:1.16.0-4214206",
-    "net-istio-controller/controller": "charmedkubeflow/net-istio-controller:1.16.0-2ac1bad",
-    "migrate": "charmedkubeflow/migrate:1.16.0-36e94d5",
-}
+DEFAULT_IMAGES_FILE = "src/default-custom-images.json"
+with open(DEFAULT_IMAGES_FILE, "r") as json_file:
+    DEFAULT_IMAGES = json.load(json_file)
 
 
 class KnativeServingCharm(CharmBase):
