@@ -11,8 +11,6 @@ To update the images of the knative operators, you should:
 For every release, we'll need to update the image gather scripts for fetching the images used by Knative Charms.
 
 To get an overview of how the script works please read https://github.com/canonical/knative-operators/issues/142
-The script has a limitation on how it's deducing images from upstream manifests, which is tracked in
-https://github.com/canonical/knative-operators/issues/220
 
 The script also needs to gather images for `net-istio`, that has it's own release cadance (although almost 1-1 with Knative Serving, but sometimes tags for Serving might not exist for `net-istio`).
 
