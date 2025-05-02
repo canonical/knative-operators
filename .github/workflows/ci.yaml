@@ -57,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        charm: [operator, serving, eventing]
+        charm: [knative-operator, knative-serving, knative-eventing]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python 3.8
@@ -73,7 +73,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        charm: [operator, serving, eventing]
+        charm: [knative-operator, knative-serving, knative-eventing]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python 3.8
@@ -120,7 +120,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        charm: [operator]
+        charm: [knative-operator]
     runs-on: ubuntu-24.04
     steps:
       # Ideally we'd use self-hosted runners, but this effort is still not stable
