@@ -77,7 +77,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest, request):
     # Deploy istio as dependency
     await ops_test.model.deploy(
         "istio-pilot",
-        channel="latest/edge",
+        channel="1.24/stable",
         config={"default-gateway": "knative-gateway"},
         trust=True,
     )
@@ -85,7 +85,7 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest, request):
     await ops_test.model.deploy(
         "istio-gateway",
         application_name="istio-ingressgateway",
-        channel="latest/edge",
+        channel="1.24/stable",
         config={"kind": "ingress"},
         trust=True,
     )
