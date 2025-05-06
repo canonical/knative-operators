@@ -157,7 +157,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          tox -e ${{ matrix.charm }}-integration -- --model knative-test --charm-path=${{ github.workspace }}/charms/knative-${{ matrix.charm }}/knative-${{ matrix.charm }}_ubuntu@20.04-amd64.charm
+          tox -e ${{ matrix.charm }}-integration -- --model knative-test --charm-path=${{ github.workspace }}/charms/${{ matrix.charm }}/${{ matrix.charm }}_ubuntu@20.04-amd64.charm
 
       - name: Run kubectl get all
         run: kubectl get all -A
