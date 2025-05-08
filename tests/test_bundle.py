@@ -10,6 +10,7 @@ import pytest
 import pytest_asyncio
 import requests
 import yaml
+from charms_dependencies import ISTIO_GATEWAY, ISTIO_PILOT
 from lightkube import ApiError, Client
 from lightkube.generic_resource import create_namespaced_resource
 from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
@@ -76,24 +77,23 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest, request):
 
     # Deploy istio as dependency
     await ops_test.model.deploy(
-        "istio-pilot",
-        channel="latest/edge",
-        config={"default-gateway": "knative-gateway"},
-        trust=True,
+        ISTIO_PILOT.charm,
+        channel=ISTIO_PILOT.channel,
+        config=ISTIO_PILOT.config,
+        trust=ISTIO_PILOT.trust,
     )
 
     await ops_test.model.deploy(
-        "istio-gateway",
-        application_name="istio-ingressgateway",
-        channel="latest/edge",
-        config={"kind": "ingress"},
-        trust=True,
+        ISTIO_GATEWAY.charm,
+        channel=ISTIO_GATEWAY.channel,
+        config=ISTIO_GATEWAY.config,
+        trust=ISTIO_GATEWAY.trust,
     )
 
-    await ops_test.model.add_relation("istio-pilot", "istio-ingressgateway")
+    await ops_test.model.add_relation(ISTIO_PILOT.charm, ISTIO_GATEWAY.charm)
 
     await ops_test.model.wait_for_idle(
-        ["istio-pilot", "istio-ingressgateway"],
+        [ISTIO_PILOT.charm, ISTIO_GATEWAY.charm],
         raise_on_blocked=False,
         status="active",
         timeout=90 * 10,
