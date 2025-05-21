@@ -3,7 +3,7 @@
     "eventing-webhook/eventing-webhook": "charmedkubeflow/knative-eventing-webhook:1.16.1-41d35c3",
     "imc-controller/controller": "charmedkubeflow/knative-eventing-channel-controller:1.16.1-a297268",
     "imc-dispatcher/dispatcher": "charmedkubeflow/knative-eventing-channel-dispatcher:1.16.1-ada58f5",
-	"job-sink/job-sink": "gcr.io/knative-releases/knative.dev/eventing/cmd/jobsink@sha256:976690cda1ced05bc4714011d13baa1fc1bfe50a32b6ea27578e5d8a0300a53c",
+    "job-sink/job-sink": "gcr.io/knative-releases/knative.dev/eventing/cmd/jobsink@sha256:976690cda1ced05bc4714011d13baa1fc1bfe50a32b6ea27578e5d8a0300a53c",
     "mt-broker-controller/mt-broker-controller": "charmedkubeflow/knative-eventing-mtchannel-broker:1.16.1-b727068",
     "mt-broker-filter/filter": "charmedkubeflow/knative-eventing-broker-filter:1.16.1-38d9fc1",
     "mt-broker-ingress/ingress": "charmedkubeflow/knative-eventing-broker-ingress:1.16.1-f046888",
