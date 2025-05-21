@@ -16,6 +16,7 @@ options:
       eventing-webhook/eventing-webhook: ''
       imc-controller/controller: ''
       imc-dispatcher/dispatcher: ''
+      job-sink/job-sink: ''
       mt-broker-controller/mt-broker-controller: ''
       mt-broker-filter/filter: ''
       mt-broker-ingress/ingress: ''
