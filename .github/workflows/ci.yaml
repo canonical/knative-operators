@@ -64,7 +64,16 @@ jobs:
         uses: actions/setup-python@v5.3.0
         with:
           python-version: "3.8"
-      - run: pip install tox
+      - run: |
+          # installing uv - see:
+          # https://docs.astral.sh/uv/getting-started/installation/
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+
+          # installing tox via uv together with the plugin to manage tox
+          # environments via uv itself - see:
+          # - https://tox.wiki/en/latest/installation.html
+          # - https://github.com/tox-dev/tox-uv
+          uv tool install tox --with tox-uv
       - run: tox -e ${{ matrix.charm }}-lint
 
   unit:
@@ -80,14 +89,23 @@ jobs:
         uses: actions/setup-python@v5.3.0
         with:
           python-version: "3.8"
-      - run: pip install tox
+      - run: |
+          # installing uv - see:
+          # https://docs.astral.sh/uv/getting-started/installation/
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+
+          # installing tox via uv together with the plugin to manage tox
+          # environments via uv itself - see:
+          # - https://tox.wiki/en/latest/installation.html
+          # - https://github.com/tox-dev/tox-uv
+          uv tool install tox --with tox-uv
       - run: tox -e ${{ matrix.charm }}-unit
 
   terraform-checks:
     name: Terraform
     needs:
       - get-charm-paths-channel
-    uses: canonical/charmed-kubeflow-workflows/.github/workflows/terraform-checks.yaml@main
+    uses: canonical/charmed-kubeflow-workflows/.github/workflows/terraform-checks.yaml@feat/tox-uv-support
     strategy:
       fail-fast: false
       matrix:
@@ -156,6 +174,23 @@ jobs:
           pattern: ${{ needs.build.outputs.artifact-prefix }}-*
           merge-multiple: true
 
+      - name: Install dependencies
+        run: |
+          # installing uv - see:
+          # https://docs.astral.sh/uv/getting-started/installation/
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+
+          # installing tox via uv together with the plugin to manage tox
+          # environments via uv itself - see:
+          # - https://tox.wiki/en/latest/installation.html
+          # - https://github.com/tox-dev/tox-uv
+          uv tool install tox --with tox-uv
+    
+          # making sure the specific tox managed by uv is used and not the one
+          # inherited from the previus GitHub action step:
+          pip uninstall -y tox
+          uv tool update-shell
+
       - name: Run integration tests
         run: |
           tox -e ${{ matrix.charm }}-integration -- --model knative-test --charm-path=${{ github.workspace }}/charms/${{ matrix.charm }}/${{ matrix.charm }}_ubuntu@20.04-amd64.charm
@@ -216,6 +251,23 @@ jobs:
         with:
           pattern: ${{ needs.build.outputs.artifact-prefix }}-*
           merge-multiple: true
+
+      - name: Install dependencies
+        run: |
+          # installing uv - see:
+          # https://docs.astral.sh/uv/getting-started/installation/
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+
+          # installing tox via uv together with the plugin to manage tox
+          # environments via uv itself - see:
+          # - https://tox.wiki/en/latest/installation.html
+          # - https://github.com/tox-dev/tox-uv
+          uv tool install tox --with tox-uv
+    
+          # making sure the specific tox managed by uv is used and not the one
+          # inherited from the previus GitHub action step:
+          pip uninstall -y tox
+          uv tool update-shell
 
       - name: Run integration tests
         run: |
