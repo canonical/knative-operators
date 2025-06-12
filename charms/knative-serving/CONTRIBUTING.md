@@ -60,7 +60,7 @@ juju relate istio-pilot istio-ingressgateway
 # Enable DEBUG logging
 juju model-config logging-config="<root>=INFO;unit=DEBUG"
 # Deploy the charm
-juju deploy ./knative-serving_ubuntu-24.04-amd64.charm \
+juju deploy ./knative-serving_ubuntu-20.04-amd64.charm \
     --config namespace="knative-serving" --config istio.gateway.namespace=${MODEL_NAME} \
     --config istio.gateway.name=${DEFAULT_GATEWAY} --trust
 ```

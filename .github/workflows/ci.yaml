@@ -60,10 +60,10 @@ jobs:
         charm: [knative-operator, knative-serving, knative-eventing]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.12
+      - name: Set up Python 3.8
         uses: actions/setup-python@v5.3.0
         with:
-          python-version: "3.12"
+          python-version: "3.8"
       - run: pip install tox
       - run: tox -e ${{ matrix.charm }}-lint
 
@@ -76,10 +76,10 @@ jobs:
         charm: [knative-operator, knative-serving, knative-eventing]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.12
+      - name: Set up Python 3.8
         uses: actions/setup-python@v5.3.0
         with:
-          python-version: "3.12"
+          python-version: "3.8"
       - run: pip install tox
       - run: tox -e ${{ matrix.charm }}-unit
 
@@ -135,10 +135,10 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.8
         uses: actions/setup-python@v5.3.0
         with:
-          python-version: "3.12"
+          python-version: "3.8"
 
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
@@ -158,7 +158,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          tox -e ${{ matrix.charm }}-integration -- --model knative-test --charm-path=${{ github.workspace }}/charms/${{ matrix.charm }}/${{ matrix.charm }}_ubuntu@24.04-amd64.charm
+          tox -e ${{ matrix.charm }}-integration -- --model knative-test --charm-path=${{ github.workspace }}/charms/${{ matrix.charm }}/${{ matrix.charm }}_ubuntu@20.04-amd64.charm
 
       - name: Run kubectl get all
         run: kubectl get all -A
@@ -196,10 +196,10 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.8
         uses: actions/setup-python@v5.3.0
         with:
-          python-version: "3.12"
+          python-version: "3.8"
 
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
