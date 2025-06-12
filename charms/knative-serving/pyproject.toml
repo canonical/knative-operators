@@ -1,6 +1,61 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+[project]
+name = "knative-serving"
+version = "0.1.0"
+description = "...TODO..."
+readme = "README.md"
+requires-python = ">=3.8"
+# ----------------------------------------------------------------------------
+# please, leave this list of project dependencies empty...
+dependencies = []
+# ... as dependency extras can instead be specified for the charm project via
+# the uv plugin of Charmcraft - use the "charm" dependency group defined below
+# ----------------------------------------------------------------------------
+
+[project.optional-dependencies]
+charm = [
+    "ops",
+    "charmed-kubeflow-chisme",
+]
+fmt = [
+	"black",
+    "isort",
+]
+lint = [
+	"black",
+    "codespell",
+    "flake8",
+    "flake8-builtins",
+    "flake8-copyright",
+    "isort",
+    "pep8-naming",
+    "pyproject-flake8",
+]
+unit = [
+    "charmed-kubeflow-chisme",
+    "coverage",
+    "lightkube",
+    "ops",
+    "pytest",
+    "pytest-mock",
+]
+integration = [
+	"aiohttp",
+    "jinja2",
+    # Pinning to <4.0 due to compatibility with the 3.1 controller version
+    "juju<4.0",
+    "pytest-operator",
+    "requests",
+    # This is required due to the abstraction of cos integration
+    "charmed-kubeflow-chisme>=0.4.0",
+]
+
+[tool.uv]
+# to ensure dependencies are built from source, set this to true or override it via uv CLI:
+no-binary = false
+
 # Testing tools configuration
 [tool.coverage.run]
 branch = true
