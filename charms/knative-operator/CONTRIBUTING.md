@@ -54,7 +54,7 @@ juju add-model dev
 # Enable DEBUG logging
 juju model-config logging-config="<root>=INFO;unit=DEBUG"
 # Deploy the charm
-juju deploy ./knative-operator_ubuntu-20.04-amd64.charm \
+juju deploy ./knative-operator_ubuntu-24.04-amd64.charm \
     --resource knative-operator-image="gcr.io/knative-releases/knative.dev/operator/cmd/operator:v1.1.0"
 ```
 
