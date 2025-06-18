@@ -165,7 +165,7 @@ class KnativeServingCharm(CharmBase):
         if relation:
             return relation.data[relation.app]
         logger.info(
-            "No otel-collector relation detected, observability won't be enabled for knative-serving"  # noqa: E501
+            "No otel-collector relation detected, observability won't be enabled for knative-serving"  # noqa: E501, W505
         )
         return {}
 
