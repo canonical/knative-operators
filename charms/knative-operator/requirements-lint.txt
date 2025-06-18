@@ -14,11 +14,13 @@ flake8==7.0.0
     # via
     #   -r requirements-lint.in
     #   flake8-builtins
+    #   flake8-pyproject
     #   pep8-naming
-    #   pyproject-flake8
 flake8-builtins==2.5.0
     # via -r requirements-lint.in
 flake8-copyright==0.2.4
+    # via -r requirements-lint.in
+flake8-pyproject==1.2.3
     # via -r requirements-lint.in
 isort==5.13.2
     # via -r requirements-lint.in
@@ -38,8 +40,6 @@ pycodestyle==2.11.1
     # via flake8
 pyflakes==3.2.0
     # via flake8
-pyproject-flake8==7.0.0
-    # via -r requirements-lint.in
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
