@@ -35,7 +35,8 @@ per-file-ignores = [
     # D100, D101, D102, D103: Ignore missing docstrings in tests
     "tests/*:D100,D101,D102,D103,D104",
     # ignoring files called as the native Python module "operator":
-    "charms/*/operator.py:A005"
+    "charms/knative-serving/src/lightkube_custom_resources/operator.py:A005",
+    "charms/knative-eventing/src/lightkube_custom_resources/operator.py:A005",
 ]
 docstring-convention = "google"
 # Check for properly formatted copyright header in each file
