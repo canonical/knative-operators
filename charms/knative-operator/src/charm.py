@@ -18,8 +18,8 @@ from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from lightkube import ApiError, Client
 from lightkube.models.core_v1 import ServicePort
 from lightkube.resources.core_v1 import ConfigMap, Secret, Service
+from ops import main
 from ops.charm import CharmBase
-from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus
 from ops.pebble import ChangeError, Layer
 from tenacity import Retrying, stop_after_delay, wait_fixed

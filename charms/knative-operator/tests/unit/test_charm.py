@@ -284,7 +284,7 @@ def test_otel_exporter_ip_on_404_apierror(
     harness.begin()
     ip = harness.charm._otel_exporter_ip
     mocked_logger.info.assert_called_with(
-        "The OpenTelemetry Collector may not be deployed yet.This may be temporary or due to a missing otel-collector relation."  # noqa: E501
+        "The OpenTelemetry Collector may not be deployed yet.This may be temporary or due to a missing otel-collector relation."  # noqa: E501, W505
     )
     assert ip is None
 

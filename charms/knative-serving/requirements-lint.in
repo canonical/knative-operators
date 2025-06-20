@@ -5,4 +5,4 @@ flake8-builtins
 flake8-copyright
 isort
 pep8-naming
-pyproject-flake8
+Flake8-pyproject

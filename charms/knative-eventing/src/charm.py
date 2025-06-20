@@ -19,8 +19,8 @@ from charmed_kubeflow_chisme.lightkube.batch import delete_many
 from lightkube import Client
 from lightkube.core.exceptions import ApiError
 from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
+from ops import main
 from ops.charm import CharmBase
-from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
 from image_management import parse_image_config, remove_empty_images, update_images
@@ -129,7 +129,7 @@ class KnativeEventingCharm(CharmBase):
         if relation:
             return relation.data[relation.app]
         logger.info(
-            "No otel-collector relation detected, observability won't be enabled for knative-eventing"  # noqa: E501
+            "No otel-collector relation detected, observability won't be enabled for knative-eventing"  # noqa: E501, W505
         )
         return {}
 

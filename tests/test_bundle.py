@@ -67,9 +67,9 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest, request):
     ko_app_name = KNATIVE_OPERATOR_METADATA["name"]
     ks_app_name = KNATIVE_SERVING_METADATA["name"]
     if charms_path := request.config.getoption("--charms-path"):
-        knative_eventing = f"{charms_path}/{ke_app_name}/{ke_app_name}_ubuntu@20.04-amd64.charm"
-        knative_operator = f"{charms_path}/{ko_app_name}/{ko_app_name}_ubuntu@20.04-amd64.charm"
-        knative_serving = f"{charms_path}/{ks_app_name}/{ks_app_name}_ubuntu@20.04-amd64.charm"
+        knative_eventing = f"{charms_path}/{ke_app_name}/{ke_app_name}_ubuntu@24.04-amd64.charm"
+        knative_operator = f"{charms_path}/{ko_app_name}/{ko_app_name}_ubuntu@24.04-amd64.charm"
+        knative_serving = f"{charms_path}/{ks_app_name}/{ks_app_name}_ubuntu@24.04-amd64.charm"
     else:
         knative_eventing = await ops_test.build_charm("charms/knative-eventing")
         knative_operator = await ops_test.build_charm("charms/knative-operator")
