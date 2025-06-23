@@ -60,6 +60,10 @@ jobs:
         charm: [knative-operator, knative-serving, knative-eventing]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: "3.12"
       - run: pip install tox
       - run: tox -e ${{ matrix.charm }}-lint
 
@@ -72,6 +76,10 @@ jobs:
         charm: [knative-operator, knative-serving, knative-eventing]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: "3.12"
       - run: pip install tox
       - run: tox -e ${{ matrix.charm }}-unit
 
