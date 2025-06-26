@@ -112,7 +112,8 @@ async def test_scale_down_app_namespace_unaffected(ops_test):
             num_units = len(model_status.applications["knative-operator"].units)
 
             log.info(
-                f"Waiting for application to scale down, status is {app_status}, Number of units is {num_units}"
+                f"Waiting for application to scale down, status is {app_status}, "
+                f"Number of units is {num_units}"
             )
 
             # Assert the status is unknown and number of units is 0
