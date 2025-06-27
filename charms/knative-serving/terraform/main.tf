@@ -1,6 +1,7 @@
 resource "juju_application" "knative_serving" {
   charm {
     name     = "knative-serving"
+    base     = var.base
     channel  = var.channel
     revision = var.revision
   }
