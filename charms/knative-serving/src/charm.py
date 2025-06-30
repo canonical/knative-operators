@@ -20,8 +20,8 @@ from charms.istio_pilot.v0.istio_gateway_info import GatewayProvider
 from lightkube import Client
 from lightkube.core.exceptions import ApiError
 from lightkube.resources.apiextensions_v1 import CustomResourceDefinition
+from ops import main
 from ops.charm import CharmBase
-from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
 from image_management import parse_image_config, remove_empty_images, update_images
@@ -165,7 +165,7 @@ class KnativeServingCharm(CharmBase):
         if relation:
             return relation.data[relation.app]
         logger.info(
-            "No otel-collector relation detected, observability won't be enabled for knative-serving"  # noqa: E501
+            "No otel-collector relation detected, observability won't be enabled for knative-serving"  # noqa: E501, W505
         )
         return {}
 
