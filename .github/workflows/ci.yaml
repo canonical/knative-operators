@@ -60,11 +60,7 @@ jobs:
         charm: [knative-operator, knative-serving, knative-eventing]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5.6.0
-        with:
-          python-version: "3.12"
-      - run: pip install tox
+      - run: pipx install tox
       - run: tox -e ${{ matrix.charm }}-lint
 
   unit:
@@ -76,11 +72,7 @@ jobs:
         charm: [knative-operator, knative-serving, knative-eventing]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5.6.0
-        with:
-          python-version: "3.12"
-      - run: pip install tox
+      - run: pipx install tox
       - run: tox -e ${{ matrix.charm }}-unit
 
   terraform-checks:
