@@ -1,0 +1,4 @@
+bundle: kubernetes
+name: knative
+applications: []
+relations: []
