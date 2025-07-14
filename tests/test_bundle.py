@@ -384,10 +384,12 @@ async def test_ksvc_deployment_configs(ops_test: OpsTest, remove_helloworld_exam
 
     for attempt in RETRY_FOR_THREE_MINUTES:
         with attempt:
-            deployment_list = lightkube_client.list(
-                res=Deployment,
-                namespace=ops_test.model_name,
-                labels={"serving.knative.dev/service": "helloworld"},
+            deployment_list = iter(
+                lightkube_client.list(
+                    res=Deployment,
+                    namespace=ops_test.model_name,
+                    labels={"serving.knative.dev/service": "helloworld"},
+                )
             )
             ksvc_deployment = next(deployment_list)
 
