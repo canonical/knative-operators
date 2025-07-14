@@ -1,4 +1,4 @@
-bundle: kubernetes
-name: knative
-applications: []
-relations: []
+# Copyright 2023 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+# Placeholder for bundle.yaml
