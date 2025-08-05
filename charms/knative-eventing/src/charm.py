@@ -34,6 +34,8 @@ DEFAULT_IMAGES_FILE = "src/default-custom-images.json"
 with open(DEFAULT_IMAGES_FILE, "r") as json_file:
     DEFAULT_IMAGES = json.load(json_file)
 
+EVENTING_NAMESPACE = "knative-eventing"
+
 
 class KnativeEventingCharm(CharmBase):
     """A charm for creating Knative Eventing instances via the Knative Operator."""
@@ -142,7 +144,7 @@ class KnativeEventingCharm(CharmBase):
     def _context(self):
         context = {
             "app_name": self._app_name,
-            "eventing_namespace": self._namespace,
+            "eventing_namespace": EVENTING_NAMESPACE,
             "eventing_version": self.model.config["version"],
             "custom_images": self._get_custom_images(),
         }

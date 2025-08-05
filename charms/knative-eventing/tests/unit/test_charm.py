@@ -11,7 +11,7 @@ from charmed_kubeflow_chisme.lightkube.mocking import FakeApiError
 from lightkube import ApiError
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
-from charm import CUSTOM_IMAGE_CONFIG_NAME, DEFAULT_IMAGES_FILE
+from charm import CUSTOM_IMAGE_CONFIG_NAME, DEFAULT_IMAGES_FILE, EVENTING_NAMESPACE
 
 with open(DEFAULT_IMAGES_FILE, "r") as json_file:
     DEFAULT_IMAGES = json.load(json_file)
@@ -138,7 +138,7 @@ def test_context_changes(harness):
     harness.begin()
     context = {
         "app_name": harness.charm.app.name,
-        "eventing_namespace": harness.model.name,
+        "eventing_namespace": EVENTING_NAMESPACE,
         "eventing_version": harness.model.config["version"],
         CUSTOM_IMAGE_CONFIG_NAME: DEFAULT_IMAGES,
     }
