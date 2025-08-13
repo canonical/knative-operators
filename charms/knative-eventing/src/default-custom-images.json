@@ -7,5 +7,5 @@
     "mt-broker-controller/mt-broker-controller": "charmedkubeflow/knative-eventing-mtchannel-broker:1.16.1-b727068",
     "mt-broker-filter/filter": "charmedkubeflow/knative-eventing-broker-filter:1.16.1-38d9fc1",
     "mt-broker-ingress/ingress": "charmedkubeflow/knative-eventing-broker-ingress:1.16.1-f046888",
-    "pingsource-mt-adapter/dispatcher": "charmedkubeflow/knative-eventing-mtping:1.16.1-d5773f7"
+    "pingsource-mt-adapter/dispatcher": "docker.io/charmedkubeflow/knative-eventing-mtping:1.16.1-d64ebbc"
 }
