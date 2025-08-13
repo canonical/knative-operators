@@ -1,6 +1,6 @@
 {
     "eventing-controller/eventing-controller": "charmedkubeflow/knative-eventing-controller:1.16.1-9ce84dd",
-    "eventing-webhook/eventing-webhook": "charmedkubeflow/knative-eventing-webhook:1.16.1-41d35c3",
+    "eventing-webhook/eventing-webhook": "docker.io/charmedkubeflow/knative-eventing-webhook:1.16.1-05f232f",
     "imc-controller/controller": "charmedkubeflow/knative-eventing-channel-controller:1.16.1-a297268",
     "imc-dispatcher/dispatcher": "charmedkubeflow/knative-eventing-channel-dispatcher:1.16.1-ada58f5",
     "job-sink/job-sink": "charmedkubeflow/knative-eventing-job-sink:1.16.1-1c33b95",
