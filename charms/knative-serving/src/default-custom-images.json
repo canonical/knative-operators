@@ -1,6 +1,6 @@
 {
     "activator": "charmedkubeflow/knative-serving-activator:1.16.0-2a3354f",
-    "autoscaler": "charmedkubeflow/knative-serving-autoscaler:1.16.0-be87e8e",
+    "autoscaler": "docker.io/charmedkubeflow/knative-serving-autoscaler:1.16.0-7568835",
     "controller": "charmedkubeflow/knative-serving-controller:1.16.0-2596560",
     "webhook": "charmedkubeflow/knative-serving-webhook:1.16.0-692cdbd",
     "autoscaler-hpa": "charmedkubeflow/knative-serving-autoscaler-hpa:1.16.0-9f36110",
