@@ -34,6 +34,8 @@ DEFAULT_IMAGES_FILE = "src/default-custom-images.json"
 with open(DEFAULT_IMAGES_FILE, "r") as json_file:
     DEFAULT_IMAGES = json.load(json_file)
 
+EVENTING_NAMESPACE = "knative-eventing"
+
 
 class KnativeEventingCharm(CharmBase):
     """A charm for creating Knative Eventing instances via the Knative Operator."""
@@ -45,6 +47,7 @@ class KnativeEventingCharm(CharmBase):
         self._namespace = self.model.name
         self._resource_handler = None
 
+        self.framework.observe(self.on.install, self._main)
         self.framework.observe(self.on.config_changed, self._main)
         self.framework.observe(
             self.on["otel-collector"].relation_changed, self._on_otel_collector_relation_changed
@@ -89,9 +92,6 @@ class KnativeEventingCharm(CharmBase):
         return custom_images
 
     def _main(self, event):
-        if not self.model.config["namespace"]:
-            self.model.unit.status = BlockedStatus("Config item `namespace` must be set")
-            return
         # Check the KnativeServing CRD is present; otherwise defer
         lightkube_client = Client()
         try:
@@ -144,7 +144,7 @@ class KnativeEventingCharm(CharmBase):
     def _context(self):
         context = {
             "app_name": self._app_name,
-            "eventing_namespace": self.model.config["namespace"],
+            "eventing_namespace": EVENTING_NAMESPACE,
             "eventing_version": self.model.config["version"],
             "custom_images": self._get_custom_images(),
         }

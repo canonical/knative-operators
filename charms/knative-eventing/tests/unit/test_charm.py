@@ -11,7 +11,7 @@ from charmed_kubeflow_chisme.lightkube.mocking import FakeApiError
 from lightkube import ApiError
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
-from charm import CUSTOM_IMAGE_CONFIG_NAME, DEFAULT_IMAGES_FILE
+from charm import CUSTOM_IMAGE_CONFIG_NAME, DEFAULT_IMAGES_FILE, EVENTING_NAMESPACE
 
 with open(DEFAULT_IMAGES_FILE, "r") as json_file:
     DEFAULT_IMAGES = json.load(json_file)
@@ -44,7 +44,7 @@ class _FakeApiError(ApiError):
 
 
 def test_events(harness, mocked_lightkube_client):
-    # Test install and config_changed event handlers are called
+    # Test install event handlers are called
     harness.begin()
     harness.charm._main = MagicMock()
     harness.charm._on_otel_collector_relation_changed = MagicMock()
@@ -60,7 +60,6 @@ def test_events(harness, mocked_lightkube_client):
 @patch("charm.Client")
 def test_active(lk_client, harness, mocked_lightkube_client):
     harness.begin_with_initial_hooks()
-    harness.update_config({"namespace": "test"})
     rel_id = harness.add_relation("otel-collector", "app")
     harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
     harness.charm.resource_handler.apply = MagicMock()
@@ -79,7 +78,7 @@ def test_missing_knative_eventing_crd(lk_client, harness, mocker, mocked_lightku
     rel_id = harness.add_relation("otel-collector", "app")
     harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
 
-    harness.update_config({"namespace": "test"})
+    harness.charm.on.install.emit()
     assert isinstance(harness.model.unit.status, WaitingStatus)
 
 
@@ -95,7 +94,7 @@ def test_error_getting_knative_eventing_crd(lk_client, harness, mocker, mocked_l
     harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
 
     with pytest.raises(GenericCharmRuntimeError):
-        harness.update_config({"namespace": "test"})
+        harness.charm.on.install.emit()
 
 
 @pytest.mark.parametrize(
@@ -136,11 +135,10 @@ def test_otel_collector_relation_changed(harness):
 
 
 def test_context_changes(harness):
-    harness.update_config({"namespace": "knative-eventing"})
     harness.begin()
     context = {
         "app_name": harness.charm.app.name,
-        "eventing_namespace": harness.model.config["namespace"],
+        "eventing_namespace": EVENTING_NAMESPACE,
         "eventing_version": harness.model.config["version"],
         CUSTOM_IMAGE_CONFIG_NAME: DEFAULT_IMAGES,
     }
