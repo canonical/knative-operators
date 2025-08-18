@@ -34,6 +34,7 @@ CUSTOM_IMAGE_CONFIG_NAME = "custom_images"
 DEFAULT_IMAGES_FILE = "src/default-custom-images.json"
 with open(DEFAULT_IMAGES_FILE, "r") as json_file:
     DEFAULT_IMAGES = json.load(json_file)
+SERVING_NAMESPACE = "knative-serving"
 
 
 class KnativeServingCharm(CharmBase):
@@ -50,6 +51,7 @@ class KnativeServingCharm(CharmBase):
         self._ingress_gateway_provider = GatewayProvider(self, relation_name="ingress-gateway")
         self._local_gateway_provider = GatewayProvider(self, relation_name="local-gateway")
 
+        self.framework.observe(self.on.install, self._main)
         self.framework.observe(self.on.config_changed, self._main)
         self.framework.observe(
             self.on["ingress-gateway"].relation_changed, self._on_ingress_gateway_relation_changed
@@ -100,9 +102,6 @@ class KnativeServingCharm(CharmBase):
         return custom_images
 
     def _main(self, event):
-        if not self.model.config["namespace"]:
-            self.model.unit.status = BlockedStatus("Config item `namespace` must be set")
-            return
 
         self._send_ingress_gateway_data()
         self._send_local_gateway_data()
@@ -141,7 +140,7 @@ class KnativeServingCharm(CharmBase):
         # FIXME: The local gateway name is hardcoded in the KnativeServing.yaml.j2
         self._local_gateway_provider.send_gateway_relation_data(
             gateway_name="knative-local-gateway",
-            gateway_namespace=self.model.config["namespace"],
+            gateway_namespace=SERVING_NAMESPACE,
         )
 
     def _on_otel_collector_relation_changed(self, _):
@@ -183,7 +182,7 @@ class KnativeServingCharm(CharmBase):
             "domain": self.model.config["domain.name"],
             "gateway_name": self.model.config["istio.gateway.name"],
             "gateway_namespace": self.model.config["istio.gateway.namespace"],
-            "serving_namespace": self.model.config["namespace"],
+            "serving_namespace": SERVING_NAMESPACE,
             "serving_version": self.model.config["version"],
             "custom_images": self._get_custom_images(),
             "progress_deadline": self.model.config["progress-deadline"],

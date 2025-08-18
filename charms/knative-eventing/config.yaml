@@ -6,10 +6,6 @@ options:
     default: "1.16.0"
     description: Version of knative-eventing component.
     type: string
-  namespace:
-    default: ""
-    description: The namespace to deploy Eventing to. This namespace cannot also contain another Knative Serving or Eventing instance. This configuration is required.
-    type: string
   custom_images:
     default: |
       eventing-controller/eventing-controller: ''
