@@ -7,5 +7,5 @@
     "net-istio-controller/controller": "charmedkubeflow/net-istio-controller:1.16.0-2ac1bad",
     "net-istio-webhook/webhook": "charmedkubeflow/net-istio-webhook:1.16.0-4214206",
     "queue-proxy": "charmedkubeflow/knative-serving-queue:1.16.0-18b14c8",
-    "migrate": "charmedkubeflow/migrate:1.16.0-36e94d5"
+    "migrate": "docker.io/charmedkubeflow/migrate:1.16.0-11dc39f"
 }
