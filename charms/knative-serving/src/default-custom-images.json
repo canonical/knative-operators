@@ -4,7 +4,7 @@
     "controller": "charmedkubeflow/knative-serving-controller:1.16.0-2596560",
     "webhook": "charmedkubeflow/knative-serving-webhook:1.16.0-692cdbd",
     "autoscaler-hpa": "charmedkubeflow/knative-serving-autoscaler-hpa:1.16.0-9f36110",
-    "net-istio-controller/controller": "charmedkubeflow/net-istio-controller:1.16.0-2ac1bad",
+    "net-istio-controller/controller": "docker.io/charmedkubeflow/net-istio-controller:1.16.0-c0aa991",
     "net-istio-webhook/webhook": "charmedkubeflow/net-istio-webhook:1.16.0-4214206",
     "queue-proxy": "charmedkubeflow/knative-serving-queue:1.16.0-18b14c8",
     "migrate": "charmedkubeflow/migrate:1.16.0-36e94d5"
