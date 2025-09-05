@@ -60,11 +60,7 @@ jobs:
         charm: [knative-operator, knative-serving, knative-eventing]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5.6.0
-        with:
-          python-version: "3.12"
-      - run: pip install tox
+      - run: pipx install tox
       - run: tox -e ${{ matrix.charm }}-lint
 
   unit:
@@ -76,11 +72,7 @@ jobs:
         charm: [knative-operator, knative-serving, knative-eventing]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5.6.0
-        with:
-          python-version: "3.12"
-      - run: pip install tox
+      - run: pipx install tox
       - run: tox -e ${{ matrix.charm }}-unit
 
   terraform-checks:
@@ -134,14 +126,15 @@ jobs:
 
       - name: Check out repo
         uses: actions/checkout@v4
+      - name: Install dependencies
+        run: pipx install tox
 
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: microk8s
-          channel: 1.32-strict/stable
-          juju-channel: 3.6/stable
-          microk8s-addons: "dns storage rbac metallb:10.64.140.43-10.64.140.49"
+      - name: Setup environment
+        run: |
+          sudo apt-get remove -y docker-ce docker-ce-cli containerd.io
+          sudo rm -rf /run/containerd
+          sudo snap install concierge --classic
+          sudo concierge prepare --trace
 
       - name: Download packed charm(s)
         id: download-charms
@@ -190,14 +183,15 @@ jobs:
 
       - name: Check out repo
         uses: actions/checkout@v4
+      - name: Install dependencies
+        run: pipx install tox
 
-      - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@main
-        with:
-          provider: microk8s
-          channel: 1.32-strict/stable
-          juju-channel: 3.6/stable
-          microk8s-addons: "dns storage rbac metallb:10.64.140.43-10.64.140.49"
+      - name: Setup environment
+        run: |
+          sudo apt-get remove -y docker-ce docker-ce-cli containerd.io
+          sudo rm -rf /run/containerd
+          sudo snap install concierge --classic
+          sudo concierge prepare --trace
 
       - name: Download packed charm(s)
         id: download-charms
