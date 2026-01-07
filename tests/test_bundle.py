@@ -10,6 +10,11 @@ import pytest
 import pytest_asyncio
 import requests
 import yaml
+from charmed_kubeflow_chisme.testing import (
+    assert_security_context,
+    generate_container_securitycontext_map,
+    get_pod_names,
+)
 from charms_dependencies import ISTIO_GATEWAY, ISTIO_PILOT
 from lightkube import ApiError, Client
 from lightkube.generic_resource import create_namespaced_resource
@@ -59,6 +64,23 @@ HELLOWORLD_EXAMPLE_IMAGE = yaml.safe_load(
 CLOUDEVENTS_MANIFEST = lightkube.codecs.load_all_yaml(
     Path("./examples/cloudevents-player.yaml").read_text()
 )
+
+KNATIVE_EVENTING_CONTAINERS_SECURITY_CONTEXT_MAP = generate_container_securitycontext_map(
+    KNATIVE_EVENTING_METADATA
+)
+KNATIVE_OPERATOR_CONTAINERS_SECURITY_CONTEXT_MAP = generate_container_securitycontext_map(
+    KNATIVE_OPERATOR_METADATA
+)
+KNATIVE_SERVING_CONTAINERS_SECURITY_CONTEXT_MAP = generate_container_securitycontext_map(
+    KNATIVE_SERVING_METADATA
+)
+
+
+@pytest.fixture(scope="session")
+def lightkube_client() -> Client:
+    """Returns lightkube Kubernetes client"""
+    client = Client()
+    return client
 
 
 @pytest.mark.abort_on_fail
@@ -521,3 +543,72 @@ async def test_serving_proxy_config(ops_test: OpsTest):
             assert http_proxy_env == test_http_proxy
             assert https_proxy_env == test_https_proxy
             assert no_proxy_env == test_no_proxy
+
+
+@pytest.mark.parametrize(
+    "container_name", list(KNATIVE_EVENTING_CONTAINERS_SECURITY_CONTEXT_MAP.keys())
+)
+async def test_knative_eventing_container_security_context(
+    ops_test: OpsTest,
+    lightkube_client: Client,
+    container_name: str,
+):
+    """Test container security context is correctly set.
+
+    Verify that container spec defines the security context with correct
+    user ID and group ID.
+    """
+    pod_name = get_pod_names(KNATIVE_EVENTING_NAMESPACE, KNATIVE_EVENTING_METADATA["name"])[0]
+    assert_security_context(
+        lightkube_client,
+        pod_name,
+        container_name,
+        KNATIVE_EVENTING_CONTAINERS_SECURITY_CONTEXT_MAP,
+        KNATIVE_EVENTING_NAMESPACE,
+    )
+
+
+@pytest.mark.parametrize(
+    "container_name", list(KNATIVE_OPERATOR_CONTAINERS_SECURITY_CONTEXT_MAP.keys())
+)
+async def test_knative_operator_container_security_context(
+    ops_test: OpsTest,
+    lightkube_client: Client,
+    container_name: str,
+):
+    """Test container security context is correctly set.
+
+    Verify that container spec defines the security context with correct
+    user ID and group ID.
+    """
+    pod_name = get_pod_names(ops_test.model_name, KNATIVE_OPERATOR_METADATA["name"])[0]
+    assert_security_context(
+        lightkube_client,
+        pod_name,
+        container_name,
+        KNATIVE_OPERATOR_CONTAINERS_SECURITY_CONTEXT_MAP,
+        ops_test.model_name,
+    )
+
+
+@pytest.mark.parametrize(
+    "container_name", list(KNATIVE_SERVING_CONTAINERS_SECURITY_CONTEXT_MAP.keys())
+)
+async def test_knative_serving_container_security_context(
+    ops_test: OpsTest,
+    lightkube_client: Client,
+    container_name: str,
+):
+    """Test container security context is correctly set.
+
+    Verify that container spec defines the security context with correct
+    user ID and group ID.
+    """
+    pod_name = get_pod_names(KNATIVE_SERVING_NAMESPACE, KNATIVE_SERVING_METADATA["name"])[0]
+    assert_security_context(
+        lightkube_client,
+        pod_name,
+        container_name,
+        KNATIVE_SERVING_CONTAINERS_SECURITY_CONTEXT_MAP,
+        KNATIVE_SERVING_NAMESPACE,
+    )
