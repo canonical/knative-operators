@@ -616,6 +616,11 @@ async def test_additional_pods_container_security_context(
             KNATIVE_SERVING_METADATA,
         ),
     ],
+    ids=[
+        f"{KNATIVE_EVENTING_METADATA["name"]}",
+        f"{KNATIVE_OPERATOR_METADATA["name"]}",
+        f"{KNATIVE_SERVING_METADATA["name"]}",
+    ],
 )
 async def test_container_security_context(
     ops_test: OpsTest,
@@ -623,6 +628,11 @@ async def test_container_security_context(
     container_securitycontext_map: dict,
     metadata: dict,
 ):
+    """Test container security context is correctly set.
+
+    Verify that container spec defines the security context with correct
+    user ID and group ID.
+    """
     pod_name = get_pod_names(ops_test.model_name, metadata["name"])[0]
     failed_checks = []
     for container_name in container_securitycontext_map.keys():
