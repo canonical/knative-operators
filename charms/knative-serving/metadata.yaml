@@ -19,3 +19,4 @@ provides:
 requires:
   otel-collector:
     interface: otel-collector
+charm-user: non-root
