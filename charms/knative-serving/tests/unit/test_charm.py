@@ -10,7 +10,7 @@ from charmed_kubeflow_chisme.lightkube.mocking import FakeApiError
 from lightkube import ApiError
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 
-from charm import CUSTOM_IMAGE_CONFIG_NAME, DEFAULT_IMAGES
+from charm import CUSTOM_IMAGE_CONFIG_NAME, DEFAULT_IMAGES, SERVING_NAMESPACE
 
 
 class _FakeResponse:
@@ -56,7 +56,6 @@ def test_events(harness, mocked_lightkube_client):
 @patch("charm.Client")
 def test_active(lk_client, harness, mocked_lightkube_client):
     harness.begin_with_initial_hooks()
-    harness.update_config({"namespace": "test"})
     rel_id = harness.add_relation("otel-collector", "app")
     harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
     harness.charm.resource_handler.apply = MagicMock()
@@ -74,8 +73,7 @@ def test_missing_knative_serving_crd(lk_client, harness, mocker, mocked_lightkub
     # Set the relation to otel-collector
     rel_id = harness.add_relation("otel-collector", "app")
     harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
-
-    harness.update_config({"namespace": "test"})
+    harness.charm.on.install.emit()
     assert isinstance(harness.model.unit.status, WaitingStatus)
 
 
@@ -91,7 +89,7 @@ def test_error_getting_knative_serving_crd(lk_client, harness, mocker, mocked_li
     harness.update_relation_data(rel_id, "app", {"some-key": "some-value"})
 
     with pytest.raises(GenericCharmRuntimeError):
-        harness.update_config({"namespace": "test"})
+        harness.charm.on.install.emit()
 
 
 @pytest.mark.parametrize(
@@ -131,10 +129,10 @@ def test_apply_and_set_status_blocked(
         ),
         (
             "local-gateway",
-            {"namespace": "test-serving"},
+            {},
             {
                 "gateway_name": "knative-local-gateway",
-                "gateway_namespace": "test-serving",
+                "gateway_namespace": SERVING_NAMESPACE,
                 "gateway_up": "true",
             },
         ),
@@ -190,7 +188,6 @@ def test_otel_collector_relation_changed(harness):
 def test_context_changes(harness):
     harness.update_config(
         {
-            "namespace": "knative-serving",
             "istio.gateway.name": "knative-gateway",
             "istio.gateway.namespace": "istio-namespace",
             "http-proxy": "my_http_proxy",
@@ -206,7 +203,7 @@ def test_context_changes(harness):
         "gateway_namespace": harness.model.config["istio.gateway.namespace"],
         "progress_deadline": harness.model.config["progress-deadline"],
         "registries_skip_tag_resolving": harness.model.config["registries-skipping-tag-resolving"],
-        "serving_namespace": harness.model.config["namespace"],
+        "serving_namespace": SERVING_NAMESPACE,
         "serving_version": harness.model.config["version"],
         "http_proxy": harness.model.config["http-proxy"],
         "https_proxy": harness.model.config["https-proxy"],

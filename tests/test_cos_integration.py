@@ -66,7 +66,6 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest, request):
         knative_serving,
         application_name="knative-serving",
         config={
-            "namespace": f"{ops_test.model_name}-serving",
             "istio.gateway.namespace": ops_test.model_name,
         },
         trust=True,
@@ -75,7 +74,6 @@ async def test_build_deploy_knative_charms(ops_test: OpsTest, request):
     await ops_test.model.deploy(
         knative_eventing,
         application_name="knative-eventing",
-        config={"namespace": f"{ops_test.model_name}-eventing"},
         trust=True,
     )
 
