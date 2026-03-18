@@ -6,6 +6,10 @@ options:
     default: "1.16.0"
     description: Version of knative-serving component.
     type: string
+  namespace:
+    default: ""
+    description: "DEPRECATED: This option is deprecated and does not perform any function. It is retained only for backwards compatibility and will be removed in a future release."
+    type: string
   domain.name:
     default: "10.64.140.43.nip.io"
     description: The domain name used for all fully-qualified route names shown
