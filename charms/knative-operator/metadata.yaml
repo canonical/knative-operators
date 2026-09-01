@@ -32,5 +32,5 @@ resources:
   knative-operator-webhook-image:
     type: oci-image
     description: OCI image for knative-operator's operator-webhook component
-    upstream-source: charmedkubeflow/knative-webhook:1.16.0-f82a64b
+    upstream-source: docker.io/charmedkubeflow/knative-webhook:1.16.0-e38e0f2-20260901031101
 charm-user: non-root
